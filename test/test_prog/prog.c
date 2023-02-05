@@ -50,10 +50,27 @@ void forkexample()
         printf("Hello from Parent!\n");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    rec_fork();
-    // forkexample();
-    // fork_exec();
+    int test_case_idx = 1;
+    
+    if(argc > 1) {
+        test_case_idx = atoi(argv[1]);
+    }
+
+    switch(test_case_idx) {
+        case 1:
+            rec_fork();
+        break;
+        case 2:
+            forkexample();
+        break;
+        case 3:
+            fork_exec();
+            break;
+        default:
+            printf("Unknown test case ID\n");
+        break;
+    }
     return 0;
 }
