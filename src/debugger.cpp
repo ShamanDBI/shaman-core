@@ -174,7 +174,9 @@ class TraceeInfo {
 		// tracee is put in this state when it has sent request to
 		// kernel and the kernel is processing system call, this 
 		// mean syscall enter has already occured
-		SYSCALL, 
+		SYSCALL,
+		// the process has existed and object is avaliable to free
+		EXITED, 
 		UNKNOWN
 	} state ;
 
@@ -222,6 +224,14 @@ public:
 		state = TraceeState::SYSCALL;
 	}
 
+	void toStateExited() {
+		state = TraceeState::EXITED;
+	}
+
+	bool hasExited() {
+		return state == TraceeState::EXITED;
+	}
+
 	int contExecution(uint32_t sig) {
 		// int debug_flag = 
 		int pt_ret = -1;
@@ -254,6 +264,9 @@ public:
 			case TraceeState::SYSCALL:
 				cout << "SYSCALL";
 				break;
+			case TraceeState::EXITED:
+				cout << "EXITED";
+				break;
 			case TraceeState::UNKNOWN:
 				cout << "UNKNOWN";
 				break;
@@ -268,10 +281,12 @@ public:
 			trap_reason.status == TrapReason::VFORK ) {
 			debugger.addChildTracee(trap_reason.pid);
 			contExecution(0);
-		} else if( trap_reason.status == TrapReason::EXEC || 
-					trap_reason.status == TrapReason::EXIT ) {
-			cout << endl;
+		} else if( trap_reason.status == TrapReason::EXEC) {
 			contExecution(0);
+		} else if( trap_reason.status == TrapReason::EXIT ) {
+			// toStateExited();
+			contExecution(0);
+			cout << endl;
 		} else if(trap_reason.status == TrapReason::SYSCALL) {
 			// this state mean the tracee execution is handed to the
 			// kernel for syscall process, 
@@ -323,11 +338,11 @@ public:
 				switch (event.type) {
 					case TraceeEvent::EXITED:
 						cout << "EXITED : process "<< pid_sig << " has exited!" << endl;
-						debugger.dropChildTracee(pid_sig);
+						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
 						cout << "SIGNALLED : process" << pid_sig << " terminated by a signal!" << endl;
-						debugger.dropChildTracee(pid_sig);
+						toStateExited();
 						break;
 					case TraceeEvent::STOPPED:
 						cout << "STOPPED : ";
@@ -368,7 +383,7 @@ public:
 						// 	this is like cutting the branch you are setting on
 						// 	you are deleting yourself, figure out a better way
 						//  of handle this
-						debugger.dropChildTracee(pid_sig);
+						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
 						cout << "SIGNALLED : process" << pid_sig << " terminated by a signal!" << endl;
@@ -376,7 +391,7 @@ public:
 						// 	this is like cutting the branch you are setting on
 						// 	you are deleting yourself, figure out a better way
 						//  of handle this
-						debugger.dropChildTracee(pid_sig);
+						toStateExited();
 						break;
 					case TraceeEvent::STOPPED:
 						if(trap_reason.status == TrapReason::SYSCALL) {
@@ -498,7 +513,7 @@ int Debugger::spawn(const char * prog, char ** argv) {
 	}
 	cout << "New Child spawed! PID : " << childPid << endl;
 	
-	tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this, DebugType::SYSCALL)));
+	tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this)));
 }
 
 void Debugger::addChildTracee(pid_t child_tracee_pid) {
@@ -506,11 +521,12 @@ void Debugger::addChildTracee(pid_t child_tracee_pid) {
 		cout << "FATAL : Whhaat tthhhee.... heelll...., child id cannot be zero! Not adding child to the list" << endl;
 	} else {
 		cout << "New child "<< child_tracee_pid << " is added to trace list!" << endl;
-		tracees.insert(make_pair(child_tracee_pid, new TraceeInfo(child_tracee_pid, *this, DebugType::SYSCALL)));
+		tracees.insert(make_pair(child_tracee_pid, new TraceeInfo(child_tracee_pid, *this)));
 	}
 }
 
 void Debugger::dropChildTracee(pid_t child_tracee_pid) {
+	cout << "Dropping child tracee PID : " << child_tracee_pid << endl;
 	tracees.erase(child_tracee_pid);
 }
 
@@ -658,6 +674,10 @@ void Debugger::eventLoop() {
 		if (tracee_info) {
 			TrapReason trap_reason = getTrapReason(event, tracee_info);
 			tracee_info->processState(event, trap_reason);
+			if (tracee_info->hasExited()) {
+				dropChildTracee(tracee_info->pid);
+				delete tracee_info;
+			}
 		}
 		// processTraceeState(tracee_info, trap_reason);
 	}
@@ -671,7 +691,7 @@ int main() {
 	// debug.spawn("/bin/echo", argument_list);
 	// debug.event_loop2();
 
-	char* argument_listd[] = {"/local/mnt/workspace/pdev/ptrace-debugger/test/test_prog/prog", "2", NULL};
+	char* argument_listd[] = {"/local/mnt/workspace/pdev/ptrace-debugger/test/test_prog/prog", "1", NULL};
 	debug.spawn("/local/mnt/workspace/pdev/ptrace-debugger/test/test_prog/prog", argument_listd);
 	debug.eventLoop();
 	
