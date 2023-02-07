@@ -23,14 +23,6 @@
 #include "ptrace.h"
 using namespace std;
 
-#define NO_SYSCALL (-1)
-
-#ifndef MAP_ANONYMOUS
-#define MAP_ANONYMOUS MAP_ANON
-#ifndef MAP_ANON
-#define MAP_ANON 0x20
-#endif
-#endif
 
 // Taken from : https://gist.github.com/SBell6hf/77393dac37939a467caf8b241dc1676b
 
@@ -133,8 +125,7 @@ struct TrapReason {
 
 class Debugger {
 
-	int childPid;
-	std::map<pid_t, TraceeInfo*> tracees;
+	std::map<pid_t, TraceeInfo*> m_Tracees;
 
 public:
 
@@ -142,13 +133,15 @@ public:
 
 	void addChildTracee(pid_t child_tracee_pid);
 
-	void dropChildTracee(pid_t child_tracee_pid);
+	void dropChildTracee(TraceeInfo* child_tracee);
 
 	void printAllTraceesInfo();
 
 	TrapReason getTrapReason(TraceeEvent event, TraceeInfo* tracee_info);
 
 	void eventLoop();
+
+	bool isBreakpointTrap(pid_t tracee_pid);
 
 };
 
@@ -183,23 +176,23 @@ class TraceeInfo {
 	DebugType debugType;	
 	Debugger& debugger;
 public:
-	pid_t pid; // tracee pid
+	pid_t m_pid; // tracee pid
 	// TraceeEvent event; // this represnt current event of event loop
 
 	// this is used when new tracee is found
 	TraceeInfo(pid_t tracee_id, Debugger& debugger, DebugType debug_type): \
-		pid(tracee_id), debugType(debug_type), \
+		m_pid(tracee_id), debugType(debug_type), \
 		debugger(debugger), \
 		state(TraceeState::INITIAL_STOP) {}
 	
 	TraceeInfo(pid_t tracee_id, Debugger& debugger): \
-		pid(tracee_id), debugType(DebugType::DEFAULT), \
+		m_pid(tracee_id), debugType(DebugType::DEFAULT), \
 		debugger(debugger), \
 		state(TraceeState::INITIAL_STOP) {}
 
 	// Default constructor initializes all the invalid state/value
 	TraceeInfo(Debugger& debugger): \
-		pid(-1), debugType(DebugType::DEFAULT), \
+		m_pid(-1), debugType(DebugType::DEFAULT), \
 		debugger(debugger), \
 		state(TraceeState::UNKNOWN) {}
 
@@ -239,12 +232,12 @@ public:
 		// cout << endl << " DEbug type " << debugType << " "<< DebugType::DEFAULT << "=" << mode << "PID " << pid << endl;
 		if (debugType & DebugType::DEFAULT) {
 			// cout << "contExec Tracee CONT" << endl;
-			pt_ret = ptrace(PTRACE_CONT, pid, 0L, sig);
+			pt_ret = ptrace(PTRACE_CONT, m_pid, 0L, sig);
 		} else if (debugType & DebugType::SYSCALL) {
 			// cout << "contExec Tracee Syscall" << endl;
-			pt_ret = ptrace(PTRACE_SYSCALL, pid, 0L, sig);
+			pt_ret = ptrace(PTRACE_SYSCALL, m_pid, 0L, sig);
 		} else if (debugType & DebugType::SINGLE_STEP) {
-			pt_ret = ptrace(PTRACE_SINGLESTEP, pid, 0L, sig);
+			pt_ret = ptrace(PTRACE_SINGLESTEP, m_pid, 0L, sig);
 		}
 		if(pt_ret < 0) {
 			cout << "ERROR : ptrace continue call failed! Err code : " << pt_ret << endl;
@@ -253,7 +246,7 @@ public:
 	}
 
 	void printStatus() {
-		cout << "PID : " << pid << " State : ";
+		cout << "PID : " << m_pid << " State : ";
 		switch (state) {
 			case TraceeState::INITIAL_STOP:
 				cout << "INIT Stop";
@@ -303,7 +296,6 @@ public:
 	void processState(TraceeEvent event, TrapReason trap_reason) {
 		// restrict the changing of tracee state to this function only
 		int ret = 0;
-		pid_t pid_sig = pid;
 
 		switch(state) {
 			case UNKNOWN:
@@ -311,7 +303,7 @@ public:
 				break;
 			case INITIAL_STOP:
 				cout << "Initial Stop, prepaing the tracee!" << endl;
-				ret = ptrace(PTRACE_SETOPTIONS, pid_sig, 0, 
+				ret = ptrace(PTRACE_SETOPTIONS, m_pid, 0, 
 					PTRACE_O_TRACECLONE   |
 					PTRACE_O_TRACEEXEC    |
 					PTRACE_O_TRACEEXIT    |
@@ -319,29 +311,25 @@ public:
 					PTRACE_O_TRACESYSGOOD |
 					PTRACE_O_TRACEVFORK
 				);
+
 				if (ret == -1) {
-					cout << "Error occured while setting options" << endl;
+					cout << "Error occured while setting ptrace options" << endl;
 				}
-				// ret = ptrace(PTRACE_CONT, pid_sig, 0L, 0L);
-				// ret = ptrace(PTRACE_SYSCALL , pid_sig, 0L, 0L);
-				contExecution(0);
-				if (ret == -1) {
-					cout << "Error occured while continuee tracee" << endl;
-				}
-				// put the tracee in the RUNNING state
-				// tracees[pid_sig] = RUNNING;
+
 				toStateRunning();
+				contExecution(0);
+
 				break;
 			case RUNNING:
 				cout << "RUNNING" << endl;
 				
 				switch (event.type) {
 					case TraceeEvent::EXITED:
-						cout << "EXITED : process "<< pid_sig << " has exited!" << endl;
+						cout << "EXITED : process "<< m_pid << " has exited!" << endl;
 						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
-						cout << "SIGNALLED : process" << pid_sig << " terminated by a signal!" << endl;
+						cout << "SIGNALLED : process" << m_pid << " terminated by a signal!" << endl;
 						toStateExited();
 						break;
 					case TraceeEvent::STOPPED:
@@ -349,7 +337,7 @@ public:
 						if(trap_reason.status == TrapReason::SYSCALL) {
 							toStateSysCall();
 							cout << "SYSCALL ENTER" << endl;
-							printSyscall(pid);
+							printSyscall(m_pid);
 						}
 						processPtraceEvent(event, trap_reason);
 						break;
@@ -378,7 +366,7 @@ public:
 				*/
 				switch (event.type) {
 					case TraceeEvent::EXITED:
-						cout << "EXITED : process "<< pid_sig << " has exited!" << endl;
+						cout << "EXITED : process "<< m_pid << " has exited!" << endl;
 						// TODO:
 						// 	this is like cutting the branch you are setting on
 						// 	you are deleting yourself, figure out a better way
@@ -386,7 +374,7 @@ public:
 						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
-						cout << "SIGNALLED : process" << pid_sig << " terminated by a signal!" << endl;
+						cout << "SIGNALLED : process" << m_pid << " terminated by a signal!" << endl;
 						// TODO:
 						// 	this is like cutting the branch you are setting on
 						// 	you are deleting yourself, figure out a better way
@@ -488,14 +476,14 @@ void PrintTraceeStatus(TraceeEvent event) {
 
 
 int Debugger::spawn(const char * prog, char ** argv) {
-	childPid = fork();
+	pid_t childPid = fork();
 	if (childPid == -1) {
 		printf("error: fork() failed\n");
 		return -1;
 	}
 
 	if (childPid == 0) {
-		if (ptrace(PTRACE_TRACEME, 0, NULL, NULL)) {
+		if (ptrace(PTRACE_TRACEME, 0, 0, 0)) {
 			return -1;
 		}
 		int status_code = execvp(prog, argv);
@@ -513,7 +501,7 @@ int Debugger::spawn(const char * prog, char ** argv) {
 	}
 	cout << "New Child spawed! PID : " << childPid << endl;
 	
-	tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this)));
+	m_Tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this)));
 }
 
 void Debugger::addChildTracee(pid_t child_tracee_pid) {
@@ -521,19 +509,21 @@ void Debugger::addChildTracee(pid_t child_tracee_pid) {
 		cout << "FATAL : Whhaat tthhhee.... heelll...., child id cannot be zero! Not adding child to the list" << endl;
 	} else {
 		cout << "New child "<< child_tracee_pid << " is added to trace list!" << endl;
-		tracees.insert(make_pair(child_tracee_pid, new TraceeInfo(child_tracee_pid, *this)));
+		m_Tracees.insert(make_pair(child_tracee_pid, new TraceeInfo(child_tracee_pid, *this)));
 	}
 }
 
-void Debugger::dropChildTracee(pid_t child_tracee_pid) {
-	cout << "Dropping child tracee PID : " << child_tracee_pid << endl;
-	tracees.erase(child_tracee_pid);
+void Debugger::dropChildTracee(TraceeInfo* child_tracee) {
+	cout << "Dropping child tracee PID : " << child_tracee->m_pid << endl;
+	m_Tracees.erase(child_tracee->m_pid);
+	delete child_tracee;
+	// child_tracee = nullptr;
 }
 
 void Debugger::printAllTraceesInfo() {
 	cout << "Tracee state " << endl;
-	TraceeInfo *tc_info = NULL;
-	for (auto i = tracees.begin(); i != tracees.end(); i++) {
+	TraceeInfo *tc_info = nullptr;
+	for (auto i = m_Tracees.begin(); i != m_Tracees.end(); i++) {
 		cout << "ID : " << i->first << " ";
 		tc_info = i->second;
 		tc_info->printStatus();
@@ -541,9 +531,30 @@ void Debugger::printAllTraceesInfo() {
 	cout << endl;
 }
 
+bool Debugger::isBreakpointTrap(pid_t tracee_pid) {
+	siginfo_t info;
+	ptrace(PTRACE_GETSIGINFO, tracee_pid, nullptr, &info);
+	cout <<"BK " << info.si_code << endl;
+	switch (info.si_code) {
+	//one of these will be set if a breakpoint was hit
+	case SI_KERNEL:
+	case TRAP_BRKPT:
+	{
+		std::cout << "Hit breakpoint at address" << endl;
+		break;
+	}
+	//this will be set if the signal was sent by single stepping
+	case TRAP_TRACE:
+		cout << "Breakpoint test" << endl;
+	default:
+		std::cout << "Unknown SIGTRAP code " << info.si_code << std::endl;
+		cout << "Breakpoint test" << endl;
+	}
+}
+
 TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeInfo* tracee_info) {
 	pid_t new_pid = -1;
-	pid_t pid_sig = tracee_info->pid;
+	pid_t pid_sig = tracee_info->m_pid;
 
 	TrapReason trap_reason = { TrapReason::INVALID, -1 };
 
@@ -580,6 +591,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeInfo* tracee_info) {
 		} else {
 			if(tracee_info->isInitialized()) {
 				cout << "Couldn't Find Why are we trapped! Need to handle this" << endl;
+				isBreakpointTrap(pid_sig);
 			}
 		}
 	} else if (event.type == TraceeEvent::STOPPED && PT_IF_SYSCALL(event.stopped.signal)) {
@@ -597,13 +609,13 @@ void Debugger::eventLoop() {
 	// TraceeState state;
 	TraceeEvent event;
 	// TraceeInfo invalid_tracee TraceeInfo(*this);
-	TraceeInfo *tracee_info;
+	TraceeInfo *traceeInfo;
 	TraceeEvent invalid_event = TraceeEvent();
 
-	while(!tracees.empty()) {
+	while(!m_Tracees.empty()) {
 		cout << "------------------------------" << endl;
 		pt_sig_info.si_pid = 0;	
-		tracee_info = NULL;
+		traceeInfo = nullptr;
 		event = invalid_event;
 
 		printAllTraceesInfo();
@@ -624,40 +636,40 @@ void Debugger::eventLoop() {
 			cout << "Special Case of waitid(), please handle it!" << endl;
 			exit(-1);
 		}
-		cout << "Signaled Pid : " << pid_sig << endl;
+		cout << "Signaled Pid : " << pid_sig << " SI Code : " << pt_sig_info.si_code << endl;
 
-		auto tracee_iter = tracees.find(pid_sig);
-		if (tracee_iter != tracees.end()) {
+		auto tracee_iter = m_Tracees.find(pid_sig);
+		if (tracee_iter != m_Tracees.end()) {
 			// tracee is found, its under over management
-			tracee_info = tracee_iter->second;
+			traceeInfo = tracee_iter->second;
 		} else {
 			cout<<"Tracee not found!\n" << endl;
-			tracee_info = NULL;
+			traceeInfo = nullptr;
 		}
 		
 		// cout << "TS : " ;
 		// PrintTraceeState(state);
 		// cout << endl;
 
-		if (tracee_info == NULL) {
+		if (traceeInfo == nullptr) {
 			cout << "Tracee is not under over management" << endl;
 			// reset the current processed tracee info
 			event = invalid_event;
 			pid_sig = -1;
 			bool found_event = false;
-			for (auto i = tracees.begin(); i != tracees.end(); i++) {
+			for (auto i = m_Tracees.begin(); i != m_Tracees.end(); i++) {
 				pid_t tracee_pid = i->first;
 				TraceeEvent ts_event = my_waitpid(tracee_pid);
-				tracee_info = i->second;
+				traceeInfo = i->second;
 				cout << "Inspecting ";
-				tracee_info->printStatus();
+				traceeInfo->printStatus();
 				PrintTraceeStatus(ts_event);
 				cout << endl;
 				if (ts_event.isValidEvent()) {
 					found_event = true;
 					cout << "Event from PID : " << tracee_pid << endl;
 					pid_sig = tracee_pid;
-					tracee_info = tracees[pid_sig];
+					traceeInfo = m_Tracees[pid_sig];
 					event = ts_event;
 					break;
 				}
@@ -671,12 +683,11 @@ void Debugger::eventLoop() {
 
 		cout << "EL "; PrintTraceeStatus(event); cout << endl;
 		// cout << "Tracee Event : " << event.type << endl;
-		if (tracee_info) {
-			TrapReason trap_reason = getTrapReason(event, tracee_info);
-			tracee_info->processState(event, trap_reason);
-			if (tracee_info->hasExited()) {
-				dropChildTracee(tracee_info->pid);
-				delete tracee_info;
+		if (traceeInfo) {
+			TrapReason trap_reason = getTrapReason(event, traceeInfo);
+			traceeInfo->processState(event, trap_reason);
+			if (traceeInfo->hasExited()) {
+				dropChildTracee(traceeInfo);				
 			}
 		}
 		// processTraceeState(tracee_info, trap_reason);
@@ -691,8 +702,8 @@ int main() {
 	// debug.spawn("/bin/echo", argument_list);
 	// debug.event_loop2();
 
-	char* argument_listd[] = {"/local/mnt/workspace/pdev/ptrace-debugger/test/test_prog/prog", "1", NULL};
-	debug.spawn("/local/mnt/workspace/pdev/ptrace-debugger/test/test_prog/prog", argument_listd);
+	char* argument_listd[] = {"/local/mnt/workspace/pdev/ptrace-debugger/bin/test_prog", "4", NULL};
+	debug.spawn(argument_listd[0], argument_listd);
 	debug.eventLoop();
 	
 	cout << "Good Bye!" << endl;

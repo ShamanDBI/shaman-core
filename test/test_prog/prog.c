@@ -1,5 +1,32 @@
 #include <stdio.h>
 #include <sys/types.h>
+ #include <sys/mman.h>
+
+void test_brk_point() {
+    printf("Helloo.. this is breakpoint test program");
+    int N=5;
+    int *ptr = mmap ( NULL, N*sizeof(int),
+    PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
+    asm("int $3");
+
+    if(ptr == MAP_FAILED){
+        printf("Mapping Failed\n");
+        return;
+    }
+
+    for(int i=0; i<N; i++)
+        ptr[i] = i*10;
+
+    for(int i=0; i<N; i++)
+        printf("[%d] ",ptr[i]);
+
+    asm("int $3");
+    printf("\n");
+    int err = munmap(ptr, 10*sizeof(int));
+    if(err != 0){
+        printf("UnMapping Failed\n");
+    }
+}
 
 void rec_fork() {
     fork();
@@ -67,6 +94,9 @@ int main(int argc, char *argv[])
         break;
         case 3:
             fork_exec();
+            break;
+        case 4:
+            test_brk_point();
             break;
         default:
             printf("Unknown test case ID\n");
