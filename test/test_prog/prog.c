@@ -1,25 +1,32 @@
 #include <stdio.h>
 #include <sys/types.h>
- #include <sys/mman.h>
+#include <sys/mman.h>
+#include<stdio.h>
+#include<fcntl.h>
+
 
 void test_brk_point() {
-    printf("Helloo.. this is breakpoint test program");
+    printf("Helloo.. this is breakpoint test program\n");
     int N=5;
+    int fd = open("/hi/foo/file/system/foo.txt", O_RDONLY);
     int *ptr = mmap ( NULL, N*sizeof(int),
     PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
+    
+    printf("Strike Breakpoint 1\n");
     asm("int $3");
 
     if(ptr == MAP_FAILED){
         printf("Mapping Failed\n");
         return;
     }
-
+    close(fd);
     for(int i=0; i<N; i++)
         ptr[i] = i*10;
 
     for(int i=0; i<N; i++)
         printf("[%d] ",ptr[i]);
 
+    printf("Strike Breakpoint 2\n");
     asm("int $3");
     printf("\n");
     int err = munmap(ptr, 10*sizeof(int));
