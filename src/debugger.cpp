@@ -22,6 +22,8 @@
 #include <CLI/CLI.hpp>
 
 #include "memory.cpp"
+#include "modules.cpp"
+
 
 using namespace std;
 
@@ -49,7 +51,7 @@ void printSyscall(pid_t tracee_pid) {
 	}
 
 	auto rem_mem = RemoteMemory(tracee_pid);
-	auto rem_file_path = new Addr(regs.rsi, 100);
+	// auto rem_file_path = new Addr(regs.rsi, 100);
 
 	uint32_t syscall_id = regs.orig_rax;
 	
@@ -163,7 +165,7 @@ public:
 
 	void eventLoop();
 
-	bool isBreakpointTrap(siginfo_t tracee_pid);
+	bool isBreakpointTrap(siginfo_t* tracee_pid);
 
 };
 
@@ -193,34 +195,41 @@ class TraceeInfo {
 		// the process has existed and object is avaliable to free
 		EXITED, 
 		UNKNOWN
-	} state ;
+	} m_state ;
 
 	DebugType debugType;	
-	Debugger& debugger;
+	Debugger& m_debugger;
+	RemoteMemory* m_TraceeMemory;
+
+	std::map<uintptr_t, Breakpoint*> m_breakpoints;
+	
+	// this is brk point is saved to restore the breakpoint
+	// once it has executed, if there is no breakpoint has 
+	// hit then this value should be null
+	Breakpoint * pendingBrkPt = nullptr;
+
 public:
 	pid_t m_pid; // tracee pid
 	// TraceeEvent event; // this represnt current event of event loop
+	
+	~TraceeInfo () {
+		delete m_TraceeMemory;
+	}
 
 	// this is used when new tracee is found
-	TraceeInfo(pid_t tracee_id, Debugger& debugger, DebugType debug_type): \
-		m_pid(tracee_id), debugType(debug_type), \
-		debugger(debugger), \
-		state(TraceeState::INITIAL_STOP) {}
+	TraceeInfo(pid_t tracee_pid, Debugger& debugger, DebugType debug_type):
+		m_pid(tracee_pid), debugType(debug_type), 
+		m_debugger(debugger), m_TraceeMemory(new RemoteMemory(tracee_pid)),
+		m_state(TraceeState::INITIAL_STOP) {}
 	
-	TraceeInfo(pid_t tracee_id, Debugger& debugger): \
-		m_pid(tracee_id), debugType(DebugType::DEFAULT), \
-		debugger(debugger), \
-		state(TraceeState::INITIAL_STOP) {}
-
-	// Default constructor initializes all the invalid state/value
-	TraceeInfo(Debugger& debugger): \
-		m_pid(-1), debugType(DebugType::DEFAULT), \
-		debugger(debugger), \
-		state(TraceeState::UNKNOWN) {}
+	TraceeInfo(pid_t tracee_pid, Debugger& debugger):
+		m_pid(tracee_pid), debugType(DebugType::DEFAULT),
+		m_debugger(debugger), m_TraceeMemory(new RemoteMemory(tracee_pid)),
+		m_state(TraceeState::INITIAL_STOP) {}
 
 	// returns true if the tracee is in valid state
 	bool isValidState() {
-		return state != TraceeState::UNKNOWN;
+		return m_state != TraceeState::UNKNOWN;
 	}
 
 	DebugType getChildDebugType() {
@@ -231,23 +240,27 @@ public:
 		}
 	}
 
+	bool isInitialized(){
+		return m_state == INITIAL_STOP;
+	}
+
 	void toStateRunning() {
-		state = TraceeState::RUNNING;
+		m_state = TraceeState::RUNNING;
 	}
 
 	void toStateSysCall() {
-		state = TraceeState::SYSCALL;
+		m_state = TraceeState::SYSCALL;
 	}
 
 	void toStateExited() {
-		state = TraceeState::EXITED;
+		m_state = TraceeState::EXITED;
 	}
 
 	bool hasExited() {
-		return state == TraceeState::EXITED;
+		return m_state == TraceeState::EXITED;
 	}
 
-	int contExecution(uint32_t sig) {
+	int contExecution(uint32_t sig = 0) {
 		// int debug_flag = 
 		int pt_ret = -1;
 		int mode = debugType | DebugType::DEFAULT;
@@ -262,13 +275,20 @@ public:
 			pt_ret = ptrace(PTRACE_SINGLESTEP, m_pid, 0L, sig);
 		}
 		if(pt_ret < 0) {
-			spdlog::error("ERROR : ptrace continue call failed! Err code : {} ", pt_ret);
+			spdlog::error("ptrace continue call failed! Err code : {} ", pt_ret);
 		}
 		return pt_ret;
 	}
 
+	int singleStep() {
+		int pt_ret = ptrace(PTRACE_SINGLESTEP, m_pid, 0L, 0);
+		if(pt_ret < 0) {
+			spdlog::error("failed to single step! Err code : {} ", pt_ret);
+		}
+	}
+
 	string getStateString() {
-		switch (state) {
+		switch (m_state) {
 			case TraceeState::INITIAL_STOP:
 				return string("INIT Stop");
 				break;
@@ -296,31 +316,51 @@ public:
 		if (trap_reason.status == TrapReason::CLONE ||
 			trap_reason.status == TrapReason::FORK || 
 			trap_reason.status == TrapReason::VFORK ) {
-			debugger.addChildTracee(trap_reason.pid);
-			contExecution(0);
+			m_debugger.addChildTracee(trap_reason.pid);
+			contExecution();
 		} else if( trap_reason.status == TrapReason::EXEC) {
-			contExecution(0);
+			contExecution();
 		} else if( trap_reason.status == TrapReason::EXIT ) {
 			// toStateExited();
-			contExecution(0);
+			contExecution();
 		} else if(trap_reason.status == TrapReason::SYSCALL) {
 			// this state mean the tracee execution is handed to the
 			// kernel for syscall process, 
 			// NOTE: OS has not clear way to
 			// distingish if the call is syscall enter or exit
 			// and its debugger responsibity to track it
-			contExecution(0);
+			contExecution();
 		} else {
 			spdlog::warn("Not sure why we have stopped!");
 			contExecution(event.signaled.signal);
 		}
 	}
 
+	Breakpoint* getBreakpointObj(intptr_t bk_addr) {
+		auto brk_pnt_iter = m_breakpoints.find(bk_addr);
+		if (brk_pnt_iter != m_breakpoints.end()) {
+			// breakpoint is found, its under over management
+			return brk_pnt_iter->second;
+		} else {
+			spdlog::warn("No Breakpoint object found! This is very unusual!");
+			return nullptr;
+		}
+
+	}
+
+	void setBreakpointAtAddr(intptr_t brk_addr, string& label) {
+		Breakpoint* brk_pnt_obj = new Breakpoint(brk_addr, m_pid, label);
+		brk_pnt_obj->enable();
+		m_breakpoints.insert(make_pair(brk_addr, brk_pnt_obj));
+	}
+
 	void processState(TraceeEvent event, TrapReason trap_reason) {
 		// restrict the changing of tracee state to this function only
 		int ret = 0;
+		string lb = "loop";
+		auto proc_map = new ProcessMap(m_pid);
 
-		switch(state) {
+		switch(m_state) {
 			case UNKNOWN:
 				 spdlog::critical("FATAL : You cannot possibily be living in this state");
 				break;
@@ -339,9 +379,11 @@ public:
 					spdlog::error("Error occured while setting ptrace options while restarting the tracee!");
 				}
 
+				setBreakpointAtAddr(0x555555555383, lb);
 				toStateRunning();
-				contExecution(0);
-
+				proc_map->parse();
+				proc_map->print();
+				contExecution();
 				break;
 			case RUNNING:
 				spdlog::debug("RUNNING");
@@ -352,7 +394,7 @@ public:
 						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
-						spdlog::info("SIGNALLED : process {} terminated by a signal!!", m_pid);
+						spdlog::critical("SIGNALLED : process {} terminated by a signal!!", m_pid);
 						toStateExited();
 						break;
 					case TraceeEvent::STOPPED:
@@ -362,24 +404,43 @@ public:
 							spdlog::debug("SYSCALL ENTER");
 							printSyscall(m_pid);
 						} else if(trap_reason.status == TrapReason::BREAKPOINT) {
-							spdlog::debug("Please handle breakpoint!");
-							auto rem_mem = RemoteMemory(m_pid);
-							struct user_regs_struct* regs = rem_mem.readRegs();
-							auto rem_file_path = new Addr(regs->rip-1, 10);
-							rem_mem.read(rem_file_path, 10);
-							// ptrace(PTRACE_SINGLESTEP, m_pid, 0, 0);
-							contExecution(0);
+										
+							if (pendingBrkPt != nullptr) {
+								pendingBrkPt->enable();
+								contExecution();
+								pendingBrkPt = nullptr;
+							} else {
+								struct user_regs_struct* regs = m_TraceeMemory->getGPRegisters();
+								// PC points to the next instruction after execution
+								uintptr_t brk_addr = --regs->rip;
+								spdlog::debug("Breakpoint Hit! addr 0x{:x}", brk_addr);
+								// find the breakpoint object for further processing
+								auto brk_obj = getBreakpointObj(brk_addr);
+								pendingBrkPt = brk_obj;
+								
+								brk_obj->handle();
+
+								// restore the value of original breakpoint instruction
+								brk_obj->disable();
+								// restreat back to the instruction which caused the
+								// breakpoint trap
+								m_TraceeMemory->setGPRegisters(regs);
+								free(regs);
+								// this is done to restore the breakpoint
+								singleStep();
+							}
+							// contExecution();
 							break;
 						}
 						processPtraceEvent(event, trap_reason);
 						break;
 					case TraceeEvent::CONTINUED:
 						cout << "CONTINUED";
-						contExecution(0);
+						contExecution();
 						break;
 					default:
 						spdlog::error("ERROR : UNKNOWN state {}", event.type);
-						contExecution(0);
+						contExecution();
 				}
 				break;
 			case SYSCALL:
@@ -398,18 +459,10 @@ public:
 				switch (event.type) {
 					case TraceeEvent::EXITED:
 						spdlog::info("SYSCALL : EXITED : process {} has exited!", m_pid);
-						// TODO:
-						// 	this is like cutting the branch you are setting on
-						// 	you are deleting yourself, figure out a better way
-						//  of handle this
 						toStateExited();
 						break;
 					case TraceeEvent::SIGNALED:
-						spdlog::info("SYSCALL : SIGNALLED : process {} terminated by a signal!!", m_pid);
-						// TODO:
-						// 	this is like cutting the branch you are setting on
-						// 	you are deleting yourself, figure out a better way
-						//  of handle this
+						spdlog::critical("SYSCALL : SIGNALLED : process {} terminated by a signal!!", m_pid);
 						toStateExited();
 						break;
 					case TraceeEvent::STOPPED:
@@ -422,17 +475,13 @@ public:
 						break;
 					default:
 						spdlog::error("SYSCALL : ERROR : UNKNOWN state {}", event.type);
-						contExecution(0);
+						contExecution();
 				}
 				break;
 			default:
 				spdlog::error("FATAL : Undefined Tracee State", event.type);
 				break;
 		}
-	}
-
-	bool isInitialized(){
-		return state != INITIAL_STOP;
 	}
 
 };
@@ -531,7 +580,7 @@ int Debugger::spawn(const char* prog, char ** argv) {
 
 	spdlog::debug("New Child spawed! PID : {}", childPid);
 	
-	m_Tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this, DebugType::SYSCALL)));
+	m_Tracees.insert(make_pair(childPid, new TraceeInfo(childPid, *this, DebugType::DEFAULT)));
 }
 
 void Debugger::addChildTracee(pid_t child_tracee_pid) {
@@ -561,10 +610,10 @@ void Debugger::printAllTraceesInfo() {
 	cout << endl;
 }
 
-bool Debugger::isBreakpointTrap(siginfo_t info) {
-	cout <<"BK test signal code : " << info.si_code << endl;
+bool Debugger::isBreakpointTrap(siginfo_t* info) {
+	spdlog::debug("BK test signal code : {}", info->si_code);
 
-	switch (info.si_code) {
+	switch (info->si_code) {
 	//one of these will be set if a breakpoint was hit
 	case SI_KERNEL:
 		spdlog::debug("Breakpoint TRAP : KERNEL");
@@ -573,9 +622,10 @@ bool Debugger::isBreakpointTrap(siginfo_t info) {
 		return true;
 	case TRAP_TRACE:
 		//this will be set if the signal was sent by single stepping
-		spdlog::warn("Breakpoint : TRAP_TRACE, possibly due to single stepping!");
+		spdlog::debug("Breakpoint : TRAP_TRACE, possibly due to single stepping!");
+		return true;
 	default:
-		spdlog::warn("Unknown SIGTRAP code {}", info.si_code);
+		spdlog::warn("Unknown SIGTRAP code {}", info->si_code);
 	}
 	return false;
 }
@@ -616,10 +666,10 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeInfo* tracee_info) {
 			trap_reason.status = TrapReason::VFORK;
 			trap_reason.pid = new_pid;
 		} else {
-			if(tracee_info->isInitialized()) {
+			if(!tracee_info->isInitialized()) {
 				siginfo_t sig_info;
 				ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
-				if (isBreakpointTrap(sig_info)) {
+				if (isBreakpointTrap(&sig_info)) {
 					spdlog::debug("SIGTRAP : Breakpoint was hit !");
 					trap_reason.status = TrapReason::BREAKPOINT;
 				} else {

@@ -5,6 +5,9 @@ project(ShamanDBI)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
+
 include(FetchContent) # once in the project to include the module
 
 FetchContent_Declare(
@@ -22,7 +25,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(spdlog)
 FetchContent_MakeAvailable(cli11)
 
-add_executable(shaman src/memory.cpp src/debugger.cpp)
+add_executable(shaman 
+  src/memory.cpp
+  src/modules.cpp
+  src/debugger.cpp
+)
 
 target_link_libraries(shaman PRIVATE spdlog)
 target_link_libraries(shaman PRIVATE CLI11::CLI11)
