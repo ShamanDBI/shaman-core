@@ -150,10 +150,12 @@ struct TrapReason {
 class Debugger {
 
 	std::map<pid_t, TraceeInfo*> m_Tracees;
+	std::string* m_prog = nullptr;
+	std::vector<std::string>* m_argv = nullptr;
 
 public:
 
-	int spawn(vector<string>& cmdline);
+	int spawn(std::vector<std::string>& cmdline);
 
 	void addChildTracee(pid_t child_tracee_pid);
 
@@ -287,22 +289,22 @@ public:
 		}
 	}
 
-	string getStateString() {
+	std::string getStateString() {
 		switch (m_state) {
 			case TraceeState::INITIAL_STOP:
-				return string("INIT Stop");
+				return std::string("INIT Stop");
 				break;
 			case TraceeState::RUNNING:
-				return string("RUNNING");
+				return std::string("RUNNING");
 				break;
 			case TraceeState::SYSCALL:
-				return string("SYSCALL");
+				return std::string("SYSCALL");
 				break;
 			case TraceeState::EXITED:
-				return string("EXITED");
+				return std::string("EXITED");
 				break;
 			case TraceeState::UNKNOWN:
-				return string("UNKNOWN");
+				return std::string("UNKNOWN");
 				break;
 		};
 	}
@@ -348,7 +350,7 @@ public:
 
 	}
 
-	void setBreakpointAtAddr(intptr_t brk_addr, string& label) {
+	void setBreakpointAtAddr(intptr_t brk_addr, std::string& label) {
 		Breakpoint* brk_pnt_obj = new Breakpoint(brk_addr, m_pid, label);
 		brk_pnt_obj->enable();
 		m_breakpoints.insert(make_pair(brk_addr, brk_pnt_obj));
@@ -357,7 +359,7 @@ public:
 	void processState(TraceeEvent event, TrapReason trap_reason) {
 		// restrict the changing of tracee state to this function only
 		int ret = 0;
-		string lb = "loop";
+		std::string lb = "loop";
 		// auto proc_map = new ProcessMap(m_pid);
 
 		switch(m_state) {
@@ -557,7 +559,7 @@ void PrintTraceeStatus(TraceeEvent event) {
 }
 
 
-int Debugger::spawn(vector<string>& cmdline) {
+int Debugger::spawn(std::vector<std::string>& cmdline) {
 
 	
 	// covert cmdline arguments to exev parameter type
@@ -570,6 +572,11 @@ int Debugger::spawn(vector<string>& cmdline) {
 	// needed to terminate the args list
 	args.push_back(nullptr);
 
+	m_prog = &(cmdline.front());
+	// remove the program path argument list
+	// cmdline.erase(cmdline.begin());
+	m_argv = &cmdline;
+	spdlog::info("Spawning process {}", m_prog->c_str());
 	pid_t childPid = fork();
 	
 	if (childPid == -1) {
@@ -800,9 +807,9 @@ int main(int argc, char **argv) {
 
     CLI::App app{"Shaman DBI Framework"};
 	
-	string trace_log_path, app_log_path;
+	std::string trace_log_path, app_log_path;
 	pid_t attach_pid {-1};
-	std::vector<string> exec_prog;
+	std::vector<std::string> exec_prog;
 	std::vector<uintptr_t> brk_pnt_addrs;
 	
 
@@ -812,7 +819,7 @@ int main(int argc, char **argv) {
 	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
 	// app.add_option("-f,--follow", brk_pnt_addrs, "follow the fork/clone/vfork syscalls");
 	// app.add_option("-s,--syscall", brk_pnt_addrs, "trace system calls");
-	app.add_option("-e,--exec", exec_prog, "program to execute")->expected(-1);
+	app.add_option("-e,--exec", exec_prog, "program to execute")->expected(-1)->required();
 
     CLI11_PARSE(app, argc, argv);
 	
