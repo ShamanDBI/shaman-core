@@ -6,6 +6,7 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <iostream>
+#include <algorithm>
 
 // using namespace std;
 /**
@@ -69,6 +70,27 @@ public:
             perm |= ProcMap::PERMS_SHARED;
         }
         return perm;
+    }
+
+    uintptr_t findModuleBaseAddr(std::string &module_path) {
+        auto val = std::find_if(
+            std::begin(m_map),
+            std::end(m_map),
+            [module_path](ProcMap* proc_map) -> bool {
+                if (module_path.size() > proc_map->pathname->size())
+                    return false;
+                return std::equal(
+                    module_path.rbegin(), module_path.rend(),
+                    proc_map->pathname->rbegin()
+                );
+            }
+        );
+        if (val != std::end(m_map)) {
+            spdlog::debug("Find mod : {} base addr : 0x{:x}", (*val)->pathname->c_str(), (*val)->addr_begin);
+            return (*val)->addr_begin;
+        }
+        spdlog::error("Module '{}' not found!", module_path.c_str());
+        return 0;
     }
 
     void parseLine(char *line)

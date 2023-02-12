@@ -202,6 +202,7 @@ class TraceeInfo {
 	DebugType debugType;	
 	Debugger& m_debugger;
 	RemoteMemory* m_TraceeMemory;
+	ProcessMap* m_procMap;
 
 	std::map<uintptr_t, Breakpoint*> m_breakpoints;
 	
@@ -216,16 +217,19 @@ public:
 	
 	~TraceeInfo () {
 		delete m_TraceeMemory;
+		delete m_procMap;
 	}
 
 	// this is used when new tracee is found
 	TraceeInfo(pid_t tracee_pid, Debugger& debugger, DebugType debug_type):
 		m_pid(tracee_pid), debugType(debug_type), 
 		m_debugger(debugger), m_TraceeMemory(new RemoteMemory(tracee_pid)),
+		m_procMap(new ProcessMap(tracee_pid)),
 		m_state(TraceeState::INITIAL_STOP) {}
 	
 	TraceeInfo(pid_t tracee_pid, Debugger& debugger):
 		m_pid(tracee_pid), debugType(DebugType::DEFAULT),
+		m_procMap(new ProcessMap(tracee_pid)),
 		m_debugger(debugger), m_TraceeMemory(new RemoteMemory(tracee_pid)),
 		m_state(TraceeState::INITIAL_STOP) {}
 
@@ -360,7 +364,8 @@ public:
 		// restrict the changing of tracee state to this function only
 		int ret = 0;
 		std::string lb = "loop";
-		// auto proc_map = new ProcessMap(m_pid);
+		std::string dd("test_prog");
+		uintptr_t module_base_addr;
 
 		switch(m_state) {
 			case UNKNOWN:
@@ -385,8 +390,9 @@ public:
 				toStateRunning();
 
 				// TODO : figure out the lift time of this param
-				// proc_map->parse();
-				// proc_map->print();
+				// m_procMap->parse();
+				// m_procMap->print();
+				// module_base_addr = m_procMap->findModuleBaseAddr(dd);
 				contExecution();
 				break;
 			case RUNNING:
