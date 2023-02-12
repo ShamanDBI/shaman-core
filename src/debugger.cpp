@@ -134,11 +134,11 @@ struct TraceeEvent {
 struct TrapReason {
 
 	enum {
-		CLONE = 1, // Process invoked `clone()`
-		EXEC, // Process invoked `execve()`
-		EXIT, // Process invoked `exit()`
-		FORK, // Process invoked `fork()`
-		VFORK, // Process invoked `vfork()`
+		CLONE = 1, 	// Process invoked `clone()`
+		EXEC, 		// Process invoked `execve()`
+		EXIT, 		// Process invoked `exit()`
+		FORK, 		// Process invoked `fork()`
+		VFORK, 		// Process invoked `vfork()`
 		SYSCALL,
 		BREAKPOINT,
 		INVALID
@@ -153,7 +153,7 @@ class Debugger {
 
 public:
 
-	int spawn(const char * prog, char ** argv);
+	int spawn(vector<string>& cmdline);
 
 	void addChildTracee(pid_t child_tracee_pid);
 
@@ -358,7 +358,7 @@ public:
 		// restrict the changing of tracee state to this function only
 		int ret = 0;
 		string lb = "loop";
-		auto proc_map = new ProcessMap(m_pid);
+		// auto proc_map = new ProcessMap(m_pid);
 
 		switch(m_state) {
 			case UNKNOWN:
@@ -379,10 +379,12 @@ public:
 					spdlog::error("Error occured while setting ptrace options while restarting the tracee!");
 				}
 
-				setBreakpointAtAddr(0x555555555383, lb);
+				// setBreakpointAtAddr(0x555555555383, lb);
 				toStateRunning();
-				proc_map->parse();
-				proc_map->print();
+
+				// TODO : figure out the lift time of this param
+				// proc_map->parse();
+				// proc_map->print();
 				contExecution();
 				break;
 			case RUNNING:
@@ -555,10 +557,23 @@ void PrintTraceeStatus(TraceeEvent event) {
 }
 
 
-int Debugger::spawn(const char* prog, char ** argv) {
+int Debugger::spawn(vector<string>& cmdline) {
+
+	
+	// covert cmdline arguments to exev parameter type
+	std::vector<const char *> args;
+	
+	args.reserve(cmdline.size() + 1);
+	for(const auto& sp: cmdline) {
+		args.push_back(sp.c_str());
+	}
+	// needed to terminate the args list
+	args.push_back(nullptr);
+
 	pid_t childPid = fork();
+	
 	if (childPid == -1) {
-		printf("error: fork() failed\n");
+		spdlog::error("fork() for tracee failed failed!");
 		return -1;
 	}
 
@@ -566,7 +581,8 @@ int Debugger::spawn(const char* prog, char ** argv) {
 		if (ptrace(PTRACE_TRACEME, 0, 0, 0)) {
 			return -1;
 		}
-		int status_code = execvp(prog, argv);
+		
+		int status_code = execvp(args[0], const_cast<char* const *>(args.data()));
 
 		if (status_code == -1) {
 			spdlog::error("Process did not terminate correctly\n");
@@ -779,25 +795,33 @@ void Debugger::eventLoop() {
 	spdlog::info("There are not tracee left to debug. Exiting!");
 }
 
-#include <CLI/Formatter.hpp>
-#include <CLI/Config.hpp>
 
 int main(int argc, char **argv) {
-	Debugger debug;
 
-    // CLI::App app{"Shaman DBI Framework"};
-	// string filename = "default";
-	// string target = nullptr;
-    // app.add_option("-l,--log", filename, "log debug output to file");
-	// app.add_option("-o,--trace", filename, "trace output to file");
-	// app.add_option("-p,--pid", filename, "PID of process to attach to");
-	// app.add_option("-t,--target", target, "target program to run");
+    CLI::App app{"Shaman DBI Framework"};
+	
+	string trace_log_path, app_log_path;
+	pid_t attach_pid {-1};
+	std::vector<string> exec_prog;
+	std::vector<uintptr_t> brk_pnt_addrs;
+	
 
-    // CLI11_PARSE(app, argc, argv);
+    app.add_option("-l,--log", app_log_path, "application debug logs");
+	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
+	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
+	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
+	// app.add_option("-f,--follow", brk_pnt_addrs, "follow the fork/clone/vfork syscalls");
+	// app.add_option("-s,--syscall", brk_pnt_addrs, "trace system calls");
+	app.add_option("-e,--exec", exec_prog, "program to execute")->expected(-1);
+
+    CLI11_PARSE(app, argc, argv);
+	
     spdlog::info("Welcome to Shaman!");
 	spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-	char* argument_listd[] = {"./bin/test_prog", "4", NULL};
-	debug.spawn("./bin/test_prog", argument_listd);
+
+	
+	Debugger debug;
+	debug.spawn(exec_prog);
 	debug.eventLoop();
 	
 	spdlog::debug("Good Bye!");

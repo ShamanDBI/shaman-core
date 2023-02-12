@@ -27,14 +27,12 @@ public:
     // 32-bit system it should be multiple of 4
     Addr(uint64_t _r_addr, size_t _size): size(_size), r_addr(_r_addr) {
         addr = (uint8_t *) malloc(_size);
-        printf("mem alloc , %lu\n", size);
+        // printf("mem alloc , %lu\n", size);
     }
     void clean() {
         // set the data to zero
         memset(addr, 0, size);
     }
-    // Addr(uint64_t _addr, size_t _size): size(_size), 
-    //     addrType(REMOTE), addr((uint8_t *)_addr) {}
 
     ~Addr() {
         // if(addrType == LOCAL)
@@ -97,7 +95,7 @@ public:
     
     int write(Addr *data, size_t writeSize) {
 
-        unsigned int bytes_write = 0;
+        uint32_t bytes_write = 0;
         long * write_addr = (long *) data->r_addr;
         long * copy_addr = (long *) data->addr;
         long ret;
