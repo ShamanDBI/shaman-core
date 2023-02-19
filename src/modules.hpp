@@ -1,6 +1,9 @@
 #ifndef H_PROC_MODULE
 #define H_PROC_MODULE
 
+#include <cstdint>
+#include <string>
+
 // using namespace std;
 /**
  * @brief Hold the major minor id for the map's device
@@ -38,6 +41,7 @@ class ProcessMap {
     pid_t m_pid;
 
 public:
+    
     ProcessMap(pid_t tracee_pid): m_pid(tracee_pid) {
         m_map.reserve(32);
     }

@@ -22,14 +22,34 @@ FetchContent_Declare(
   GIT_TAG v2.2.0
 )
 
+option(BUILD_FOR_ARM "Build for ARM architecture" NO)
+option(BUILD_FOR_INTEL "Build for INTEL architecture" YES)
+option(BUILD_FOR_32_BIT "Build for 32 bits architecture only" NO)
+
 FetchContent_MakeAvailable(spdlog)
 FetchContent_MakeAvailable(cli11)
 
-add_executable(shaman 
+add_executable(shaman)
+
+set(ARCH_SRC
+  src/arch/intel/breakpoint.cpp
+  src/arch/intel/registers.cpp
+)
+
+
+set(SRC
   src/memory.cpp
   src/modules.cpp
   src/debugger.cpp
+  src/breakpoint_mngr.cpp
+  src/tracee.cpp
+  src/main.cpp
+  src/linux_debugger.cpp
 )
+
+
+target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC})
+target_include_directories(shaman PRIVATE src)
 
 target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
 
