@@ -50,6 +50,7 @@ int Debugger::spawn(vector<string>& cmdline) {
 	spdlog::debug("New Child spawed with PID {}", childPid);
 	
 	addChildTracee(childPid);
+	return 0;
 }
 
 void Debugger::addChildTracee(pid_t child_tracee_pid) {
