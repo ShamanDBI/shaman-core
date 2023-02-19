@@ -31,7 +31,6 @@ add_executable(shaman
   src/debugger.cpp
 )
 
-target_link_libraries(shaman PRIVATE spdlog)
-target_link_libraries(shaman PRIVATE CLI11::CLI11)
+target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
 
 add_executable(test_prog test/test_prog/prog.c)
