@@ -54,6 +54,10 @@ uint64_t Registers::getSP() {
     return reinterpret_cast<uint64_t *>(gp_reg)[INTEL_X64_REGS::RSP];
 }
 
+uint64_t Registers::getRegIdx(uint8_t reg_idx) {
+    return reinterpret_cast<uint64_t *>(gp_reg)[reg_idx];
+}
+
 void Registers::print() {
     uint64_t *cpu_reg = reinterpret_cast<uint64_t *>(gp_reg);
     spdlog::debug("---------------------------------[ REGISTERS START]--------------------------------");

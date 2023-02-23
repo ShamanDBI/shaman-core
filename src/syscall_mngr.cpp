@@ -1,59 +1,39 @@
-// Taken from : https://gist.github.com/SBell6hf/77393dac37939a467caf8b241dc1676b
+#include "syscall_mngr.hpp"
+#include "syscall_x64.h"
+#include <spdlog/spdlog.h>
 
-#define CASE_SYSCALL(id, name) case id: spdlog::trace("syscall {} - {}", id, name); break;
+// #define SYSCALL_ID_INTEL INTEL_X64_REGS::ORIG_RAX
+// #define SYSCALL_ARG_0 INTEL_X64_REGS::RDI
+// #define SYSCALL_ARG_1 INTEL_X64_REGS::RSI
+// #define SYSCALL_ARG_2 INTEL_X64_REGS::RDX
+// #define SYSCALL_ARG_3 INTEL_X64_REGS::R10
+// #define SYSCALL_ARG_4 INTEL_X64_REGS::R8
+// #define SYSCALL_ARG_5 INTEL_X64_REGS::R9
 
+#define SYSCALL_ID_INTEL 15
 
-void printSyscall(pid_t tracee_pid) {
-	struct iovec io;
-	struct user_regs_struct regs;
-	io.iov_base = &regs;
-	io.iov_len = sizeof(struct user_regs_struct);
+/**
+ *  src : https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md 
+ *	arch	syscall NR	return	arg0	arg1	arg2	arg3	arg4	arg5
+ *	arm		r7			r0		r0		r1		r2		r3		r4		r5
+ *	arm64	x8			x0		x0		x1		x2		x3		x4		x5
+ *	x86	    eax			eax		ebx		ecx		edx		esi		edi		ebp
+ *	x86_64	rax			rax		rdi		rsi		rdx		r10		r8		r9
+*/
+void SyscallHandler::readParameters() {
+	m_register->getGPRegisters();
+	uint16_t syscall_id = m_register->getRegIdx(SYSCALL_ID_INTEL);
+	m_cached_args = &syscalls[syscall_id];
+}
 
-	if (ptrace(PTRACE_GETREGSET, tracee_pid, (void*)NT_PRSTATUS, (void*)&io) == -1) {
-		spdlog::error("Failed to get tracee register");
-	}
+int SyscallHandler::onEnter() {
+	readParameters();
+	spdlog::debug("NAME : -> {}", m_cached_args->name);
+	return 0;
+}
 
-	auto rem_mem = RemoteMemory(tracee_pid);
-	// auto rem_file_path = new Addr(regs.rsi, 100);
-
-	uint32_t syscall_id = regs.orig_rax;
-	
-	// Ref : https://filippo.io/linux-syscall-table/
-	switch (syscall_id) {
-		CASE_SYSCALL(0, "read")
-		// case 257: {
-		// 	cout << "openat : " ;
-		// 	printf("RAX : %p\n", regs.rax);
-		// 	printf("RSI : %p\n", regs.rsi);
-		// 	printf("RDI : %p\n", regs.rdi);
-		// 	printf("RDX : %p\n", regs.rdx);
-		// 	printf("RCX : %p\n", regs.rcx);
-		// 	printf("R8 : %p\n", regs.r8);
-		// 	printf("R9 : %p\n", regs.r9);
-		// 	auto rem_file_path = new Addr(regs.rsi, 100);
-		// 	getchar();
-		// 	rem_mem.read(rem_file_path, 100);
-		// 	printf("path - %s \n", rem_file_path->addr);
-		// 	delete rem_file_path;
-		// 	getchar();
-		// }
-		CASE_SYSCALL(1, "write")
-		CASE_SYSCALL(2, "open")
-		CASE_SYSCALL(3, "close")
-		CASE_SYSCALL(5, "fstat")
-		CASE_SYSCALL(21, "access")
-		CASE_SYSCALL(9, "mmap")
-		CASE_SYSCALL(10, "mprotect")
-		CASE_SYSCALL(11, "munmap")
-		CASE_SYSCALL(12, "brk")
-		CASE_SYSCALL(56, "clone")
-		CASE_SYSCALL(57, "fork")
-		CASE_SYSCALL(58, "vfork")
-		CASE_SYSCALL(60, "exit")
-		CASE_SYSCALL(231, "exit_group")
-		// CASE_SYSCALL(257, "openat")
-		default:
-			cout << "Unknown " << endl;
-			break;
-	}
+int SyscallHandler::onExit() {
+	spdlog::debug("NAME : <- {}", m_cached_args->name);
+	m_cached_args = nullptr;
+	return 0;
 }

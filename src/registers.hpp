@@ -24,6 +24,7 @@ public:
     uint64_t getPC();
     uint64_t setPC(uint64_t reg_val);
     uint64_t getSP();
+    uint64_t getRegIdx(uint8_t reg_idx);
 
     void print();
 

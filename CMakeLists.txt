@@ -45,10 +45,12 @@ set(SRC
   src/tracee.cpp
   src/main.cpp
   src/linux_debugger.cpp
+  src/syscall_mngr.cpp
 )
 
 
 target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC})
+target_include_directories(shaman PRIVATE src/arch/intel)
 target_include_directories(shaman PRIVATE src)
 
 target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)

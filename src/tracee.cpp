@@ -157,9 +157,9 @@ void TraceeProgram::processRUNState(TraceeEvent event, TrapReason trap_reason) {
 		case TraceeEvent::STOPPED:
 			spdlog::info("STOPPED : ");
 			if(trap_reason.status == TrapReason::SYSCALL) {
-				toStateSysCall();
 				spdlog::debug("SYSCALL ENTER");
-				// printSyscall(m_pid);
+				m_syscall_hdl->onEnter();
+				toStateSysCall();
 			} else if(trap_reason.status == TrapReason::BREAKPOINT) {
 				if (m_breakpointMngr.hasSuspendedBrkPnt()) {
 					m_breakpointMngr.restoreSuspendedBreakpoint();
@@ -210,6 +210,7 @@ void TraceeProgram::processSYSCALLState(TraceeEvent event, TrapReason trap_reaso
 			if(trap_reason.status == TrapReason::SYSCALL) {
 				spdlog::info("SYSCALL : EXIT");
 				// change the state once we have process the event
+				m_syscall_hdl->onExit();
 				toStateRunning();
 			}
 			processPtraceEvent(event, trap_reason);

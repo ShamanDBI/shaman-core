@@ -7,6 +7,7 @@
 #include "breakpoint_mngr.hpp"
 #include "linux_debugger.hpp"
 #include "registers.hpp"
+#include "syscall_mngr.hpp"
 
 
 enum DebugType {
@@ -18,6 +19,7 @@ enum DebugType {
 };
 
 class Debugger;
+
 
 class TraceeProgram {
 
@@ -43,6 +45,7 @@ class TraceeProgram {
 	RemoteMemory* m_TraceeMemory;
 	ProcessMap* m_procMap;
 	Registers m_register;
+	SyscallHandler* m_syscall_hdl;
 
 public:
 
@@ -62,6 +65,7 @@ public:
 	 	m_TraceeMemory(new RemoteMemory(tracee_pid)),
 		m_procMap(new ProcessMap(tracee_pid)),
 		m_register(Registers(tracee_pid)),
+		m_syscall_hdl(new SyscallHandler(tracee_pid)),
 		m_breakpointMngr(BreakpointMngr(tracee_pid, m_procMap)) {}
 	
 	TraceeProgram(pid_t tracee_pid, Debugger& debugger):

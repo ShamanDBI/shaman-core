@@ -58,7 +58,7 @@ void Debugger::addChildTracee(pid_t child_tracee_pid) {
 		spdlog::critical("FATAL : Whhaat tthhhee.... heelll...., child id cannot be zero! Not adding child to the list");
 	} else {
 		spdlog::debug("New child {} is added to trace list!", child_tracee_pid);
-		auto tracee_obj = new TraceeProgram(child_tracee_pid, *this);
+		auto tracee_obj = new TraceeProgram(child_tracee_pid, *this, DebugType::SYSCALL);
 		tracee_obj->addPendingBrkPnt(brk_pnt_str);
 		m_Tracees.insert(make_pair(child_tracee_pid, tracee_obj));
 	}
