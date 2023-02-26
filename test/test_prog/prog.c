@@ -8,7 +8,7 @@
 void test_brk_point() {
     printf("Helloo.. this is breakpoint test program\n");
     int N=15;
-    int fd = open("/hi/foo/file/system/foo.txt", O_RDONLY);
+    int fd = open("/home/hussain/hi.txt", O_RDONLY);
     int *ptr = mmap ( NULL, N*sizeof(int),
     PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
     

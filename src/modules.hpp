@@ -3,20 +3,15 @@
 
 #include <cstdint>
 #include <string>
+#include <memory>
+#include <spdlog/spdlog.h>
 
-// using namespace std;
-/**
- * @brief Hold the major minor id for the map's device
- */
+
 struct dev_major_minor_t {
     int major;
     int minor;
 };
 
-
-/**
- * @brief Hold all the information of a map
- */
 struct ProcMap {
     enum MAPS_PERMS {
         PERMS_READ    = 1 << 0,
@@ -39,11 +34,16 @@ class ProcessMap {
 
     std::vector<ProcMap*> m_map;
     pid_t m_pid;
-
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 public:
     
     ProcessMap(pid_t tracee_pid): m_pid(tracee_pid) {
         m_map.reserve(32);
+    }
+    
+    ProcessMap* setPid(pid_t tracee_pid) {
+        m_pid = tracee_pid;
+        return this;
     }
 
     uint8_t praseMapPermission(char const *perms);

@@ -1,31 +1,146 @@
 #ifndef H_SYSCALL_HANDLER_H
 #define H_SYSCALL_HANDLER_H
 
+#include <unordered_set>
+#include <map>
+#include <list>
+#include <spdlog/spdlog.h>
+
 #include "syscall.hpp"
+#include "syscall_x64.hpp"
 #include "registers.hpp"
 #include "memory.hpp"
+#include "debug_opts.hpp"
 
-class SyscallHandler {
+struct SyscallTraceData {
+	pid_t m_pid;						/* If 0, this tcb is free */
+	sysc_id_t sc_id;					/* System call number */
+	int64_t v_rval;						/* Return value */
+	uint8_t nargs;						/* number of argument */
+	uint64_t v_arg[SYSCALL_MAXARGS];	/* System call arguments */
+};
+
+
+struct FileOperationTracer {
+
+
+	DebugOpts* m_debug_opts = nullptr;
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
-	pid_t m_pid;
-	// to get system call parameter
-	Registers* m_register = nullptr;
+	FileOperationTracer* setDebugOpts(DebugOpts* debug_opts) {
+		m_debug_opts = debug_opts;
+		return this;
+	};
 
-	// to read tracee argument value
-	RemoteMemory* m_traceeMemory = nullptr;
+	// this function will let you filter the file
+	// you want to trace, if you want to trace
+	// all files the return true;
+	virtual bool onFilter(SyscallTraceData* sc_trace) {
+		return true;
+	};
+
+	virtual void onOpen() {
+		m_log->error("FT : onOpen");
+	};
+	virtual void onClose() {
+		m_log->error("FT : onClose");
+	};
+	virtual void onRead() {
+		m_log->error("FT : onRead");
+	};
+	virtual void onWrite() {
+		m_log->error("FT : onWrite");
+	};
+	virtual void onIoctl() {
+		m_log->error("FT : onIoctl");
+	};
+};
+
+
+class SocketOperationTracer {
+
+public:
+	virtual void onOpen() = 0;
+	virtual void onClose() = 0;
+	virtual void onRead() = 0;
+	virtual void onWrite() = 0;
+	virtual void onIoctl() = 0;
+	virtual void onBind() = 0;
+};
+
+
+struct SyscallHandler {
+
+	DebugOpts* m_debug_opts = nullptr;
+	sysc_id_t syscall_id;
+	
+	SyscallHandler(sysc_id_t _syscall_id): 
+		syscall_id(_syscall_id) {}
+
+	~SyscallHandler();
+
+	SyscallHandler* setDebugOpts(DebugOpts* debug_opts) {
+		m_debug_opts = debug_opts;
+		return this;
+	};
+
+	virtual int onEnter(SyscallTraceData* sc_trace) { return 0; };
+
+	virtual int onExit(SyscallTraceData* sc_trace) { return 0; };
+
+};
+
+
+class SyscallManager {
+	
+	// this system call which are related to filer operations
+	std::unordered_set<sysc_id_t> file_ops_syscall_id{
+		NR_read,
+		NR_write,
+		// NR_open,
+		NR_close,
+		NR_ioctl
+	};
 
 	// this arguments are preserved between syscall enter and syscall exit
 	// arguments should be filled on entry and cleared on exit, Ideal!
-	SyscallEntry* m_cached_args = nullptr;
+	SyscallTraceData* m_cached_args = nullptr;
+
+	SyscallEntry* m_syscall_info = nullptr;
+
+	std::map<int, SyscallHandler*> m_syscall_handler_map;
+
+	std::map<int, FileOperationTracer*> m_file_ops_handler;
+
+	std::list<FileOperationTracer*> m_file_ops_pending;
+
+	DebugOpts* m_debug_opts = nullptr;
+	
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 public:
 
-	SyscallHandler(pid_t tracee_pid): 
-		m_pid(tracee_pid),
-		m_traceeMemory(new RemoteMemory(tracee_pid)),
-		m_register(new Registers(tracee_pid)) {}
+	SyscallManager(): 
+		m_cached_args(new SyscallTraceData()) {}
+
+	~SyscallManager() {
+		delete m_cached_args;
+	};
+
+	SyscallManager* setDebugOpts(DebugOpts* debug_opts) {
+		m_debug_opts = debug_opts;
+		return this;
+	};
 
 	void readParameters();
+
+	void readRetValue();
+
+	virtual int addFileOperationHandler(FileOperationTracer* file_opt_handler);
+	virtual int removeFileOperationHandler(FileOperationTracer* file_opt_handler);
+
+	virtual int addSyscallHandler(SyscallHandler* syscall_hdlr);
+	virtual int removeSyscallHandler(SyscallHandler* syscall_hdlr);
 
 	virtual int onEnter();
 

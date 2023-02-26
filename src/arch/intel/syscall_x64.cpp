@@ -1,9 +1,6 @@
-#ifndef H_SYSCALL_TABLE_H
-#define H_SYSCALL_HANDLER_H
+#include "syscall.hpp"
 
-#define MAX_SYSCALL_NUM 311
-
-SyscallEntry syscalls[] = {
+SyscallEntry syscalls[MAX_SYSCALL_NUM] = {
    {   // 0
   /*.name  =*/ "read",
   /*.nargs =*/ 3,
@@ -1249,5 +1246,3 @@ SyscallEntry syscalls[] = {
   /*.nargs =*/ 6,
   /*.args  =*/ {ARG_INT, ARG_PTR, ARG_INT, ARG_PTR, ARG_INT, ARG_INT}},
 };
-
-#endif

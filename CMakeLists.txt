@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.11.0)
 
 project(ShamanDBI)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -31,9 +32,12 @@ FetchContent_MakeAvailable(cli11)
 
 add_executable(shaman)
 
+target_compile_features(shaman PUBLIC cxx_std_11)
+
 set(ARCH_SRC
   src/arch/intel/breakpoint.cpp
   src/arch/intel/registers.cpp
+  src/arch/intel/syscall_x64.cpp
 )
 
 

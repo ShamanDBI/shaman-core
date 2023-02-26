@@ -6,11 +6,9 @@
 #include <cstdlib>
 #include <cstring>
 
-class Addr {
 
-private:
+struct Addr {
 
-public:
     uint8_t* addr; // local buffer holding the data of tracee memory location
     uint64_t r_addr; // address in tracee memory space
     size_t size;
@@ -28,10 +26,15 @@ public:
         memset(addr, 0, size);
     }
 
+    void resize(uint64_t new_size) {
+        size = new_size;
+    }
+
     ~Addr() {
         free(addr);
     }
 };
+
 
 class RemoteMemory {
 

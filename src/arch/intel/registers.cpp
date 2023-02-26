@@ -60,22 +60,22 @@ uint64_t Registers::getRegIdx(uint8_t reg_idx) {
 
 void Registers::print() {
     uint64_t *cpu_reg = reinterpret_cast<uint64_t *>(gp_reg);
-    spdlog::debug("---------------------------------[ REGISTERS START]--------------------------------");
-    spdlog::debug("RAX {:16x} RBX {:16x} RCX {:16x} RDX {:16x}", 
+    m_log->debug("---------------------------------[ REGISTERS START]--------------------------------");
+    m_log->debug("RAX {:16x} RBX {:16x} RCX {:16x} RDX {:16x}", 
         cpu_reg[INTEL_X64_REGS::RAX], cpu_reg[INTEL_X64_REGS::RBX],
         cpu_reg[INTEL_X64_REGS::RCX], cpu_reg[INTEL_X64_REGS::RDX]);
-    spdlog::debug("RSI {:16x} RDI {:16x} RIP {:16x} RSP {:16x}", 
+    m_log->debug("RSI {:16x} RDI {:16x} RIP {:16x} RSP {:16x}", 
         cpu_reg[INTEL_X64_REGS::RSI], cpu_reg[INTEL_X64_REGS::RDI],
         cpu_reg[INTEL_X64_REGS::RIP], cpu_reg[INTEL_X64_REGS::RSP]);
-    spdlog::debug("R8  {:16x} R9  {:16x} R10 {:16x} R11 {:16x}", 
+    m_log->debug("R8  {:16x} R9  {:16x} R10 {:16x} R11 {:16x}", 
         cpu_reg[INTEL_X64_REGS::R8], cpu_reg[INTEL_X64_REGS::R9],
         cpu_reg[INTEL_X64_REGS::R10], cpu_reg[INTEL_X64_REGS::R11]);
-    spdlog::debug("R12 {:16x} R13 {:16x} R14 {:16x} R15 {:16x}", 
+    m_log->debug("R12 {:16x} R13 {:16x} R14 {:16x} R15 {:16x}", 
         cpu_reg[INTEL_X64_REGS::R12], cpu_reg[INTEL_X64_REGS::R13],
         cpu_reg[INTEL_X64_REGS::R14], cpu_reg[INTEL_X64_REGS::R15]);
-    spdlog::debug("EFLAGS  {:16x}", cpu_reg[INTEL_X64_REGS::EFLAGS]);
-    spdlog::debug("FS  {:16x} GS  {:16x} ES  {:16x} DS  {:16x}", 
+    m_log->debug("EFLAGS  {:16x}", cpu_reg[INTEL_X64_REGS::EFLAGS]);
+    m_log->debug("FS  {:16x} GS  {:16x} ES  {:16x} DS  {:16x}", 
         cpu_reg[INTEL_X64_REGS::FS], cpu_reg[INTEL_X64_REGS::GS],
         cpu_reg[INTEL_X64_REGS::ES], cpu_reg[INTEL_X64_REGS::DS]);
-    spdlog::debug("---------------------------------[ REGISTERS STOP  ]--------------------------------");
+    m_log->debug("---------------------------------[ REGISTERS STOP  ]--------------------------------");
 }

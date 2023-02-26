@@ -44,10 +44,10 @@ uintptr_t ProcessMap::findModuleBaseAddr(std::string &module_path) {
         }
     );
     if (val != std::end(m_map)) {
-        spdlog::debug("Find mod : {} base addr : 0x{:x}", (*val)->path->c_str(), (*val)->addr_begin);
+        m_log->debug("Find mod : {} base addr : 0x{:x}", (*val)->path->c_str(), (*val)->addr_begin);
         return (*val)->addr_begin;
     }
-    spdlog::error("Module '{}' not found!", module_path.c_str());
+    m_log->error("Module '{}' not found!", module_path.c_str());
     return 0;
 }
 
@@ -55,7 +55,7 @@ void ProcessMap::parseLine(char *line)
 {
     ProcMap *proc_map_obj = new ProcMap;
     char *pathname_token = NULL;
-
+    // m_log->debug("Parseline {}", line);
     proc_map_obj->addr_begin = strtoull(strtok(line, "-"), NULL, 16);
     proc_map_obj->addr_end = strtoull(strtok(NULL, " "), NULL, 16);
     proc_map_obj->perms = praseMapPermission(strtok(NULL, " "));
@@ -67,11 +67,9 @@ void ProcessMap::parseLine(char *line)
 
     if (pathname_token != NULL) {
         proc_map_obj->path = new std::string(pathname_token);
-        // if (proc_map_obj->path == NULL) {
-        //     return;
-        // }
     } else {
-        proc_map_obj->path = nullptr;
+        // m_log->debug("We should resturn from here");
+        proc_map_obj->path = new std::string("no-file");
     }
     m_map.push_back(proc_map_obj);
 }
@@ -93,7 +91,7 @@ void ProcessMap::parseProcessMapFile(FILE *procmaps_file)
     free(line);
     
     if (errno == EINVAL || errno == ENOMEM) {
-        spdlog::warn("Error while parsing process file!");
+        m_log->warn("Error while parsing process file!");
         // destroy_procmaps(procmaps_array);
         // return NULL;
     }
@@ -113,7 +111,7 @@ int ProcessMap::parse()
     procmaps_file = fopen(path, "r");
 
     if (procmaps_file == NULL) {
-        spdlog::error("error opening proc/{}/maps file!", m_pid);
+        m_log->error("error opening proc/{}/maps file!", m_pid);
         return -1;
     }
     parseProcessMapFile(procmaps_file);
@@ -143,18 +141,18 @@ void ProcessMap::permStr(uint8_t perm_val, char * pem_str) {
     if (perm_val & ProcMap::PERMS_SHARED) {
         pem_str[3]='s';
     } 
-    // spdlog::debug("PEM {} {}", perm_val, pem_str);
+    // m_log->debug("PEM {} {}", perm_val, pem_str);
 }
 
 void ProcessMap::print() {
-    spdlog::debug("----------------[ PROCESS MAP ]----------------");
+    m_log->debug("----------------[ PROCESS MAP ]----------------");
     char pem_str[5];
     for (auto ir : m_map) {
         memset(pem_str, '-', sizeof(pem_str) -1 );
         pem_str[5] = '\x0';
         permStr(ir->perms, pem_str);
-        spdlog::debug("{:x} {:x} {} {} ", ir->addr_begin, ir->addr_end, pem_str, ir->path->c_str());
+        m_log->debug("{:x} {:x} {} {}", ir->addr_begin, ir->addr_end, pem_str, ir->path->c_str());
     }
-    spdlog::debug("----------------[     END     ]----------------");
+    m_log->debug("----------------[     END     ]----------------");
 }
 

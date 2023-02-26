@@ -1,36 +1,48 @@
 #ifndef H_BREAKPOINT_H
 #define H_BREAKPOINT_H
 
-#include "memory.hpp"
 #include <sys/ptrace.h>
 #include <spdlog/spdlog.h>
+
+#include "debug_opts.hpp"
+#include "memory.hpp"
 
 class Breakpoint {
 
     bool m_enabled;
     uintptr_t m_addr;
-    pid_t m_pid; // pid of tracee
 
     // breakpoint instruction data is stored to the memory
     // later restored when brk pnt is hit
     Addr *m_backupData;
-    RemoteMemory *m_remoteMemory;
+
+    // number of time this breakpoint was hit
     uint32_t m_count = 0;
+
+    DebugOpts* m_debug_opts = nullptr;
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 public:
 
+    pid_t m_pid; // pid of tracee
+
     std::string *m_label;
     
-    Breakpoint(uintptr_t bk_addr, pid_t tracee_pid, std::string* _label);
+    Breakpoint(uintptr_t bk_addr, std::string* _label);
 
     ~Breakpoint() { 
         delete m_backupData;
-        delete m_remoteMemory;
         delete m_label;
     }
 
+    Breakpoint* setDebugOpts(DebugOpts* debug_opts) {
+        m_debug_opts = debug_opts;
+        return this;
+    };
+    
+
     void printDebug() {
-        spdlog::trace("BRK [0x{:x}] [{}] pid {} count {} ", m_addr, m_label->c_str(), m_pid, m_count);
+        m_log->trace("BRK [0x{:x}] [{}] pid {} count {} ", m_addr, m_label->c_str(), m_pid, m_count);
     }
 
     uint32_t getHitCount() {

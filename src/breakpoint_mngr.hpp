@@ -18,18 +18,20 @@ class BreakpointMngr {
     map<string, vector<uintptr_t>> m_pending;
 
     map<uintptr_t, Breakpoint*> m_placed;
-    ProcessMap* m_procMap;
-    pid_t m_pid;
 
     // this is brk point is saved to restore the breakpoint
     // once it has executed, if there is no breakpoint has 
     // hit then this value should be null
     Breakpoint * m_suspendedBrkPnt = nullptr;
 
+    DebugOpts* m_debug_opts = nullptr;
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 public:
 
-    BreakpointMngr(pid_t tracee_pid, ProcessMap* procMap):
-        m_pid(tracee_pid), m_procMap(procMap) {}
+    BreakpointMngr* setDebugOpts(DebugOpts* debug_opts) {
+        m_debug_opts = debug_opts;
+        return this;
+    };
 
     // add breakpoint in format module@addr1,addr2,add3
     void addModuleBrkPnt(string& brk_mod_addr);

@@ -1,13 +1,16 @@
 #ifndef H_TRACEE_H
 #define H_TRACEE_H
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
+#include "syscall_mngr.hpp"
 #include "memory.hpp"
 #include "debugger.hpp"
 #include "modules.hpp"
 #include "breakpoint_mngr.hpp"
 #include "linux_debugger.hpp"
 #include "registers.hpp"
-#include "syscall_mngr.hpp"
 
 
 enum DebugType {
@@ -19,7 +22,6 @@ enum DebugType {
 };
 
 class Debugger;
-
 
 class TraceeProgram {
 
@@ -37,40 +39,75 @@ class TraceeProgram {
 		SYSCALL,
 		// the process has existed and object is avaliable to free
 		EXITED, 
+		// Invalid state, not to be used anywhere!
 		UNKNOWN
 	} m_state ;
 
-	DebugType debugType;	
-	Debugger& m_debugger;
-	RemoteMemory* m_TraceeMemory;
-	ProcessMap* m_procMap;
-	Registers m_register;
-	SyscallHandler* m_syscall_hdl;
+	Debugger* m_debugger;
 
+	DebugOpts* m_debug_opts = nullptr;
+	
+	SyscallManager* m_syscallMngr = nullptr;
+  	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+  	bool m_followFork = false;
 public:
 
-	BreakpointMngr m_breakpointMngr;
-	pid_t m_pid; // tracee pid
-	// TraceeEvent event; // this represnt current event of event loop
+	DebugType debugType;
+	BreakpointMngr* m_breakpointMngr;
+
+	// pid of the program we are tracing/debugging
+	pid_t getPid() {
+		return m_debug_opts->m_pid;
+	}
 	
 	~TraceeProgram () {
-		delete m_TraceeMemory;
-		delete m_procMap;
 	}
 
 	// this is used when new tracee is found
-	TraceeProgram(pid_t tracee_pid, Debugger& debugger, DebugType debug_type):
-		m_state(TraceeState::INITIAL_STOP), m_debugger(debugger),
-		m_pid(tracee_pid), debugType(debug_type), 
-	 	m_TraceeMemory(new RemoteMemory(tracee_pid)),
-		m_procMap(new ProcessMap(tracee_pid)),
-		m_register(Registers(tracee_pid)),
-		m_syscall_hdl(new SyscallHandler(tracee_pid)),
-		m_breakpointMngr(BreakpointMngr(tracee_pid, m_procMap)) {}
+	TraceeProgram(DebugType debug_type):
+		m_state(TraceeState::INITIAL_STOP),
+		debugType(debug_type) {}
 	
-	TraceeProgram(pid_t tracee_pid, Debugger& debugger):
-		TraceeProgram(tracee_pid, debugger, DebugType::DEFAULT) {}
+	TraceeProgram():
+		TraceeProgram(DebugType::DEFAULT) {}
 
+
+	TraceeProgram& setSyscallMngr(SyscallManager* sys_mngr) {
+		m_syscallMngr = sys_mngr;
+		return *this;
+	};
+
+	TraceeProgram& setBreakpointMngr(BreakpointMngr* brk_mngr) {
+		m_breakpointMngr = brk_mngr;
+		return *this;
+	};
+
+	TraceeProgram& setDebugOpts(DebugOpts* debug_opts) {
+		m_debug_opts = debug_opts;
+		return *this;
+	};
+
+	TraceeProgram& setDebugger(Debugger* debugger) {
+		m_debugger = debugger;
+		return *this;
+	};
+	
+	TraceeProgram& setPid(pid_t tracee_pid) {
+		m_debug_opts->setPid(tracee_pid);
+		return *this;
+	};
+
+	TraceeProgram& setLogFile(string log_name) {
+		auto log_file_name = spdlog::fmt_lib::format("{}_{}.log", log_name, getPid());
+		auto log_inst_name = spdlog::fmt_lib::format("tc-{}",getPid());
+		m_log = spdlog::basic_logger_mt(log_inst_name, log_file_name);
+		return *this;
+	};
+
+	TraceeProgram& followFork() {
+		m_followFork = true;
+		return *this;
+	}
 
 	bool isValidState();
 
@@ -105,7 +142,31 @@ public:
 	void processState(TraceeEvent event, TrapReason trap_reason);
 
 	void addPendingBrkPnt(std::vector<std::string>& brk_pnt_str);
+	
+	void addSyscallHandler(SyscallHandler* syscall_hdlr) {
+		m_syscallMngr->addSyscallHandler(syscall_hdlr);
+	};
 
+	void addFileOperationHandler(FileOperationTracer* file_opts) {
+		m_syscallMngr->addFileOperationHandler(file_opts);
+	};
+
+};
+
+
+class TraceeFactory {
+
+	Debugger* m_debugger;
+	std::list<TraceeProgram *> m_cached_tracee;
+
+public:
+	
+	// this function fills the cache with dummy tracees
+	// this will reduce the creation time
+	void createDummyTracee();
+
+	TraceeProgram* createTracee(pid_t tracee_pid, DebugType debug_type);
+	void releaseTracee(TraceeProgram* tracee_obj);
 };
 
 #endif

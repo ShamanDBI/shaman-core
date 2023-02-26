@@ -9,6 +9,7 @@
 
 
 class TraceeProgram;
+class TraceeFactory;
 
 
 class Debugger {
@@ -17,11 +18,25 @@ class Debugger {
 	std::string* m_prog = nullptr;
 	std::vector<std::string>* m_argv = nullptr;
 	std::vector<std::string>& brk_pnt_str;
+	TraceeFactory* m_tracee_factory = nullptr;
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+
+	bool m_traceSyscall = false;
+	bool m_followFork = false;
 
 public:
 
-	Debugger(std::vector<std::string>& _brk_pnt_str):
-		brk_pnt_str(_brk_pnt_str) {}
+	Debugger& followFork() {
+		m_followFork = true;
+		return *this;
+	}
+
+	Debugger& traceSyscall() {
+		m_traceSyscall = true;
+		return *this;
+	}
+
+	Debugger(std::vector<std::string>& _brk_pnt_str);
 
 	int spawn(std::vector<std::string>& cmdline);
 
