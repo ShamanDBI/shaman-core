@@ -29,6 +29,11 @@ Architecture Neutral DBI for Embedded systems
 1. ARMore: pushing Love Back into binaires
 	1. This paper focues on static rewriting of ARM binaries
 	1. It can do this for PIC and non-PIC code with/out symbols
+1. [SaBRe: load-time selective binary rewriting](https://link.springer.com/content/pdf/10.1007/s10009-021-00644-w.pdf?pdf=button)
+	1. SaBRe rewrites specific constructs—particularly system calls and functions—when the program is loaded into memory, and intercepts them using plugins through a simple API.
+	1. We also discuss the theoretical underpinnings of disassembling and rewriting.
+	1. We developed two backends—for x86_64 and RISC-V—which were used to implement three plugins: a fast system call tracer, a multi-version executor, and a fault injector.
+	1. Our evaluation shows that SaBRe imposes little overhead, typically below 3%.
 
 ## Ref
 1. [ARM and MIPS Ptrace Impl](https://github.com/aleden/ptracetricks/blob/main/ptracetricks.cpp)
