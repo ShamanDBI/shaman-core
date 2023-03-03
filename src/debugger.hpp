@@ -3,6 +3,7 @@
 
 #include <map>
 #include <spdlog/spdlog.h>
+#include <unistd.h>
 
 #include "tracee.hpp"
 #include "linux_debugger.hpp"

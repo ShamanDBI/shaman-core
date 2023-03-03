@@ -23,7 +23,12 @@ Architecture Neutral DBI for Embedded systems
 
 1. This can be used to intercept socket operation and used to manipulate data to and from the target program, essentially use it as proxy program
 1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
-1. 
+
+## Research Paper to Incorporate
+1. [An In-Depth Analysis of Disassembly on Full-Scale x86/x64 Binaries](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_andriesse.pdf)
+1. ARMore: pushing Love Back into binaires
+	1. This paper focues on static rewriting of ARM binaries
+	1. It can do this for PIC and non-PIC code with/out symbols
 
 ## Ref
 1. [ARM and MIPS Ptrace Impl](https://github.com/aleden/ptracetricks/blob/main/ptracetricks.cpp)
