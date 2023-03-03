@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/mman.h>
-#include<stdio.h>
-#include<fcntl.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <wait.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 
 void test_brk_point() {
