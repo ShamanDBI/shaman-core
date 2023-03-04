@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cmake",
+			"label": "CMake: build",
+			"command": "build",
+			"targets": [
+				"all"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "CMake template build task"
+		}, {
+			"label": "Test fork",
+			"type": "shell",
+			"command": "build/bin/shaman",
+			"args": [
+				"-f", "--exec", "build/bin/test_prog", "1"
+			],
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		}, {
+			"label": "Test Breakpoint",
+			"type": "shell",
+			"command": "build/bin/shaman",
+			"args": [
+				"-f", "-s", "-b", "test_prog@1375,137e,12a9",
+				"--exec", "build/bin/test_prog", "4"
+			],
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		}
+	]
+}

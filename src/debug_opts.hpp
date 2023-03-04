@@ -21,7 +21,7 @@ struct DebugOpts {
 		return *this;
 	}
 
-	pid_t getPid(pid_t tracee_pid) {
+	pid_t getPid() {
 		return m_pid;
 	}
 

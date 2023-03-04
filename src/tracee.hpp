@@ -18,46 +18,54 @@ enum DebugType {
 	BREAKPOINT     = (1 << 2),
 	FOLLOW_FORK    = (1 << 3),
 	SYSCALL        = (1 << 4),
-	SINGLE_STEP    = (1 << 5)
+	SINGLE_STEP    = (1 << 5),
+	FOLLOW_OPTS    = (1 << 6)
 };
 
 class Debugger;
 
+// this is current state of the tracee
+enum TraceeState {
+	// once the tracee is spawned it is assigned this state
+	// tracee is then started with the desired ptrace options
+	INITIAL_STOP = 1,
+	// on the initialization is done it is set in the running
+	// state
+	RUNNING,
+	// tracee is put in this state when it has sent request to
+	// kernel and the kernel is processing system call, this 
+	// mean syscall enter has already occured
+	IN_SYSCALL,
+	// the process has existed and object is avaliable to free
+	EXITED, 
+	// Invalid state, not to be used anywhere!
+	UNKNOWN
+};
+
 class TraceeProgram {
 
-	// this is current state of the tracee
-	enum TraceeState {
-		// once the tracee is spawned it is assigned this state
-		// tracee is then started with the desired ptrace options
-		INITIAL_STOP = 1,
-		// on the initialization is done it is set in the running
-		// state
-		RUNNING,
-		// tracee is put in this state when it has sent request to
-		// kernel and the kernel is processing system call, this 
-		// mean syscall enter has already occured
-		SYSCALL,
-		// the process has existed and object is avaliable to free
-		EXITED, 
-		// Invalid state, not to be used anywhere!
-		UNKNOWN
-	} m_state ;
+public:
+	TraceeState m_state;
 
-	Debugger* m_debugger;
+	pid_t m_pid;
 
+	// Debugger* m_debugger;
 	DebugOpts* m_debug_opts = nullptr;
-	
-	SyscallManager* m_syscallMngr = nullptr;
-  	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	// SyscallManager* m_syscallMngr = nullptr;
+
+
   	bool m_followFork = false;
+
+  	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+
 public:
 
 	DebugType debugType;
-	BreakpointMngr* m_breakpointMngr;
+	// BreakpointMngr* m_breakpointMngr;
 
 	// pid of the program we are tracing/debugging
 	pid_t getPid() {
-		return m_debug_opts->m_pid;
+		return m_debug_opts->getPid();
 	}
 	
 	~TraceeProgram () {
@@ -72,28 +80,18 @@ public:
 		TraceeProgram(DebugType::DEFAULT) {}
 
 
-	TraceeProgram& setSyscallMngr(SyscallManager* sys_mngr) {
-		m_syscallMngr = sys_mngr;
-		return *this;
-	};
-
-	TraceeProgram& setBreakpointMngr(BreakpointMngr* brk_mngr) {
-		m_breakpointMngr = brk_mngr;
-		return *this;
-	};
 
 	TraceeProgram& setDebugOpts(DebugOpts* debug_opts) {
 		m_debug_opts = debug_opts;
 		return *this;
 	};
 
-	TraceeProgram& setDebugger(Debugger* debugger) {
-		m_debugger = debugger;
-		return *this;
+	DebugOpts* getDebugOpts() {
+		return m_debug_opts;
 	};
-	
+
 	TraceeProgram& setPid(pid_t tracee_pid) {
-		m_debug_opts->setPid(tracee_pid);
+		m_pid = tracee_pid;
 		return *this;
 	};
 
@@ -131,26 +129,8 @@ public:
 
 	void printStatus();
 
-	void processPtraceEvent(TraceeEvent event, TrapReason trap_reason);
-
-	void processINITState();
-
-	void processRUNState(TraceeEvent event, TrapReason trap_reason);
-
-	void processSYSCALLState(TraceeEvent event, TrapReason trap_reason);
-
-	void processState(TraceeEvent event, TrapReason trap_reason);
-
 	void addPendingBrkPnt(std::vector<std::string>& brk_pnt_str);
 	
-	void addSyscallHandler(SyscallHandler* syscall_hdlr) {
-		m_syscallMngr->addSyscallHandler(syscall_hdlr);
-	};
-
-	void addFileOperationHandler(FileOperationTracer* file_opts) {
-		m_syscallMngr->addFileOperationHandler(file_opts);
-	};
-
 };
 
 

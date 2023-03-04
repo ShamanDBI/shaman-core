@@ -23,7 +23,7 @@ void TraceeProgram::toStateRunning() {
 }
 
 void TraceeProgram::toStateSysCall() {
-	m_state = TraceeState::SYSCALL;
+	m_state = TraceeState::IN_SYSCALL;
 }
 
 void TraceeProgram::toStateExited() {
@@ -71,7 +71,7 @@ std::string TraceeProgram::getStateString() {
 		case TraceeState::RUNNING:
 			return std::string("RUNNING");
 			break;
-		case TraceeState::SYSCALL:
+		case TraceeState::IN_SYSCALL:
 			return std::string("SYSCALL");
 			break;
 		case TraceeState::EXITED:
@@ -90,189 +90,11 @@ void TraceeProgram::printStatus() {
 	m_log->debug("PID : {} State : {}", getPid(), getStateString());
 }
 
-void TraceeProgram::processPtraceEvent(TraceeEvent event, TrapReason trap_reason) {
-	// this function processes "PTRACE_EVENT stops" event
-	if (trap_reason.status == TrapReason::CLONE ||
-		trap_reason.status == TrapReason::FORK || 
-		trap_reason.status == TrapReason::VFORK ) {
-		m_debugger->addChildTracee(trap_reason.pid);
-		m_log->trace("CLONE/FORK/VFORK");
-		contExecution();
-	} else if( trap_reason.status == TrapReason::EXEC) {
-		m_log->trace("EXEC");
-		contExecution();
-	} else if( trap_reason.status == TrapReason::EXIT ) {
-		// toStateExited();
-		m_log->trace("EXIT");
-		contExecution();
-	} else if(trap_reason.status == TrapReason::SYSCALL) {
-		m_log->trace("SYSCALL");
-		// this state mean the tracee execution is handed to the
-		// kernel for syscall process, 
-		// NOTE: OS has not clear way to
-		// distingish if the call is syscall enter or exit
-		// and its debugger responsibity to track it
-		contExecution();
-	} else {
-		m_log->warn("Not sure why we have stopped!");
-		contExecution(event.signaled.signal);
-	}
-}
-
-void TraceeProgram::processINITState() {
-	m_log->info("Initial Stop, prepaing the tracee!");
-	
-	auto tracee_flags =  PTRACE_O_TRACESYSGOOD |
-		PTRACE_O_TRACEEXEC    |
-		PTRACE_O_TRACEEXIT;
-
-	if (m_followFork) {
-		tracee_flags |= PTRACE_O_TRACEFORK |
-			PTRACE_O_TRACECLONE |
-			PTRACE_O_TRACEVFORK;
-	}
-
-	int ret = ptrace(PTRACE_SETOPTIONS, getPid(), 0, tracee_flags);
-
-	if (ret == -1) {
-		m_log->error("Error occured while setting ptrace options while restarting the tracee!");
-	}
-
-	toStateRunning();
-
-	// TODO : figure out the lift time of this param
-	m_debug_opts->m_procMap->parse();
-	
-	// TODO : this is not appropriate point to inject
-	// breakpoint in case of fork
-	// when you fork the breakpoints which are put before
-	// are already in place, so we only need to inject
-	// which are pending
-	m_breakpointMngr->inject();
-
-	contExecution();
-}
-
-void TraceeProgram::processRUNState(TraceeEvent event, TrapReason trap_reason) {
-	switch (event.type) {
-		case TraceeEvent::EXITED:
-			m_log->info("EXITED : process {} has exited!", getPid());
-			toStateExited();
-			break;
-		case TraceeEvent::SIGNALED:
-			m_log->critical("SIGNALLED : process {} terminated by a signal!!", getPid());
-			toStateExited();
-			break;
-		case TraceeEvent::STOPPED:
-			m_log->info("STOPPED : ");
-			if(trap_reason.status == TrapReason::SYSCALL) {
-				m_log->debug("SYSCALL ENTER");
-				m_syscallMngr->onEnter();
-				toStateSysCall();
-			} else if(trap_reason.status == TrapReason::BREAKPOINT) {
-				if (m_breakpointMngr->hasSuspendedBrkPnt()) {
-					m_breakpointMngr->restoreSuspendedBreakpoint();
-					contExecution();
-				} else {
-
-					// PC points to the next instruction after execution
-					m_debug_opts->m_register->getGPRegisters();
-					uintptr_t brk_addr = m_debug_opts->m_register->getPC();
-
-					// this done to get previous the intruction which caused
-					// the hit, and its architecture dependent, so this is
-					// not the place to handle it
-					brk_addr--;
-
-					m_breakpointMngr->handleBreakpointHit(brk_addr);
-
-					m_debug_opts->m_register->setPC(brk_addr);
-
-					m_debug_opts->m_register->setGPRegisters();
-
-					// delete prog_regs;
-					singleStep();
-				}
-				// contExecution();
-				break;
-			}
-			processPtraceEvent(event, trap_reason);
-			break;
-		case TraceeEvent::CONTINUED:
-			m_log->debug("CONTINUED");
-			contExecution();
-			break;
-		default:
-			m_log->error("ERROR : UNKNOWN state {}", event.type);
-			contExecution();
-	}
-}
-
-void TraceeProgram::processSYSCALLState(TraceeEvent event, TrapReason trap_reason) {
-	switch (event.type) {
-		case TraceeEvent::EXITED:
-			m_log->info("SYSCALL : EXITED : process {} has exited!", getPid());
-			toStateExited();
-			break;
-		case TraceeEvent::SIGNALED:
-			m_log->critical("SYSCALL : SIGNALLED : process {} terminated by a signal!!", getPid());
-			toStateExited();
-			break;
-		case TraceeEvent::STOPPED:
-			if(trap_reason.status == TrapReason::SYSCALL) {
-				m_log->info("SYSCALL : EXIT");
-				// change the state once we have process the event
-				m_syscallMngr->onExit();
-				toStateRunning();
-			}
-			processPtraceEvent(event, trap_reason);
-			break;
-		default:
-			m_log->error("SYSCALL : ERROR : UNKNOWN state {}", event.type);
-			contExecution();
-	}
-}
-
-void TraceeProgram::processState(TraceeEvent event, TrapReason trap_reason) {
-	// restrict the changing of tracee state to this function only
-
-	switch(m_state) {
-		case UNKNOWN:
-			 m_log->critical("FATAL : You cannot possibily be living in this state");
-			break;
-		case INITIAL_STOP:
-			processINITState();
-			break;
-		case RUNNING:
-			m_log->debug("RUNNING");
-			processRUNState(event, trap_reason);
-			break;
-		case SYSCALL:
-			/*
-				DOCS :
-				Syscall-enter-stop and syscall-exit-stop are indistinguishable
-   				from each other by the tracer. The tracer needs to keep track of
-   				the sequence of ptrace-stops in order to not misinterpret
-   				syscall-enter-stop as syscall-exit-stop or vice versa. In
-   				general, a syscall-enter-stop is always followed by syscall-exit-
-   				stop, PTRACE_EVENT stop, or the tracee's death; no other kinds of
-   				ptrace-stop can occur in between.
-
-				thats the reason we have the process this again
-			*/
-			processSYSCALLState(event, trap_reason);
-			break;
-		default:
-			m_log->error("FATAL : Undefined Tracee State", event.type);
-			break;
-	}
-}
-
-void TraceeProgram::addPendingBrkPnt(std::vector<std::string>& brk_pnt_str) {
-	for(auto brk_pnt: brk_pnt_str) {
-		m_breakpointMngr->addModuleBrkPnt(brk_pnt);
-	}
-}
+// void TraceeProgram::addPendingBrkPnt(std::vector<std::string>& brk_pnt_str) {
+// 	for(auto brk_pnt: brk_pnt_str) {
+// 		m_breakpointMngr->addModuleBrkPnt(brk_pnt);
+// 	}
+// }
 
 // #include "spdlog/fmt/fmt.h"
 
@@ -287,17 +109,8 @@ TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_typ
 		.setRegisters(cpuRegister)
 		.setProcessMap(procMap);
 	
-	auto syscallMngr = new SyscallManager();
-	syscallMngr->setDebugOpts(debugOpts);
-	
-	auto breakpointMngr = new BreakpointMngr();
-	breakpointMngr->setDebugOpts(debugOpts);
-	
 	auto tracee_obj = new TraceeProgram(debug_type);
-	tracee_obj->setDebugger(m_debugger)
-		.setDebugOpts(debugOpts)
-		.setSyscallMngr(syscallMngr)
-		.setBreakpointMngr(breakpointMngr);
+	tracee_obj->setDebugOpts(debugOpts);
 		// ->setLogFile(string("hussain"));
 
 	return tracee_obj;

@@ -20,25 +20,30 @@
  *	x86	    eax			eax		ebx		ecx		edx		esi		edi		ebp
  *	x86_64	rax			rax		rdi		rsi		rdx		r10		r8		r9
 */
-void SyscallManager::readParameters() {
-	m_debug_opts->m_register->getGPRegisters();
-	m_cached_args->sc_id = m_debug_opts->m_register->getRegIdx(SYSCALL_ID_INTEL);
-	m_syscall_info = &syscalls[m_cached_args->sc_id];
-	m_cached_args->v_arg[0] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_0);
-	m_cached_args->v_arg[1] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_1);
-	m_cached_args->v_arg[2] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_2);
-	m_cached_args->v_arg[3] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_3);
-	m_cached_args->v_arg[4] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_4);
-	m_cached_args->v_arg[5] = m_debug_opts->m_register->getRegIdx(SYSCALL_ARG_5);
+void SyscallManager::readParameters(DebugOpts* debug_opts) {
+	debug_opts->m_register->getGPRegisters();
+	m_cached_args->sc_id = debug_opts->m_register->getRegIdx(SYSCALL_ID_INTEL);
+	
+	// get the system call info
+	if (m_cached_args->sc_id < MAX_SYSCALL_NUM)
+		m_syscall_info = &syscalls[m_cached_args->sc_id];
+	else 
+		m_syscall_info = nullptr;
+	
+	m_cached_args->v_arg[0] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_0);
+	m_cached_args->v_arg[1] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_1);
+	m_cached_args->v_arg[2] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_2);
+	m_cached_args->v_arg[3] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_3);
+	m_cached_args->v_arg[4] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_4);
+	m_cached_args->v_arg[5] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_5);
 }
 
-void SyscallManager::readRetValue() {
-	m_debug_opts->m_register->getGPRegisters();
-	m_cached_args->v_rval = m_debug_opts->m_register->getRegIdx(SYSCALL_RET);
+void SyscallManager::readRetValue(DebugOpts* debug_opts) {
+	debug_opts->m_register->getGPRegisters();
+	m_cached_args->v_rval = debug_opts->m_register->getRegIdx(SYSCALL_RET);
 }
 
 int SyscallManager::addFileOperationHandler(FileOperationTracer* file_opt_handler) {
-	file_opt_handler->setDebugOpts(m_debug_opts);
 	m_file_ops_pending.push_front(file_opt_handler);
 	return 0;
 }
@@ -48,7 +53,6 @@ int SyscallManager::removeFileOperationHandler(FileOperationTracer* file_opt_han
 }
 
 int SyscallManager::addSyscallHandler(SyscallHandler* syscall_hdlr) {
-	syscall_hdlr->setDebugOpts(m_debug_opts);
 	m_syscall_handler_map[syscall_hdlr->syscall_id] = syscall_hdlr;
 	return 0;
 }
@@ -58,8 +62,8 @@ int SyscallManager::removeSyscallHandler(SyscallHandler* syscall_hdlr) {
 	return 0;
 }
 
-int SyscallManager::onEnter() {
-	readParameters();
+int SyscallManager::onEnter(DebugOpts* debug_opts) {
+	readParameters(debug_opts);
 	
 	// File operation detector
 	if (file_ops_syscall_id.count(m_cached_args->sc_id)) {
@@ -104,16 +108,18 @@ int SyscallManager::onEnter() {
     } else {
     	// Found
     	SyscallHandler* syscall_hdlr = sys_iter->second;
-    	syscall_hdlr->onEnter(m_cached_args);
+    	syscall_hdlr->onEnter(debug_opts, m_cached_args);
     }  
-
-	m_log->debug("NAME : -> {}", m_syscall_info->name);
+	
+	if(m_syscall_info)
+		m_log->debug("NAME : -> {}", m_syscall_info->name);
 	return 0;
 }
 
-int SyscallManager::onExit() {
-	m_log->debug("NAME : <- {} ()", m_syscall_info->name, m_cached_args->v_rval);
-	readRetValue();
+int SyscallManager::onExit(DebugOpts* debug_opts) {
+	if(m_syscall_info)
+		m_log->debug("NAME : <- {} ()", m_syscall_info->name, m_cached_args->v_rval);
+	readRetValue(debug_opts);
 	FileOperationTracer* f_opts = nullptr;
 	int fd = 0;
 	// if(m_cached_args->sc_id == NR_openat) {
@@ -143,7 +149,7 @@ int SyscallManager::onExit() {
     } else {
     	// Found
     	SyscallHandler* syscall_hdlr = sys_iter->second;
-    	syscall_hdlr->onExit(m_cached_args);
+    	syscall_hdlr->onExit(debug_opts, m_cached_args);
     }
 	m_syscall_info = nullptr;
 	return 0;

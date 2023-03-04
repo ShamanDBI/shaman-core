@@ -24,14 +24,8 @@ struct SyscallTraceData {
 struct FileOperationTracer {
 
 
-	DebugOpts* m_debug_opts = nullptr;
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
-	FileOperationTracer* setDebugOpts(DebugOpts* debug_opts) {
-		m_debug_opts = debug_opts;
-		return this;
-	};
-
 	// this function will let you filter the file
 	// you want to trace, if you want to trace
 	// all files the return true;
@@ -71,7 +65,6 @@ public:
 
 struct SyscallHandler {
 
-	DebugOpts* m_debug_opts = nullptr;
 	sysc_id_t syscall_id;
 	
 	SyscallHandler(sysc_id_t _syscall_id): 
@@ -79,14 +72,9 @@ struct SyscallHandler {
 
 	~SyscallHandler();
 
-	SyscallHandler* setDebugOpts(DebugOpts* debug_opts) {
-		m_debug_opts = debug_opts;
-		return this;
-	};
+	virtual int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) { return 0; };
 
-	virtual int onEnter(SyscallTraceData* sc_trace) { return 0; };
-
-	virtual int onExit(SyscallTraceData* sc_trace) { return 0; };
+	virtual int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) { return 0; };
 
 };
 
@@ -114,8 +102,6 @@ class SyscallManager {
 
 	std::list<FileOperationTracer*> m_file_ops_pending;
 
-	DebugOpts* m_debug_opts = nullptr;
-	
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 public:
@@ -127,14 +113,9 @@ public:
 		delete m_cached_args;
 	};
 
-	SyscallManager* setDebugOpts(DebugOpts* debug_opts) {
-		m_debug_opts = debug_opts;
-		return this;
-	};
+	void readParameters(DebugOpts* debug_opts);
 
-	void readParameters();
-
-	void readRetValue();
+	void readRetValue(DebugOpts* debug_opts);
 
 	virtual int addFileOperationHandler(FileOperationTracer* file_opt_handler);
 	virtual int removeFileOperationHandler(FileOperationTracer* file_opt_handler);
@@ -142,9 +123,9 @@ public:
 	virtual int addSyscallHandler(SyscallHandler* syscall_hdlr);
 	virtual int removeSyscallHandler(SyscallHandler* syscall_hdlr);
 
-	virtual int onEnter();
+	virtual int onEnter(DebugOpts* debug_opts);
 
-	virtual int onExit();
+	virtual int onExit(DebugOpts* debug_opts);
 
 };
 

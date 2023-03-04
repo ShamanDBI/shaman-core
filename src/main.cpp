@@ -5,6 +5,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
+/*
 class RandFile : public FileOperationTracer {
 
 public:
@@ -25,6 +26,7 @@ public:
 
 };
 
+*/
 class MmapHandler : public SyscallHandler {
 
 public:	
@@ -67,7 +69,9 @@ int main(int argc, char **argv) {
     spdlog::info("Welcome to Shaman!");
 	spdlog::set_level(spdlog::level::trace); // Set global log level to debug
 
-	Debugger debug(brk_pnt_addrs);
+	Debugger debug;
+
+	debug.addBreakpoint(brk_pnt_addrs);
 	
 	if(trace_syscalls) {
 		debug.traceSyscall();
