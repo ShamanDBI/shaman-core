@@ -22,7 +22,6 @@ enum DebugType {
 	FOLLOW_OPTS    = (1 << 6)
 };
 
-class Debugger;
 
 // this is current state of the tracee
 enum TraceeState {
@@ -136,7 +135,6 @@ public:
 
 class TraceeFactory {
 
-	Debugger* m_debugger;
 	std::list<TraceeProgram *> m_cached_tracee;
 
 public:

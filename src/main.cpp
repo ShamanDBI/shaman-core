@@ -5,18 +5,21 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-/*
 class RandFile : public FileOperationTracer {
 
 public:
 
-	bool onFilter(SyscallTraceData *sc_trace) {
+	bool onFilter(DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+		
+		spdlog::warn("onFilter!");
+
 		switch(sc_trace->sc_id) {
 		case NR_openat:
 			auto file_path_addr_t = Addr(sc_trace->v_arg[1], 100);
-			m_debug_opts->m_memory->read(&file_path_addr_t, 100);
+			debug_opts->m_memory->read(&file_path_addr_t, 100);
 			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.addr), "/home/hussain/hi.txt") == 0) {
 				spdlog::warn("We foound it!");
+				spdlog::debug("This is the file operation we were trying to test!");
 				return true;
 			}
 			break;
@@ -26,13 +29,14 @@ public:
 
 };
 
-*/
+
 class MmapHandler : public SyscallHandler {
 
 public:	
 	MmapHandler(): SyscallHandler(NR_openat) {}
 
-	int onExit(SyscallTraceData* sc_trace) {
+	int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+		spdlog::debug("This is the system call we were trying to test");
 		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
 	}
@@ -73,6 +77,9 @@ int main(int argc, char **argv) {
 
 	debug.addBreakpoint(brk_pnt_addrs);
 	
+	debug.addSyscallHandler(new MmapHandler());
+	debug.addFileOperationHandler(new RandFile());
+
 	if(trace_syscalls) {
 		debug.traceSyscall();
 	}

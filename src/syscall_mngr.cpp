@@ -128,7 +128,7 @@ int SyscallManager::onExit(DebugOpts* debug_opts) {
 			file_opt_iter != m_file_ops_pending.end();)
 	    {
 	    	f_opts = *file_opt_iter;
-	        if (f_opts->onFilter(m_cached_args)) {
+	        if (f_opts->onFilter(debug_opts, m_cached_args)) {
 	        	f_opts->onOpen();
 	        	// found the match, removing it from the list
 	            file_opt_iter = m_file_ops_pending.erase(file_opt_iter);

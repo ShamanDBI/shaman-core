@@ -12,6 +12,12 @@
 #include "memory.hpp"
 #include "debug_opts.hpp"
 
+
+
+/**
+ * @brief dfd
+ * 
+ */
 struct SyscallTraceData {
 	pid_t m_pid;						/* If 0, this tcb is free */
 	sysc_id_t sc_id;					/* System call number */
@@ -20,19 +26,33 @@ struct SyscallTraceData {
 	uint64_t v_arg[SYSCALL_MAXARGS];	/* System call arguments */
 };
 
-
+/**
+ * @brief Get callback for all file related system call 
+ *        the tracking id will be file descriptor
+ * 
+ */
 struct FileOperationTracer {
 
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
-	// this function will let you filter the file
-	// you want to trace, if you want to trace
-	// all files the return true;
-	virtual bool onFilter(SyscallTraceData* sc_trace) {
+	/**
+	 * @brief this function will let you filter the file
+	 *        you want to trace, if you want to trace
+	 *        all files the return true;
+	 * @param debug_opts debugging related API access
+	 * @param sc_trace system call parameter
+	 * @return true if you want to track the file descriptor
+	 * @return false if you want dont want to track the file descriptor
+	 */
+	virtual bool onFilter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		return true;
 	};
 
+	/**
+	 * @brief callback on open file event
+	 * 
+	 */
 	virtual void onOpen() {
 		m_log->error("FT : onOpen");
 	};

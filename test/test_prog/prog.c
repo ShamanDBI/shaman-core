@@ -13,7 +13,7 @@ void test_brk_point() {
     int N=15;
     int fd = open("/home/hussain/hi.txt", O_RDONLY);
     int *ptr = mmap ( NULL, N*sizeof(int),
-    PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
+    PROT_READ | PROT_WRITE, MAP_PRIVATE, 0, 0 );
     
     printf("Strike Breakpoint 1\n");
 

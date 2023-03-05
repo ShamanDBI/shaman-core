@@ -12,17 +12,36 @@ Architecture Neutral DBI for Embedded systems
 1. Function Hooking and Instrumentation - you can also replace the entire functionality of the function with your assembly code.
 1. Basic Block hooking and instrumentation - same as above.
 
+## Usage 
+
+```shell
+Shaman DBI Framework
+Usage: ./build/bin/shaman [OPTIONS]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -l,--log TEXT               application debug logs
+  -o,--trace TEXT             output of the tracee logs
+  -p,--pid INT                PID of process to attach to
+  -b,--brk TEXT ...           Address of the breakpoints
+  -e,--exec TEXT ... REQUIRED program to execute
+  -f,--follow                 follow the fork/clone/vfork syscalls
+  -s,--syscall                trace system calls
+
+```
+
+## Use Case
+
+1. This can be used to intercept socket operation and used to manipulate data to and from the target program, essentially use it as proxy program
+1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
+1. Function hook very similar to system call trace but for functions.
+
 ## Dependencies
 
 1. Kaitai - data structure formating and parsing framework
 1. Capstone Engine - Disassembly Engine
 1. Keystone Engine - Assembler Engine
 1. lief - executable parsing framework
-
-## Use Case
-
-1. This can be used to intercept socket operation and used to manipulate data to and from the target program, essentially use it as proxy program
-1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
 
 ## Research Paper to Incorporate
 1. [An In-Depth Analysis of Disassembly on Full-Scale x86/x64 Binaries](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_andriesse.pdf)
