@@ -184,7 +184,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 	return trap_reason;
 }
 
-void Debugger::eventLoop() {
+bool Debugger::eventLoop() {
 		
 	DebugOpts* debug_opts = nullptr; 
 	TraceeProgram *traceeProgram;
@@ -496,5 +496,6 @@ void Debugger::eventLoop() {
 	}
 	m_breakpointMngr->printStats();
 	m_log->info("There are not tracee left to debug. Exiting!");
+	return true;
 }
 

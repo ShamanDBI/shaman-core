@@ -4,7 +4,6 @@
 #include <string.h>
 #include <errno.h>
 #include <vector>
-#include <spdlog/spdlog.h>
 #include <iostream>
 #include <algorithm>
 #include "modules.hpp"

@@ -94,7 +94,7 @@ struct SyscallHandler {
 	SyscallHandler(sysc_id_t _syscall_id): 
 		syscall_id(_syscall_id) {}
 
-	~SyscallHandler();
+	~SyscallHandler() {};
 
 	virtual int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) { return 0; };
 

@@ -14,6 +14,8 @@ void test_file_operation() {
     int fd = open("/home/hussain/hi.txt", O_RDONLY);
     char buf[100];
     read(fd, buf, 10);
+    write(fd, buf, 10);
+    ioctl(fd, buf, 10);
     printf("This file data is : %s\n", buf);
     close(fd);
 }

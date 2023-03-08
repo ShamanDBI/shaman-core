@@ -8,7 +8,6 @@
 #include <sys/user.h>
 #include <sstream>
 #include <elf.h>
-#include <spdlog/spdlog.h>
 #include "stdio.h"
 
 #include "memory.hpp"

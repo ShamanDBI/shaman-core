@@ -5,6 +5,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
+
 class OverwriteFileData : public FileOperationTracer {
 
 public:
@@ -52,6 +53,7 @@ public:
 
 };
 
+
 class OpenAt1Handler : public SyscallHandler {
 
 public:	
@@ -68,6 +70,7 @@ public:
 		return 0;
 	}
 };
+
 
 class OpenAt2Handler : public SyscallHandler {
 
@@ -86,6 +89,7 @@ public:
 		return 0;
 	}
 };
+
 
 int main(int argc, char **argv) {
 
@@ -134,7 +138,6 @@ int main(int argc, char **argv) {
 		debug.followFork();
 	}
 
-	// debug.parseBrk(brk_pnt_addrs);
 	debug.spawn(exec_prog);
 	debug.eventLoop();
 	

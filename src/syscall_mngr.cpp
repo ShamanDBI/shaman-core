@@ -109,14 +109,13 @@ int SyscallManager::onEnter(DebugOpts* debug_opts) {
 	bool sys_hdl_not_fnd = true;
 
 	for (auto it=sys_hd_iter.first; it!=sys_hd_iter.second; ++it) {
-		spdlog::warn("{} onEnter", (*it).first);
 		it->second->onEnter(debug_opts, m_cached_args);
 		sys_hdl_not_fnd = false;
 	}
 
     if (sys_hdl_not_fnd) {  
     	// Not found!
-		m_log->trace("No syscall handler is registered for this syscall number");
+		m_log->trace("onEnter : No syscall handler is registered for this syscall number");
     }
 	
 	if(m_syscall_info)
@@ -165,7 +164,7 @@ int SyscallManager::onExit(DebugOpts* debug_opts) {
 
     if (sys_hdl_not_fnd) {  
     	// Not found!
-		m_log->trace("No syscall handler is registered for this syscall number");
+		m_log->trace("onExit : No syscall handler is registered for this syscall number");
     }
 	m_syscall_info = nullptr;
 	return 0;

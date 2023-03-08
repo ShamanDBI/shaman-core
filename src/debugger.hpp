@@ -167,7 +167,7 @@ public:
 
 	TrapReason getTrapReason(TraceeEvent event, TraceeProgram* tracee_info);
 
-	void eventLoop();
+	bool eventLoop();
 
 	bool isBreakpointTrap(siginfo_t* tracee_pid);
 	

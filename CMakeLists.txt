@@ -5,10 +5,11 @@ project(ShamanDBI)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
+set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 
+# ------------- Download all the needed Dependencies ---------------
 include(FetchContent) # once in the project to include the module
 
 FetchContent_Declare(
@@ -22,6 +23,19 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/CLIUtils/CLI11
   GIT_TAG v2.2.0
 )
+
+Include(FetchContent)
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.13.0 # or a later release
+)
+
+FetchContent_MakeAvailable(googletest)
+
+# ------------------------------------------------------------------
+
 
 option(BUILD_FOR_ARM "Build for ARM architecture" NO)
 option(BUILD_FOR_INTEL "Build for INTEL architecture" YES)
@@ -47,16 +61,30 @@ set(SRC
   src/debugger.cpp
   src/breakpoint_mngr.cpp
   src/tracee.cpp
-  src/main.cpp
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
 )
 
 
-target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC})
+target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC} src/main.cpp)
 target_include_directories(shaman PRIVATE src/arch/intel)
 target_include_directories(shaman PRIVATE src)
 
 target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
 
+
+# -- Testing configuration
+
 add_executable(test_prog test/test_prog/prog.c)
+
+set(TEST_SRC
+  test/unittest/test.cpp
+)
+include(GoogleTest)
+
+add_executable(tests ${TEST_SRC})
+target_include_directories(tests PRIVATE src/arch/intel)
+target_include_directories(tests PRIVATE src)
+target_sources(tests PRIVATE ${SRC} ${ARCH_SRC})
+target_link_libraries(tests PRIVATE spdlog)
+target_link_libraries(tests PRIVATE GTest::gtest_main gmock)
