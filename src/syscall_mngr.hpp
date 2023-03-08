@@ -26,13 +26,17 @@ struct SyscallTraceData {
 	uint64_t v_arg[SYSCALL_MAXARGS];	/* System call arguments */
 };
 
+enum SyscallState {
+	ON_ENTER = 1,
+	ON_EXIT = 2
+};
+
 /**
  * @brief Get callback for all file related system call 
  *        the tracking id will be file descriptor
  * 
  */
 struct FileOperationTracer {
-
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
@@ -53,19 +57,19 @@ struct FileOperationTracer {
 	 * @brief callback on open file event
 	 * 
 	 */
-	virtual void onOpen() {
+	virtual void onOpen(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		m_log->error("FT : onOpen");
 	};
-	virtual void onClose() {
+	virtual void onClose(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		m_log->error("FT : onClose");
 	};
-	virtual void onRead() {
+	virtual void onRead(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		m_log->error("FT : onRead");
 	};
-	virtual void onWrite() {
+	virtual void onWrite(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		m_log->error("FT : onWrite");
 	};
-	virtual void onIoctl() {
+	virtual void onIoctl(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
 		m_log->error("FT : onIoctl");
 	};
 };
@@ -116,7 +120,7 @@ class SyscallManager {
 
 	SyscallEntry* m_syscall_info = nullptr;
 
-	std::map<int, SyscallHandler*> m_syscall_handler_map;
+	std::multimap<int, SyscallHandler*> m_syscall_handler_map;
 
 	std::map<int, FileOperationTracer*> m_file_ops_handler;
 
@@ -136,6 +140,8 @@ public:
 	void readParameters(DebugOpts* debug_opts);
 
 	void readRetValue(DebugOpts* debug_opts);
+
+	int handleFileOpt(SyscallState sys_state, DebugOpts* debug_opts);
 
 	virtual int addFileOperationHandler(FileOperationTracer* file_opt_handler);
 	virtual int removeFileOperationHandler(FileOperationTracer* file_opt_handler);

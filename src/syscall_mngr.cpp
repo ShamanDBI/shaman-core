@@ -53,7 +53,7 @@ int SyscallManager::removeFileOperationHandler(FileOperationTracer* file_opt_han
 }
 
 int SyscallManager::addSyscallHandler(SyscallHandler* syscall_hdlr) {
-	m_syscall_handler_map[syscall_hdlr->syscall_id] = syscall_hdlr;
+	m_syscall_handler_map.insert({syscall_hdlr->syscall_id, syscall_hdlr});
 	return 0;
 }
 
@@ -62,54 +62,62 @@ int SyscallManager::removeSyscallHandler(SyscallHandler* syscall_hdlr) {
 	return 0;
 }
 
+int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts* debug_opts) {
+	int fd = m_cached_args->v_arg[0];
+
+	auto file_ops_iter = m_file_ops_handler.find(fd);  
+	
+	if ( file_ops_iter == m_file_ops_handler.end() ) {  
+		// Not found!
+		m_log->trace("No FileOperation is registered for this fd");
+		return 0;
+	}
+	// Found
+	FileOperationTracer* file_ops_obj = file_ops_iter->second;
+
+	switch(m_cached_args->sc_id) {
+	case NR_read:
+		file_ops_obj->onRead(sys_state, debug_opts, m_cached_args);
+		break;
+	case NR_write:
+		file_ops_obj->onWrite(sys_state, debug_opts, m_cached_args);
+		break;
+	case NR_close:
+		file_ops_obj->onClose(sys_state, debug_opts, m_cached_args);
+		break;
+	case NR_ioctl:
+		file_ops_obj->onIoctl(sys_state, debug_opts, m_cached_args);
+		break;
+	default:
+		m_log->error("This FileOperation is not implemented!");
+	}
+	return 0;
+}
+
 int SyscallManager::onEnter(DebugOpts* debug_opts) {
 	readParameters(debug_opts);
 	
-	// File operation detector
+	// File operation handler
 	if (file_ops_syscall_id.count(m_cached_args->sc_id)) {
-		m_log->debug("FILE OPT DETECED");
-		
-		int fd = m_cached_args->v_arg[0];
-
-		auto file_ops_iter = m_file_ops_handler.find(fd);  
-     
-	    if ( file_ops_iter == m_file_ops_handler.end() ) {  
-	    	// Not found!
-			m_log->trace("No FileOperation is registered for this fd");
-	    } else {
-	    	// Found
-	    	FileOperationTracer* file_ops_obj = file_ops_iter->second;
-
-	    	switch(m_cached_args->sc_id) {
-	    	case NR_read:
-	    		file_ops_obj->onRead();
-	    		break;
-	    	case NR_write:
-	    		file_ops_obj->onWrite();
-	    		break;
-	    	case NR_close:
-	    		file_ops_obj->onClose();
-	    		break;
-	    	case NR_ioctl:
-	    		file_ops_obj->onIoctl();
-	    		break;
-	    	default:
-	    		m_log->error("This FileOperation is not implemented!");
-	    	}
-	    }
+		m_log->trace("FILE OPT DETECED");
+		handleFileOpt(SyscallState::ON_ENTER, debug_opts);
 	}
 
 	// Find and invoke system call handler
-	auto sys_iter = m_syscall_handler_map.find(m_cached_args->sc_id);  
-     
-    if ( sys_iter == m_syscall_handler_map.end() ) {  
+	auto map_key = m_cached_args->sc_id;
+	auto sys_hd_iter = m_syscall_handler_map.equal_range(map_key);
+	bool sys_hdl_not_fnd = true;
+
+	for (auto it=sys_hd_iter.first; it!=sys_hd_iter.second; ++it) {
+		spdlog::warn("{} onEnter", (*it).first);
+		it->second->onEnter(debug_opts, m_cached_args);
+		sys_hdl_not_fnd = false;
+	}
+
+    if (sys_hdl_not_fnd) {  
     	// Not found!
 		m_log->trace("No syscall handler is registered for this syscall number");
-    } else {
-    	// Found
-    	SyscallHandler* syscall_hdlr = sys_iter->second;
-    	syscall_hdlr->onEnter(debug_opts, m_cached_args);
-    }  
+    }
 	
 	if(m_syscall_info)
 		m_log->debug("NAME : -> {}", m_syscall_info->name);
@@ -122,14 +130,14 @@ int SyscallManager::onExit(DebugOpts* debug_opts) {
 	readRetValue(debug_opts);
 	FileOperationTracer* f_opts = nullptr;
 	int fd = 0;
-	// if(m_cached_args->sc_id == NR_openat) {
+	if(m_cached_args->sc_id == NR_openat) {
 		// File operation detector
 		for (auto file_opt_iter = m_file_ops_pending.begin();
 			file_opt_iter != m_file_ops_pending.end();)
 	    {
 	    	f_opts = *file_opt_iter;
 	        if (f_opts->onFilter(debug_opts, m_cached_args)) {
-	        	f_opts->onOpen();
+	        	f_opts->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
 	        	// found the match, removing it from the list
 	            file_opt_iter = m_file_ops_pending.erase(file_opt_iter);
 	            fd = m_cached_args->v_rval;
@@ -138,18 +146,26 @@ int SyscallManager::onExit(DebugOpts* debug_opts) {
 	            ++file_opt_iter;
 	        }
 	    }
-	// }
+	}
 
+	if (file_ops_syscall_id.count(m_cached_args->sc_id)) {
+		m_log->debug("FILE OPT DETECED");
+		handleFileOpt(SyscallState::ON_EXIT, debug_opts);
+	}
+	
 	// Find and invoke system call handler
-	auto sys_iter = m_syscall_handler_map.find(m_cached_args->sc_id);  
-     
-    if ( sys_iter == m_syscall_handler_map.end() ) {  
+	auto map_key = m_cached_args->sc_id;
+	auto sys_hd_iter = m_syscall_handler_map.equal_range(map_key);
+	bool sys_hdl_not_fnd = true;
+
+	for (auto it=sys_hd_iter.first; it!=sys_hd_iter.second; ++it) {
+		it->second->onExit(debug_opts, m_cached_args);
+		sys_hdl_not_fnd = false;
+	}
+
+    if (sys_hdl_not_fnd) {  
     	// Not found!
 		m_log->trace("No syscall handler is registered for this syscall number");
-    } else {
-    	// Found
-    	SyscallHandler* syscall_hdlr = sys_iter->second;
-    	syscall_hdlr->onExit(debug_opts, m_cached_args);
     }
 	m_syscall_info = nullptr;
 	return 0;

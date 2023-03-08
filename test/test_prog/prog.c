@@ -8,12 +8,21 @@
 #include <stdlib.h>
 
 
+void test_file_operation() {
+    printf("This is file test program\n");
+    
+    int fd = open("/home/hussain/hi.txt", O_RDONLY);
+    char buf[100];
+    read(fd, buf, 10);
+    printf("This file data is : %s\n", buf);
+    close(fd);
+}
+
 void test_brk_point() {
     printf("Helloo.. this is breakpoint test program\n");
     int N=15;
     int fd = open("/home/hussain/hi.txt", O_RDONLY);
-    int *ptr = mmap ( NULL, N*sizeof(int),
-    PROT_READ | PROT_WRITE, MAP_PRIVATE, 0, 0 );
+    int *ptr = mmap ( NULL, N*sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
     
     printf("Strike Breakpoint 1\n");
 
@@ -108,6 +117,9 @@ int main(int argc, char *argv[])
             break;
         case 4:
             test_brk_point();
+            break;
+        case 5:
+            test_file_operation();
             break;
         default:
             printf("Unknown test case ID\n");

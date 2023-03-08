@@ -5,21 +5,20 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-class RandFile : public FileOperationTracer {
+class OverwriteFileData : public FileOperationTracer {
 
 public:
 
 	bool onFilter(DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
 		
-		spdlog::warn("onFilter!");
+		// spdlog::warn("onFilter!");
 
 		switch(sc_trace->sc_id) {
 		case NR_openat:
 			auto file_path_addr_t = Addr(sc_trace->v_arg[1], 100);
 			debug_opts->m_memory->read(&file_path_addr_t, 100);
 			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.addr), "/home/hussain/hi.txt") == 0) {
-				spdlog::warn("We foound it!");
-				spdlog::debug("This is the file operation we were trying to test!");
+				spdlog::trace("We found the file we wanted to mess with!");
 				return true;
 			}
 			break;
@@ -27,16 +26,62 @@ public:
 		return false;
 	}
 
+	void onRead(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+		if(sys_state == SyscallState::ON_ENTER) {
+			spdlog::debug("onRead: onEnter");
+			int fd = static_cast<int>(sc_trace->v_arg[0]);
+			uint64_t buf_len = sc_trace->v_arg[2];
+			auto buf = Addr(sc_trace->v_arg[1], buf_len);
+			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.addr), buf_len);
+		} else {
+			spdlog::warn("onRead: onExit");
+			int fd = static_cast<int>(sc_trace->v_arg[0]);
+			uint64_t buf_len = sc_trace->v_arg[2];
+			auto buf = Addr(sc_trace->v_arg[1], buf_len);
+			debug_opts->m_memory->read(&buf, buf_len);
+			printf("read %s\n", reinterpret_cast<char*>(buf.addr));
+			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.addr), buf_len);
+			memcpy(buf.addr, "Malicous\x00", 9);
+			debug_opts->m_memory->write(&buf, buf_len);
+		}
+	}
+
+	void onClose(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+		spdlog::trace("onClose");
+	}
+
 };
 
-
-class MmapHandler : public SyscallHandler {
+class OpenAt1Handler : public SyscallHandler {
 
 public:	
-	MmapHandler(): SyscallHandler(NR_openat) {}
+	OpenAt1Handler(): SyscallHandler(NR_openat) {}
+
+	int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+		spdlog::trace("onEnter : System call handler test");
+		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+		return 0;
+	}
+	int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+		spdlog::trace("onExit : System call handler test");
+		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+		return 0;
+	}
+};
+
+class OpenAt2Handler : public SyscallHandler {
+
+public:	
+	OpenAt2Handler(): SyscallHandler(NR_openat) {}
+
+	int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+		spdlog::debug("onEnter : System call handler test again!");
+		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+		return 0;
+	}
 
 	int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
-		spdlog::debug("This is the system call we were trying to test");
+		spdlog::debug("onExit : System call handler test again!");
 		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
 	}
@@ -77,8 +122,9 @@ int main(int argc, char **argv) {
 
 	debug.addBreakpoint(brk_pnt_addrs);
 	
-	debug.addSyscallHandler(new MmapHandler());
-	debug.addFileOperationHandler(new RandFile());
+	debug.addSyscallHandler(new OpenAt1Handler());
+	debug.addSyscallHandler(new OpenAt2Handler());
+	debug.addFileOperationHandler(new OverwriteFileData());
 
 	if(trace_syscalls) {
 		debug.traceSyscall();
