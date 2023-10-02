@@ -2,6 +2,9 @@
 
 Architecture Neutral DBI for Embedded systems
 
+## Why?
+
+
 ## Programming Interface
 
 1. **Breakpoint Handling** - give you programmable opportunity to when the breakpoint is hit. You will have access to program memory and register which you can manipulate when you hit the breakpoint.
@@ -12,7 +15,7 @@ Architecture Neutral DBI for Embedded systems
 1. Function Hooking and Instrumentation - you can also replace the entire functionality of the function with your assembly code.
 1. Basic Block hooking and instrumentation - same as above.
 
-## Usage 
+## Quick Usage Guide 
 
 ```shell
 Shaman DBI Framework
@@ -29,6 +32,9 @@ Options:
   -s,--syscall                trace system calls
 
 ```
+## Build
+
+
 
 ## Use Case
 

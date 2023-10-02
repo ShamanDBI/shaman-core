@@ -54,6 +54,7 @@ using namespace std;
 
 class BreakpointMngr {
 
+public:
     // this map will have pair of module name and
     // offset within the module where the breakpoint 
     // has to be placed
@@ -68,7 +69,6 @@ class BreakpointMngr {
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
-public:
 
     // add breakpoint in format module@addr1,addr2,add3
     void parseModuleBrkPnt(string& brk_mod_addr);

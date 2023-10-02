@@ -15,6 +15,7 @@
 
 class Breakpoint {
 
+public:
     enum BreakpointType {
         // single shot breakpoint used for collecting code coverage
         // Delete the breakpoint after it has been hit once
@@ -30,6 +31,7 @@ class Breakpoint {
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
     
     // this is the concrete address of the breakpoint
+    // resolved address
     uintptr_t m_addr = 0;
 
     // name of the module in which this breakpoint exist
@@ -44,7 +46,6 @@ class Breakpoint {
     uint32_t m_count = 0;
 
 
-public:
     // offset from the module
     uintptr_t m_offset = 0;
 
@@ -64,6 +65,9 @@ public:
     
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t brk_addr) :
         Breakpoint(modname, offset, brk_addr, nullptr, NORMAL) {}
+
+    Breakpoint(std::string& modname, uintptr_t offset, BreakpointType brk_type) :
+        Breakpoint(modname, offset, 0, nullptr, brk_type) {}
 
     Breakpoint(std::string& modname, uintptr_t offset) :
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
@@ -95,14 +99,17 @@ public:
         return m_count;
     }
 
-    bool handle(DebugOpts* debug_opts) {
-        m_count++;
-        printDebug();
+    bool shouldEnable() {
         if (m_type == BreakpointType::SINGLE_SHOT) {
             return false;
         } else {
             return true;
         }
+    }
+
+    bool handle(DebugOpts* debug_opts) {
+        m_count++;
+        // printDebug();
     }
 
     bool isEnabled() {

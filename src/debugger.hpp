@@ -124,6 +124,7 @@ class TraceeFactory;
 
 class Debugger {
 
+public:
 	// new
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
@@ -143,7 +144,6 @@ class Debugger {
 	bool m_traceSyscall = false;
 	bool m_followFork = false;
 
-public:
 
 	Debugger& followFork() {
 		m_followFork = true;

@@ -90,12 +90,67 @@ public:
 	}
 };
 
+#define REC_TYPE_MODULE 0
+#define REC_TYPE_FUNCTION 1
+
+void parser_basic_block_file(Debugger& debug, std::string bb_path) {
+	
+	std::ifstream bb_info_file(bb_path, std::ios::binary | std::ios::in );
+	bool should_cont = true;
+	uint8_t mod_type = 0;
+	uint16_t mod_size = 0;
+	char *mod_name = NULL;
+	char *func_name = NULL;
+	uint64_t func_offset = 0;
+
+	uint32_t bb_count = 0;
+	int32_t bb_offset = 0;
+
+	std::string* mod_name_str = nullptr;
+	std::list<Breakpoint *> brk_offset;
+	while (should_cont)
+	{
+
+		bb_info_file.read((char*)&mod_type, sizeof(mod_type));
+		
+		if (mod_type == REC_TYPE_MODULE) {
+			bb_info_file.read((char*)&mod_size, sizeof(mod_size));
+			mod_name = (char *) malloc(mod_size + 1);
+			bb_info_file.read(mod_name, mod_size);
+			
+			mod_name_str = new std::string(mod_name, mod_size);
+			
+			mod_name[mod_size] = 0;
+			spdlog::info("Module {}", mod_name_str->c_str());
+		} else if (mod_type == REC_TYPE_FUNCTION) {
+			bb_info_file.read((char*)&mod_size, sizeof(mod_size));
+			// spdlog::info(" Function Size {} ", mod_size);
+			func_name = (char *) malloc(mod_size + 1);
+			bb_info_file.read(func_name, mod_size);
+			bb_info_file.read((char *)&func_offset, sizeof(func_offset));
+			bb_info_file.read((char *)&bb_count, sizeof(bb_count));
+			spdlog::info(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, func_offset, bb_count);
+			while(bb_count > 0) {
+				bb_info_file.read((char *)&bb_offset, sizeof(bb_offset));
+				spdlog::info("  BB 0x{:x}", bb_offset);
+
+				Breakpoint* new_bb = new Breakpoint(*mod_name_str, func_offset + bb_offset, Breakpoint::SINGLE_SHOT);
+				brk_offset.push_back(new_bb);
+				bb_count--;
+			}
+
+		}
+
+		should_cont = bb_info_file.peek() != EOF;
+	}
+	debug.m_breakpointMngr->m_pending[*mod_name_str] = brk_offset;
+}
 
 int main(int argc, char **argv) {
 
     CLI::App app{"Shaman DBI Framework"};
 	
-	std::string trace_log_path, app_log_path;
+	std::string trace_log_path, app_log_path, basic_block_path;
 	pid_t attach_pid {-1};
 	std::vector<std::string> exec_prog;
 	std::vector<std::string> brk_pnt_addrs;
@@ -107,28 +162,38 @@ int main(int argc, char **argv) {
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
 	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
 	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
-	app.add_option("-e,--exec", exec_prog, "program to execute")->expected(-1)->required();
+	app.add_option("-c,--basic-block", basic_block_path, "Basic Block addresses which will be used for coverage collection");
+	app.add_option("-e,--exec", exec_prog, "program to execute");//->expected(-1)->required();
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
 
     CLI11_PARSE(app, argc, argv);
+
 
     if (app_log_path.length() > 0) {
     	auto main_logger = spdlog::basic_logger_mt("main_log", app_log_path);
     } else {
     	auto console = spdlog::stdout_color_mt("main_log");
     }
-	
-    spdlog::info("Welcome to Shaman!");
-	spdlog::set_level(spdlog::level::trace); // Set global log level to debug
 
+    spdlog::info("Welcome to Shaman!");
+	
 	Debugger debug;
 
+	if (basic_block_path.length() > 0) {
+		spdlog::info("Processing basic block file");
+		parser_basic_block_file(debug, basic_block_path);
+		// return 0;
+	}
+
+	spdlog::set_level(spdlog::level::trace); // Set global log level to debug
+
+	
 	debug.addBreakpoint(brk_pnt_addrs);
 	
-	debug.addSyscallHandler(new OpenAt1Handler());
-	debug.addSyscallHandler(new OpenAt2Handler());
-	debug.addFileOperationHandler(new OverwriteFileData());
+	// debug.addSyscallHandler(new OpenAt1Handler());
+	// debug.addSyscallHandler(new OpenAt2Handler());
+	// debug.addFileOperationHandler(new OverwriteFileData());
 
 	if(trace_syscalls) {
 		debug.traceSyscall();
