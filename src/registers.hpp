@@ -36,7 +36,7 @@ public:
 
         int pt_ret = ptrace(PTRACE_GETREGSET, m_pid, (void*)NT_PRSTATUS, (void*)&io);
         if (pt_ret < 0) {
-            m_log->error("Unable to get tracee [pid : {}] register, Err code: ", m_pid, pt_ret);
+            m_log->error("Unable to get tracee [pid : {}] register, Err code: {}", m_pid, pt_ret);
         }
 
         return pt_ret;
@@ -51,7 +51,7 @@ public:
         int ret = ptrace(PTRACE_SETREGSET, m_pid, (void*)NT_PRSTATUS, (void*)&io);
 
         if (ret < 0) {
-            m_log->error("Unable to get tracee [pid : {}] register, Err code: ", m_pid, ret);
+            m_log->error("Unable to get tracee [pid : {}] register, Err code: {}", m_pid, ret);
         }
         return ret;
     }

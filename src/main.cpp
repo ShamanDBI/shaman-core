@@ -16,9 +16,9 @@ public:
 
 		switch(sc_trace->sc_id) {
 		case NR_openat:
-			auto file_path_addr_t = Addr(sc_trace->v_arg[1], 100);
+			Addr file_path_addr_t(sc_trace->v_arg[1], 100);
 			debug_opts->m_memory->read(&file_path_addr_t, 100);
-			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.addr), "/home/hussain/hi.txt") == 0) {
+			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
 				spdlog::trace("We found the file we wanted to mess with!");
 				return true;
 			}
@@ -32,17 +32,17 @@ public:
 			spdlog::debug("onRead: onEnter");
 			int fd = static_cast<int>(sc_trace->v_arg[0]);
 			uint64_t buf_len = sc_trace->v_arg[2];
-			auto buf = Addr(sc_trace->v_arg[1], buf_len);
-			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.addr), buf_len);
+			Addr buf(sc_trace->v_arg[1], buf_len);
+			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
 		} else {
 			spdlog::warn("onRead: onExit");
 			int fd = static_cast<int>(sc_trace->v_arg[0]);
 			uint64_t buf_len = sc_trace->v_arg[2];
-			auto buf = Addr(sc_trace->v_arg[1], buf_len);
+			Addr buf(sc_trace->v_arg[1], buf_len);
 			debug_opts->m_memory->read(&buf, buf_len);
-			printf("read %s\n", reinterpret_cast<char*>(buf.addr));
-			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.addr), buf_len);
-			memcpy(buf.addr, "Malicous\x00", 9);
+			printf("read %s\n", reinterpret_cast<char*>(buf.m_data));
+			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
+			memcpy(buf.m_data, "Malicous\x00", 9);
 			debug_opts->m_memory->write(&buf, buf_len);
 		}
 	}
@@ -96,6 +96,7 @@ public:
 void parser_basic_block_file(Debugger& debug, std::string bb_path) {
 	
 	std::ifstream bb_info_file(bb_path, std::ios::binary | std::ios::in );
+	auto log = spdlog::get("main_log");
 	bool should_cont = true;
 	uint8_t mod_type = 0;
 	uint16_t mod_size = 0;
@@ -108,6 +109,7 @@ void parser_basic_block_file(Debugger& debug, std::string bb_path) {
 
 	std::string* mod_name_str = nullptr;
 	std::list<Breakpoint *> brk_offset;
+	int total_bkpt = 1000;
 	while (should_cont)
 	{
 
@@ -121,24 +123,31 @@ void parser_basic_block_file(Debugger& debug, std::string bb_path) {
 			mod_name_str = new std::string(mod_name, mod_size);
 			
 			mod_name[mod_size] = 0;
-			spdlog::info("Module {}", mod_name_str->c_str());
+			log->info("Module {}", mod_name_str->c_str());
 		} else if (mod_type == REC_TYPE_FUNCTION) {
 			bb_info_file.read((char*)&mod_size, sizeof(mod_size));
-			// spdlog::info(" Function Size {} ", mod_size);
+			// log->info(" Function Size {} ", mod_size);
 			func_name = (char *) malloc(mod_size + 1);
 			bb_info_file.read(func_name, mod_size);
 			bb_info_file.read((char *)&func_offset, sizeof(func_offset));
 			bb_info_file.read((char *)&bb_count, sizeof(bb_count));
-			spdlog::info(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, func_offset, bb_count);
+			// log->info(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, func_offset, bb_count);
 			while(bb_count > 0) {
 				bb_info_file.read((char *)&bb_offset, sizeof(bb_offset));
-				spdlog::info("  BB 0x{:x}", bb_offset);
+				// log->info("  BB 0x{:x}", bb_offset + func_offset);e
 
-				Breakpoint* new_bb = new Breakpoint(*mod_name_str, func_offset + bb_offset, Breakpoint::SINGLE_SHOT);
+				Breakpoint* new_bb = new Breakpoint(*mod_name_str,
+					func_offset + bb_offset// );
+					, Breakpoint::BreakpointType::SINGLE_SHOT);
 				brk_offset.push_back(new_bb);
 				bb_count--;
+				// total_bkpt--;
+
 			}
 
+		}
+		if (total_bkpt < 0) {
+			break;
 		}
 
 		should_cont = bb_info_file.peek() != EOF;
@@ -176,12 +185,13 @@ int main(int argc, char **argv) {
     	auto console = spdlog::stdout_color_mt("main_log");
     }
 
-    spdlog::info("Welcome to Shaman!");
+	auto log = spdlog::get("main_log");
+    log->info("Welcome to Shaman!");
 	
 	Debugger debug;
 
 	if (basic_block_path.length() > 0) {
-		spdlog::info("Processing basic block file");
+		log->info("Processing basic block file");
 		parser_basic_block_file(debug, basic_block_path);
 		// return 0;
 	}
@@ -206,5 +216,5 @@ int main(int argc, char **argv) {
 	debug.spawn(exec_prog);
 	debug.eventLoop();
 	
-	spdlog::debug("Good Bye!");
+	log->debug("Good Bye!");
 }

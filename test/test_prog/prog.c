@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-
+    test_case_idx = 4;
     switch(test_case_idx) {
         case 1:
             rec_fork();

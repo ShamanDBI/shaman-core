@@ -165,7 +165,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 			trap_reason.pid = new_pid;
 		} else {
 			if(!tracee_info->isInitialized()) {
-				siginfo_t sig_info;
+				siginfo_t sig_info = {0};
 				ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
 				if (isBreakpointTrap(&sig_info)) {
 					m_log->trace("SIGTRAP : Breakpoint was hit !");
@@ -178,6 +178,10 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 	} else if (event.type == TraceeEvent::STOPPED && PT_IF_SYSCALL(event.stopped.signal)) {
 		m_log->trace("SIGTRAP : SYSCALL");
 		trap_reason.status = TrapReason::SYSCALL;
+	} else if (event.type == TraceeEvent::STOPPED && event.stopped.signal == SIGSEGV) {
+		siginfo_t sig_info = {0};
+		ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
+		m_log->warn("That's right! Segfault, Reason: {} !", sig_info.si_code);
 	} else if (event.type == TraceeEvent::STOPPED) {
 		m_log->warn("This STOP Signal not understood by us!");
 	}
@@ -382,6 +386,20 @@ bool Debugger::eventLoop() {
 					m_syscallMngr->onEnter(traceeProgram->getDebugOpts());
 					traceeProgram->toStateSysCall();
 				} else if(trap_reason.status == TrapReason::BREAKPOINT) {
+					/**
+					 * To please breakpoint we have to place breakpoint inst
+					 * on the address. When it inst is executed out code is 
+					 * called
+					 * Once we get the breakpoint hit we restore the brk inst
+					 * with the original inst and change the EIP to one inst
+					 * back to the original inst.
+					 * We do single step and only execute one inst and at
+					 * this point you have the option to restore the breakpoint
+					 * or not.
+					 * But after breakpoint is hit you alway have to do single
+					 * step wheather you want to restore the breakpoint or not.
+					 * Not sure why!
+					 */
 					debug_opts = traceeProgram->getDebugOpts();
 					
 					if (m_breakpointMngr->hasSuspendedBrkPnt()) {
@@ -398,15 +416,15 @@ bool Debugger::eventLoop() {
 						// the hit, and its architecture dependent, so this is
 						// not the place to handle it
 						brk_addr--;
-
+						// debug_opts->m_register->print();
 						m_breakpointMngr->handleBreakpointHit(debug_opts, brk_addr);
 
 						debug_opts->m_register->setPC(brk_addr);
 
 						debug_opts->m_register->setGPRegisters();
-
-						// delete prog_regs;
+						// debug_opts->m_register->print();
 						traceeProgram->singleStep();
+						// traceeProgram->contExecution();
 						break;
 					}
 					break;

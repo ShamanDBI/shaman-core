@@ -40,9 +40,9 @@ public:
 
 		switch(sc_trace->sc_id) {
 		case NR_openat:
-			auto file_path_addr_t = Addr(sc_trace->v_arg[1], 100);
+			Addr file_path_addr_t(sc_trace->v_arg[1], 100);
 			debug_opts->m_memory->read(&file_path_addr_t, 100);
-			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.addr), "/home/hussain/hi.txt") == 0) {
+			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
 				spdlog::trace("We found the file we wanted to mess with!");
 				return true;
 			}

@@ -64,7 +64,7 @@ void BreakpointMngr::inject(DebugOpts *debug_opts)
         {
             Breakpoint *brkpnt_obj = brk_pending_objs.back();
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
-            spdlog::warn("Brk addr : {:x}", brk_addr);
+            m_log->info("Brk addr : {:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
             brkpnt_obj->addPid(debug_opts->getPid());
@@ -102,7 +102,9 @@ void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
             m_log->debug("Restoring");
         } else {
             m_log->debug("Not restoring");
-            m_active_brkpnt[m_suspendedBrkPnt->m_addr] = nullptr;
+            // although we don't need breakpoint object we are not deleting 
+            // it that because it will be later used to summarize 
+            // execution information
         }
         m_suspendedBrkPnt = nullptr;
     }
@@ -129,11 +131,16 @@ void BreakpointMngr::handleBreakpointHit(DebugOpts *debug_opts, uintptr_t brk_ad
 
 void BreakpointMngr::printStats()
 {
+    uint64_t bkpt_count = 0, bkpt_total = 0;
     m_log->info("------[ Breakpoint Stats ]-----");
     for (auto i = m_active_brkpnt.begin(); i != m_active_brkpnt.end(); i++)
     {
         auto brk_pt = i->second;
-        m_log->info("{} {}", brk_pt->m_label.c_str(), brk_pt->getHitCount());
+        bkpt_total +=1;
+        if (brk_pt->getHitCount() > 0)
+            bkpt_count += 1;
+        // m_log->info("{} {}", brk_pt->m_label.c_str(), brk_pt->getHitCount());
     }
+    m_log->info("Number Of Breakpoint Hits {}/{}", bkpt_count, bkpt_total);
     m_log->info("[------------------------------");
 }
