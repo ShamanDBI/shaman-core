@@ -73,8 +73,14 @@ public:
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
 
     ~Breakpoint() { 
+        m_log->warn("Breakpoint : going out out scope!");
         delete m_backupData;
         // delete m_label;
+    }
+
+    Breakpoint makeSingleShot() {
+        m_type = BreakpointType::SINGLE_SHOT;
+        return *this;
     }
 
     void addPid(pid_t pid) {
@@ -92,7 +98,7 @@ public:
     }
 
     void printDebug() {
-        m_log->trace("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_count);
+        m_log->debug("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_count);
     }
 
     uint32_t getHitCount() {
@@ -107,9 +113,10 @@ public:
         }
     }
 
-    bool handle(DebugOpts* debug_opts) {
+    virtual bool handle(DebugOpts* debug_opts) {
         m_count++;
         // printDebug();
+        return true;
     }
 
     bool isEnabled() {
@@ -121,4 +128,5 @@ public:
     virtual int disable(DebugOpts* debug_opts);
 };
 
+typedef unique_ptr<Breakpoint> BreakpointPtr;
 #endif

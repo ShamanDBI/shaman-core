@@ -64,7 +64,7 @@ void BreakpointMngr::inject(DebugOpts *debug_opts)
         {
             Breakpoint *brkpnt_obj = brk_pending_objs.back();
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
-            m_log->info("Brk addr : {:x}", brk_addr);
+            m_log->info("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
             brkpnt_obj->addPid(debug_opts->getPid());
@@ -131,16 +131,19 @@ void BreakpointMngr::handleBreakpointHit(DebugOpts *debug_opts, uintptr_t brk_ad
 
 void BreakpointMngr::printStats()
 {
-    uint64_t bkpt_count = 0, bkpt_total = 0;
+    uint64_t bkpt_count = 0, bkpt_total = 0, brk_pt_exec_cnt = 0;
     m_log->info("------[ Breakpoint Stats ]-----");
     for (auto i = m_active_brkpnt.begin(); i != m_active_brkpnt.end(); i++)
     {
         auto brk_pt = i->second;
         bkpt_total +=1;
-        if (brk_pt->getHitCount() > 0)
+        if (brk_pt->getHitCount() > 0) {
             bkpt_count += 1;
+            brk_pt_exec_cnt += brk_pt->getHitCount();
+        }
         // m_log->info("{} {}", brk_pt->m_label.c_str(), brk_pt->getHitCount());
     }
-    m_log->info("Number Of Breakpoint Hits {}/{}", bkpt_count, bkpt_total);
+    m_log->info("Number Of Breakpoint Hits : {}/{}", bkpt_count, bkpt_total);
+    m_log->info("Total Breakpoint Hits     : {}", brk_pt_exec_cnt);
     m_log->info("[------------------------------");
 }

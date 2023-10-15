@@ -90,69 +90,136 @@ public:
 	}
 };
 
+#define REC_TYPE_NEXT -1
 #define REC_TYPE_MODULE 0
 #define REC_TYPE_FUNCTION 1
+#define REC_TYPE_BB 2
 
-void parser_basic_block_file(Debugger& debug, std::string bb_path) {
+struct CoverageParser {
 	
-	std::ifstream bb_info_file(bb_path, std::ios::binary | std::ios::in );
-	auto log = spdlog::get("main_log");
-	bool should_cont = true;
-	uint8_t mod_type = 0;
-	uint16_t mod_size = 0;
-	char *mod_name = NULL;
-	char *func_name = NULL;
-	uint64_t func_offset = 0;
+	std::ifstream m_cov_info;
+	bool is_single_shot = false;
+	bool only_function = false;
 
-	uint32_t bb_count = 0;
-	int32_t bb_offset = 0;
+	std::string* curr_mod_name_str = nullptr;
+	// each module is iterated by each function
+	// this variable stores the offset of the fuction relative to
+	// module address
+	uint64_t m_curr_func_offset = 0;
+	// this variable store the offset of basic block relative to
+	// to funtion
+	uint32_t m_func_bb_count = 0;
+	
+	bool m_is_data_available = true;
+	uint8_t m_record_type = -1;
 
-	std::string* mod_name_str = nullptr;
-	std::list<Breakpoint *> brk_offset;
-	int total_bkpt = 1000;
-	while (should_cont)
-	{
+	CoverageParser(std::string cov_path) {
+		m_cov_info = std::ifstream(cov_path, std::ios::binary | std::ios::in );
+	}
 
-		bb_info_file.read((char*)&mod_type, sizeof(mod_type));
+	std::string& getCurrentModuleName() {
+		return *curr_mod_name_str;
+	}
+
+	CoverageParser& makeSingleShot() {
+		is_single_shot = true;
+		return *this;
+	}
+
+	Breakpoint* next() {
+		auto log = spdlog::get("main_log");
 		
-		if (mod_type == REC_TYPE_MODULE) {
-			bb_info_file.read((char*)&mod_size, sizeof(mod_size));
-			mod_name = (char *) malloc(mod_size + 1);
-			bb_info_file.read(mod_name, mod_size);
-			
-			mod_name_str = new std::string(mod_name, mod_size);
-			
-			mod_name[mod_size] = 0;
-			log->info("Module {}", mod_name_str->c_str());
-		} else if (mod_type == REC_TYPE_FUNCTION) {
-			bb_info_file.read((char*)&mod_size, sizeof(mod_size));
-			// log->info(" Function Size {} ", mod_size);
-			func_name = (char *) malloc(mod_size + 1);
-			bb_info_file.read(func_name, mod_size);
-			bb_info_file.read((char *)&func_offset, sizeof(func_offset));
-			bb_info_file.read((char *)&bb_count, sizeof(bb_count));
-			// log->info(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, func_offset, bb_count);
-			while(bb_count > 0) {
-				bb_info_file.read((char *)&bb_offset, sizeof(bb_offset));
-				// log->info("  BB 0x{:x}", bb_offset + func_offset);e
-
-				Breakpoint* new_bb = new Breakpoint(*mod_name_str,
-					func_offset + bb_offset// );
-					, Breakpoint::BreakpointType::SINGLE_SHOT);
-				brk_offset.push_back(new_bb);
-				bb_count--;
-				// total_bkpt--;
-
-			}
-
+		if (!m_is_data_available) {
+			log->warn("No more data is avaliable");
+			return nullptr;
 		}
-		if (total_bkpt < 0) {
+		Breakpoint* curr_brk_pnt;
+		uint16_t curr_entry_size = 0;
+		char *mod_name = NULL;
+		char *func_name = NULL;
+		int32_t curr_bb_offset = 0;
+
+		if (m_record_type != REC_TYPE_BB) {
+			m_cov_info.read((char*)&m_record_type, sizeof(m_record_type));
+		}
+
+		switch (m_record_type) {
+		case REC_TYPE_MODULE:
+			m_cov_info.read((char*)&curr_entry_size, sizeof(curr_entry_size));
+			mod_name = (char *) malloc(curr_entry_size + 1);
+			m_cov_info.read(mod_name, curr_entry_size);
+			mod_name[curr_entry_size] = 0;
+			curr_mod_name_str = new std::string(mod_name, curr_entry_size);
+			// log->info("Module {}", curr_mod_name_str->c_str());
+
+			// Immeditialy follwing this record we have function record and
+			// thats why haven't place break statement, and we are skipping
+			// m_record_type parsing by following statement
+			m_cov_info.seekg(sizeof(m_record_type), m_cov_info.cur);
+
+		case REC_TYPE_FUNCTION:
+			m_cov_info.read((char*)&curr_entry_size, sizeof(curr_entry_size));
+			// log->info(" Function Size {} ", curr_entry_size);
+			func_name = (char *) malloc(curr_entry_size + 1);
+			m_cov_info.read(func_name, curr_entry_size);
+			func_name[curr_entry_size] = 0;
+			m_cov_info.read((char *)&m_curr_func_offset, sizeof(m_curr_func_offset));
+			m_cov_info.read((char *)&m_func_bb_count, sizeof(m_func_bb_count));
+			
+			// Immedetially following function record we have basic block offset
+			// relative to function offset, thats why I havn't place break statement
+			m_record_type = REC_TYPE_BB;
+			// log->info(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, m_curr_func_offset, m_func_bb_count);
+
+		case REC_TYPE_BB:
+			if(m_func_bb_count > 0) {
+				m_cov_info.read((char *)&curr_bb_offset, sizeof(curr_bb_offset));
+				log->info("  BB 0x{:x} + 0x{:x} {}", m_curr_func_offset, curr_bb_offset, curr_mod_name_str->c_str());
+				uint64_t brk_pnt_offset = m_curr_func_offset + curr_bb_offset;
+				curr_brk_pnt = new Breakpoint(*curr_mod_name_str, brk_pnt_offset);
+				// curr_brk_pnt->printDebug();
+				if (is_single_shot)
+					curr_brk_pnt->makeSingleShot();
+				m_func_bb_count--;
+			}
+			if(m_func_bb_count == 0) {
+				// once we are done parsing 
+				m_record_type = REC_TYPE_NEXT;
+				log->warn("No more breakpoint left to debug");
+			}
+			break;
+
+		default:
+			log->error("Invalid record while parsing file");
 			break;
 		}
 
-		should_cont = bb_info_file.peek() != EOF;
+		m_is_data_available = m_cov_info.peek() != EOF;
+		return curr_brk_pnt;
 	}
-	debug.m_breakpointMngr->m_pending[*mod_name_str] = brk_offset;
+};
+
+void parser_basic_block_file(Debugger& debug, std::string bb_path, bool is_single_shot) {
+	
+	bool should_cont = true;
+	std::list<Breakpoint *> brk_offset;
+	Breakpoint* new_brk_pt = nullptr;
+	
+	CoverageParser covParse(bb_path);
+	
+	if (is_single_shot)
+		covParse.makeSingleShot();
+	
+	while (new_brk_pt = covParse.next())
+	{
+		// new_brk_pt = covParse.next();
+		if(new_brk_pt) {
+			brk_offset.push_back(new_brk_pt);
+		}
+	}
+
+	spdlog::warn("Mod {} {}", covParse.getCurrentModuleName().c_str(), brk_offset.size());
+	debug.m_breakpointMngr->m_pending[covParse.getCurrentModuleName()] = brk_offset;
 }
 
 int main(int argc, char **argv) {
@@ -165,13 +232,15 @@ int main(int argc, char **argv) {
 	std::vector<std::string> brk_pnt_addrs;
 	std::string log_file_name;
 	bool trace_syscalls = false;
+	bool single_shot {false};
 	bool follow_fork = false;
     
     app.add_option("-l,--log", app_log_path, "application debug logs");
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
 	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
 	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
-	app.add_option("-c,--basic-block", basic_block_path, "Basic Block addresses which will be used for coverage collection");
+	app.add_option("-c,--cov-basic-block", basic_block_path, "Basic Block addresses which will be used for coverage collection");
+	app.add_flag("--single-shot", single_shot, "Coverage collection should be single shot");
 	app.add_option("-e,--exec", exec_prog, "program to execute");//->expected(-1)->required();
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
@@ -191,8 +260,8 @@ int main(int argc, char **argv) {
 	Debugger debug;
 
 	if (basic_block_path.length() > 0) {
-		log->info("Processing basic block file");
-		parser_basic_block_file(debug, basic_block_path);
+		log->info("Processing basic block file {}", single_shot);
+		parser_basic_block_file(debug, basic_block_path, single_shot);
 		// return 0;
 	}
 
