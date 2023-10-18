@@ -143,6 +143,22 @@ void ProcessMap::permStr(uint8_t perm_val, char * pem_str) {
     // m_log->debug("PEM {} {}", perm_val, pem_str);
 }
 
+void ProcessMap::list_child_threads() {
+    DIR *dr;
+    struct dirent *en;
+    std::string thead_dir = spdlog::fmt_lib::format("/proc/{}/task", m_pid);
+    dr = opendir(thead_dir.c_str()); //open all or present directory
+
+    if (dr) {
+        while ((en = readdir(dr)) != NULL) {
+            if(!strcmp(en->d_name, ".") || !strcmp(en->d_name, ".."))
+                continue;
+            m_child_thread_pids.push_back(atoi(en->d_name));
+        }
+        closedir(dr); //close all directory
+    }
+}
+
 void ProcessMap::print() {
     m_log->debug("----------------[ PROCESS MAP ]----------------");
     char pem_str[5];

@@ -282,7 +282,13 @@ int main(int argc, char **argv) {
 		debug.followFork();
 	}
 
-	debug.spawn(exec_prog);
+	if(attach_pid != -1) {
+		log->info("Attaching to PID : {}", attach_pid);
+		debug.attach(attach_pid);
+	} else {
+		debug.spawn(exec_prog);
+	}
+
 	debug.eventLoop();
 	
 	log->debug("Good Bye!");

@@ -28,6 +28,9 @@ enum TraceeState {
 	// once the tracee is spawned it is assigned this state
 	// tracee is then started with the desired ptrace options
 	INITIAL_STOP = 1,
+	
+	// We are trying to attach to a running process
+	ATTACH,
 	// on the initialization is done it is set in the running
 	// state
 	RUNNING,
@@ -122,6 +125,8 @@ public:
 	DebugType getChildDebugType();
 
 	bool isInitialized();
+
+	void toAttach();
 
 	void toStateRunning();
 

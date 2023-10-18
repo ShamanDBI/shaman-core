@@ -22,6 +22,10 @@ void TraceeProgram::toStateRunning() {
 	m_state = TraceeState::RUNNING;
 }
 
+void TraceeProgram::toAttach() {
+	m_state = TraceeState::ATTACH;
+}
+
 void TraceeProgram::toStateSysCall() {
 	m_state = TraceeState::IN_SYSCALL;
 }
@@ -80,8 +84,11 @@ std::string TraceeProgram::getStateString() {
 		case TraceeState::UNKNOWN:
 			return std::string("UNKNOWN");
 			break;
+		case TraceeState::ATTACH:
+			return std::string("ATTACH");
+			break;
 		default:
-			return std::string("UNKNOWN");
+			return std::string("Don't know whats that!");
 			break;
 	};
 }

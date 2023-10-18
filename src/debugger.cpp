@@ -76,7 +76,7 @@ TraceeProgram* Debugger::addChildTracee(pid_t child_tracee_pid) {
 		m_log->critical("FATAL : Whhaat tthhhee.... heelll...., child id cannot be zero! Not adding child to the list");
 		return nullptr;
 	} else {
-		m_log->debug("New child {} is added to trace list!", child_tracee_pid);
+		m_log->debug("New child {} is added to tracee list!", child_tracee_pid);
 		auto trace_flag = DebugType::DEFAULT;
 		if(m_traceSyscall) {
 			trace_flag = DebugType::SYSCALL;
@@ -222,12 +222,47 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 }
 
 void Debugger::attach(pid_t tracee_pid) {
+
+	attachThread(tracee_pid);
+	auto traceeProgram = getTracee(tracee_pid);
+	traceeProgram->getDebugOpts()->m_procMap->list_child_threads();
+	
+	auto child_pids = traceeProgram->getDebugOpts()->m_procMap->m_child_thread_pids;
+
+	for (auto iter = child_pids.begin() ; iter != child_pids.end(); ++iter) {
+		pid_t child_pid = *iter;
+		m_log->info("Child pid {}", child_pid);
+		attachThread(child_pid);
+	}
+}
+
+void Debugger::attachThread(pid_t tracee_pid) {
+	auto tracee_obj = getTracee(tracee_pid);
+	
+	if (tracee_obj != nullptr) {
+		// this means we are already tracing this tracee
+		return;
+	}
+
 	int pt_ret = ptrace(PTRACE_ATTACH, tracee_pid, 0, 0);
 
 	if (pt_ret == 0) {
 		m_log->trace("Attach successful for pid : {}", tracee_pid);
+		TraceeProgram* traceeProg = addChildTracee(tracee_pid);
+		traceeProg->toAttach();
 	} else {
 		m_log->trace("Attach failed for pid {} reason {}", tracee_pid, pt_ret);
+	}
+}
+
+TraceeProgram* Debugger::getTracee(pid_t tracee_pid) {
+	auto tracee_iter = m_Tracees.find(tracee_pid);
+	if (tracee_iter != m_Tracees.end()) {
+		// tracee is found, its under over management
+		return tracee_iter->second;
+	} else {
+		m_log->info("Tracee not found!");
+		return nullptr;
 	}
 }
 
@@ -358,6 +393,16 @@ bool Debugger::eventLoop() {
 		case TraceeState::UNKNOWN:
 			 m_log->critical("FATAL : You cannot possibily be living in this state");
 			break;
+		case TraceeState::ATTACH:
+			if (event.type == TraceeEvent::STOPPED) {
+				m_log->info("Thread has stopped!");
+				// traceeProgram->toStateRunning();
+				// traceeProgram->contExecution();
+			} else {
+				m_log->info("Thread hasn't stopped yet!");
+			}
+			// don't put the break statement here, its 
+			// intentionally left behind.
 		case TraceeState::INITIAL_STOP:
 			m_log->info("Initial Stop, prepaing the tracee!");
 			

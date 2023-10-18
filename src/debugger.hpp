@@ -162,6 +162,7 @@ public:
 	int spawn(std::vector<std::string>& cmdline);
 
 	void attach(pid_t tracee_pid);
+	void attachThread(pid_t tracee_pid);
 
 	TraceeProgram* addChildTracee(pid_t child_tracee_pid);
 
@@ -189,6 +190,7 @@ public:
 
 	void addBreakpoint(std::vector<std::string>& _brk_pnt_str);
 
+	TraceeProgram* getTracee(pid_t tracee_pid);
 	/*
 	void addPendingBrkPnt(std::vector<std::string>& brk_pnt_str) {
 		for(auto brk_pnt: brk_pnt_str) {

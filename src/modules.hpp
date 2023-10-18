@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <dirent.h>
 
 
 struct dev_major_minor_t {
@@ -36,6 +37,7 @@ class ProcessMap {
     pid_t m_pid;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 public:
+    std::vector<pid_t> m_child_thread_pids;
     
     ProcessMap(pid_t tracee_pid): m_pid(tracee_pid) {
         m_map.reserve(32);
@@ -53,6 +55,7 @@ public:
 	int parse();
 	void permStr(uint8_t perm_val, char * pem_str);
 	void print();
+    void list_child_threads();
     
 };
 

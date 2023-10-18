@@ -29,6 +29,36 @@ void* do_loop(void* data) {
     /* terminate the thread */
     pthread_exit(NULL);
 }
+#include <sys/types.h>
+
+void do_infinite_loop(void * data) {
+    size_t counter = 0;
+    // pid_t tid = syscall(SYS_gettid);
+    pid_t tid = gettid();
+
+    while(1) {
+        printf("[%d] Thead %lu\n", tid, counter++);
+        sleep(10);
+    }
+}
+
+void test_infinite_threads() {
+    #define NUM_OF_THREADS 100
+    int        thr_id;         /* thread ID for the newly created thread */
+    pthread_t  p_thread[NUM_OF_THREADS];       /* thread's structure                     */
+    int        a         = 1;  /* thread 1 identifying number            */
+    int        b         = 1;  /* thread 2 identifying number            */
+
+    for(int i=0; i<NUM_OF_THREADS; i++) {
+        thr_id = pthread_create(&p_thread[i], NULL, do_infinite_loop, (void*)&a);
+        printf("New Thread created with id : %d\n", thr_id);
+    }
+    
+    for(int i=0;i<100;i++) {
+        pthread_join(p_thread[i], NULL);
+    }
+    return 0;
+}
 
 int test_multi_threading_same_section() {
     /**
@@ -167,7 +197,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 6;
+    test_case_idx = 8;
     switch(test_case_idx) {
         case 1:
             rec_fork();
@@ -189,6 +219,10 @@ int main(int argc, char *argv[])
             break;
         case 7:
             test_multi_threading_same_section();
+            break;
+        case 8:
+            test_infinite_threads();
+            break;
         default:
             printf("Unknown test case ID\n");
         break;
