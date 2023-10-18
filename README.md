@@ -56,6 +56,17 @@ cmake --build build --target shaman
 1. lief - executable parsing framework
 1. Linux OS - 2.5 an above
 
+## Challenges
+
+### Multi-threaded Breakpoint handling
+
+The issue here is mulitple threads are sharing same data and code. And adding and remove breakpoints requires you to edit code which is shared between all threads.
+The problem arises when a thread A hits a breakpoint to step-over is we have to remove the breakpoint and once the original instruction is executed it places the breakpoint back at that point. while it is doing that a thread B will be running the same instruction where the breakpoint was placed. So thread B misses the breakpoint event.
+
+1. Case 1 - Two threads are operating on different section of the code. This is really not a problem out tool currently supports this feature.
+1. Case 2 - Two threads running the same section of the code. This is little challenging to solve currently we are working on this.
+
+
 ## Research Paper to Incorporate
 
 1. [An In-Depth Analysis of Disassembly on Full-Scale x86/x64 Binaries](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_andriesse.pdf)

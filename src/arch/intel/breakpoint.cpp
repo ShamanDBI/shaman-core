@@ -1,7 +1,7 @@
 #include "breakpoint.hpp"
 
-#define BREAKPOINT_INST 0xcc;
-#define NOP_INST 0x90;
+#define BREAKPOINT_INST 0xcc
+#define NOP_INST 0x90
 #define BREAKPOINT_SIZE sizeof(uint64_t)
 // #define BREAKPOINT_SIZE 1
 
@@ -12,11 +12,14 @@
 
 int Breakpoint::enable(DebugOpts* debug_opts) {
 
-    uint8_t tmp_backup_byte; // this variable will save us a system call
+    uint8_t tmp_backup_byte = 0; // this variable will save us a system call
 
     debug_opts->m_memory->read(m_backupData, BREAKPOINT_SIZE);
     m_backupData->print();
     tmp_backup_byte = m_backupData->m_data[0];
+    if(tmp_backup_byte == BREAKPOINT_INST) {
+        spdlog::critical("Breakpoint is already in place!");
+    }
     m_backupData->m_data[0] = BREAKPOINT_INST;
     debug_opts->m_memory->write(m_backupData, BREAKPOINT_SIZE);
     m_backupData->m_data[0] = tmp_backup_byte;

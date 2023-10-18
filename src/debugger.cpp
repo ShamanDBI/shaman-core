@@ -406,8 +406,15 @@ bool Debugger::eventLoop() {
 					trap_reason.status == TrapReason::FORK || 
 					trap_reason.status == TrapReason::VFORK ) {
 					m_log->trace("CLONE/FORK/VFORK");
-					m_log->error("You shouldn't be getting this event!");
-					addChildTracee(trap_reason.pid);
+					// you will be getting this event when you are not following
+					// system call event
+					// m_log->error("You shouldn't be getting this event!");
+					TraceeProgram* tracee_prog = addChildTracee(trap_reason.pid);
+					if (trap_reason.status == TrapReason::CLONE) {
+						// attach(trap_reason.pid);
+						tracee_prog->setThreadGroupid(m_leader_tracee->getPid());
+						m_log->trace("New Thead is created with pid {} and tgid {}!", tracee_prog->getPid(), tracee_prog->getThreadGroupid());
+					}
 				} else if( trap_reason.status == TrapReason::EXEC) {
 					m_log->trace("EXEC: new child has been added please hand over to a different debugger");
 					// New child has been added which is completed different from our
