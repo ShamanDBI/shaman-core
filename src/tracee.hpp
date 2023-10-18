@@ -47,6 +47,7 @@ public:
 	TraceeState m_state;
 
 	pid_t m_pid;
+	pid_t m_tg_pid;
 
 	// Debugger* m_debugger;
 	DebugOpts* m_debug_opts = nullptr;
@@ -64,10 +65,15 @@ public:
 
 	// pid of the program we are tracing/debugging
 	pid_t getPid() {
-		return m_debug_opts->getPid();
+		return m_pid;
 	}
+
+	pid_t getThreadGroupid() {
+		return m_tg_pid;
+	};
 	
 	~TraceeProgram () {
+		spdlog::warn("TraceeProgram : going out of scope!");
 	}
 
 	// this is used when new tracee is found
@@ -91,6 +97,11 @@ public:
 
 	TraceeProgram& setPid(pid_t tracee_pid) {
 		m_pid = tracee_pid;
+		return *this;
+	};
+
+	TraceeProgram& setThreadGroupid(pid_t thread_group_pid) {
+		m_tg_pid = thread_group_pid;
 		return *this;
 	};
 

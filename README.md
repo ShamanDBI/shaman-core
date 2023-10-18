@@ -2,8 +2,10 @@
 
 Architecture Neutral DBI for Embedded systems
 
-## Why?
+## Why did I create this tool?
 
+1. Security Assessment of Linux Based IoT Devices.
+1. This tool is specifically targeted for old version of linux where it difficult to find any debugging or instrumentation tools.
 
 ## Programming Interface
 
@@ -35,6 +37,10 @@ Options:
 ## Build
 
 
+```shell
+cmake -S . -B build
+cmake --build build --target shaman
+```
 
 ## Use Case
 
@@ -48,8 +54,10 @@ Options:
 1. Capstone Engine - Disassembly Engine
 1. Keystone Engine - Assembler Engine
 1. lief - executable parsing framework
+1. Linux OS - 2.5 an above
 
 ## Research Paper to Incorporate
+
 1. [An In-Depth Analysis of Disassembly on Full-Scale x86/x64 Binaries](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_andriesse.pdf)
 1. ARMore: pushing Love Back into binaires
 	1. This paper focues on static rewriting of ARM binaries
@@ -59,6 +67,8 @@ Options:
 	1. We also discuss the theoretical underpinnings of disassembling and rewriting.
 	1. We developed two backends—for x86_64 and RISC-V—which were used to implement three plugins: a fast system call tracer, a multi-version executor, and a fault injector.
 	1. Our evaluation shows that SaBRe imposes little overhead, typically below 3%.
+1. [Non-stop Multi-threaded Debugging in GDB](https://s3.amazonaws.com/arena-attachments/309033/6f46f21a0abfe4de8f56468953378dfb.pdf)
+  1. This paper accurately describes the challenges of breakpoint management in muli-threading environment. we have to implement these feature as gdb has implemented it.
 
 ## Ref
 1. [ARM and MIPS Ptrace Impl](https://github.com/aleden/ptracetricks/blob/main/ptracetricks.cpp)

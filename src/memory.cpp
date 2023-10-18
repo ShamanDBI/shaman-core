@@ -54,7 +54,7 @@ int RemoteMemory::read(Addr *dest, size_t readSize) {
         bytes_read += sizeof(long);
     } while(ret && bytes_read < (readSize - sizeof(long)));
     
-    
+    // spdlog::debug("read pid : {}", m_pid);
     // m_mem_file->seekg(dest->r_addr);
     // m_mem_file->read((char *)dest->m_data, readSize);
 
@@ -78,7 +78,7 @@ int RemoteMemory::write(Addr *dest, size_t writeSize) {
     
     // m_mem_file->seekg(dest->r_addr);
     // m_mem_file->write((char *)dest->m_data, writeSize);
-
+    // spdlog::debug("write pid : {}", m_pid);
     return bytes_write;
 }
 

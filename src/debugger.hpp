@@ -130,6 +130,8 @@ public:
 	SyscallManager* m_syscallMngr = nullptr;
 
 	std::map<pid_t, TraceeProgram*> m_Tracees;
+
+	TraceeProgram* m_leader_tracee = nullptr;
 	
 	std::string* m_prog = nullptr;
 
@@ -159,7 +161,9 @@ public:
 
 	int spawn(std::vector<std::string>& cmdline);
 
-	void addChildTracee(pid_t child_tracee_pid);
+	void attach(pid_t tracee_pid);
+
+	TraceeProgram* addChildTracee(pid_t child_tracee_pid);
 
 	void dropChildTracee(TraceeProgram* child_tracee);
 

@@ -94,11 +94,14 @@ Breakpoint *BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)
 
 void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
 {
-    if (m_suspendedBrkPnt != nullptr)
-    {
-        m_log->debug("Restoring breakpoint and resuming execution!");
-        if (m_suspendedBrkPnt->shouldEnable()) {
-            m_suspendedBrkPnt->enable(debug_opts);
+    m_log->debug("Restoring breakpoint and resuming execution!");
+    auto sus_bkpt_iter = m_suspendedBrkPnt.find(debug_opts->m_pid);
+    if (sus_bkpt_iter != m_suspendedBrkPnt.end()) {
+        // tracee is found, its under over management
+        auto suspend_bkpt_obj = sus_bkpt_iter->second;
+
+        if (suspend_bkpt_obj->shouldEnable()) {
+            suspend_bkpt_obj->enable(debug_opts);
             m_log->debug("Restoring");
         } else {
             m_log->debug("Not restoring");
@@ -106,7 +109,10 @@ void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
             // it that because it will be later used to summarize 
             // execution information
         }
-        m_suspendedBrkPnt = nullptr;
+        m_suspendedBrkPnt.erase(debug_opts->m_pid);
+    } else {
+        m_log->info("No suspended breakpoint found!");
+        auto suspend_bkpt_obj = nullptr;
     }
 }
 
@@ -121,7 +127,7 @@ void BreakpointMngr::handleBreakpointHit(DebugOpts *debug_opts, uintptr_t brk_ad
         exit(-1);
         return;
     }
-    m_suspendedBrkPnt = brk_obj;
+    m_suspendedBrkPnt[debug_opts->m_pid] = brk_obj;
     brk_obj->handle(debug_opts);
     
     // m_log->debug("Brkpnt obj found!");

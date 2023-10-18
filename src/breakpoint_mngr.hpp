@@ -65,7 +65,9 @@ public:
     // this is brk point is saved to restore the breakpoint
     // once it has executed, if there is no breakpoint has 
     // hit then this value should be null
-    Breakpoint * m_suspendedBrkPnt = nullptr;
+    // this stores the key as thread on which the breakpoint was hit
+    // and value is the breakpoint which was hit.
+    map<pid_t, Breakpoint*> m_suspendedBrkPnt;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
@@ -82,8 +84,14 @@ public:
 
     Breakpoint* getBreakpointObj(uintptr_t bk_addr);
 
-    bool hasSuspendedBrkPnt() {
-        return m_suspendedBrkPnt != nullptr;
+    // Return true if the breakpoint was just hit on the thread on
+    // which the stop event has occured
+    bool hasSuspendedBrkPnt(pid_t tracee_pid) {
+        auto sus_bkpt_iter = m_suspendedBrkPnt.find(tracee_pid);
+        if (sus_bkpt_iter != m_suspendedBrkPnt.end()) {
+            return true;
+        }
+        return false;
     }
 
     void restoreSuspendedBreakpoint(DebugOpts* debug_opts);

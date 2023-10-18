@@ -6,6 +6,38 @@
 #include <wait.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <pthread.h>     /* pthread functions and data structures */
+
+/* function to be executed by the new thread */
+void* do_loop(void* data) {
+
+    int i;			/* counter, to print numbers */
+    int j;			/* counter, for delay        */
+    int me = *((int*)data);     /* thread identifying number */
+
+    for (i=0; i<10000; i++) {
+	    for (j=0; j<500000; j++); // delay loop
+        printf("Thread id : %d - Got %d\n", me, i);
+    }
+
+    /* terminate the thread */
+    pthread_exit(NULL);
+}
+
+int test_multi_threading() {
+    int        thr_id;         /* thread ID for the newly created thread */
+    pthread_t  p_thread;       /* thread's structure                     */
+    int        a         = 1;  /* thread 1 identifying number            */
+    int        b         = 2;  /* thread 2 identifying number            */
+
+    /* create a new thread that will execute 'do_loop()' */
+    thr_id = pthread_create(&p_thread, NULL, do_loop, (void*)&a);
+    /* run 'do_loop()' in the main thread as well */
+    do_loop((void*)&b);
+    
+    /* NOT REACHED */
+    return 0;
+}
 
 
 void test_file_operation() {
@@ -106,7 +138,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 4;
+    test_case_idx = 6;
     switch(test_case_idx) {
         case 1:
             rec_fork();
@@ -122,6 +154,9 @@ int main(int argc, char *argv[])
             break;
         case 5:
             test_file_operation();
+            break;
+        case 6:
+            test_multi_threading();
             break;
         default:
             printf("Unknown test case ID\n");

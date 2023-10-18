@@ -50,7 +50,7 @@ int TraceeProgram::contExecution(uint32_t sig) {
 	}
 
 	if(pt_ret < 0) {
-		m_log->error("ptrace continue call failed! Err code : {} ", pt_ret);
+		m_log->error("ptrace continue call failed for pid {} ! Err code : {} ", getPid(), pt_ret);
 	}
 	return pt_ret;
 }
@@ -87,7 +87,7 @@ std::string TraceeProgram::getStateString() {
 }
 
 void TraceeProgram::printStatus() {
-	m_log->debug("PID : {} State : {}", getPid(), getStateString());
+	m_log->debug("PID : {} TID : {} State : {}", getPid(), getThreadGroupid(), getStateString());
 }
 
 // void TraceeProgram::addPendingBrkPnt(std::vector<std::string>& brk_pnt_str) {
@@ -110,7 +110,9 @@ TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_typ
 		.setProcessMap(procMap);
 	
 	auto tracee_obj = new TraceeProgram(debug_type);
-	tracee_obj->setDebugOpts(debugOpts);
+	tracee_obj->setDebugOpts(debugOpts)
+		.setPid(tracee_pid)
+		.setThreadGroupid(tracee_pid);
 		// ->setLogFile(string("hussain"));
 
 	return tracee_obj;

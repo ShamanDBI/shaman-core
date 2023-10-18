@@ -67,13 +67,14 @@ int Debugger::spawn(vector<string>& cmdline) {
 
 	m_log->debug("New Child spawed with PID {}", childPid);
 	
-	addChildTracee(childPid);
+	m_leader_tracee = addChildTracee(childPid);
 	return 0;
 }
 
-void Debugger::addChildTracee(pid_t child_tracee_pid) {
+TraceeProgram* Debugger::addChildTracee(pid_t child_tracee_pid) {
 	if (child_tracee_pid == 0) {
 		m_log->critical("FATAL : Whhaat tthhhee.... heelll...., child id cannot be zero! Not adding child to the list");
+		return nullptr;
 	} else {
 		m_log->debug("New child {} is added to trace list!", child_tracee_pid);
 		auto trace_flag = DebugType::DEFAULT;
@@ -89,6 +90,7 @@ void Debugger::addChildTracee(pid_t child_tracee_pid) {
 		// tracee_obj->addPendingBrkPnt(brk_pnt_str);
 
 		m_Tracees.insert(make_pair(child_tracee_pid, tracee_obj));
+		return tracee_obj;
 	}
 }
 
@@ -109,7 +111,7 @@ void Debugger::printAllTraceesInfo() {
 }
 
 bool Debugger::isBreakpointTrap(siginfo_t* info) {
-	m_log->debug("BK test signal code : {}", info->si_code);
+	// m_log->debug("BK test signal code : {}", info->si_code);
 
 	switch (info->si_code) {
 	//one of these will be set if a breakpoint was hit
@@ -128,12 +130,17 @@ bool Debugger::isBreakpointTrap(siginfo_t* info) {
 	return false;
 }
 
+/**
+ * This function adds more details for the reason why the tracee was stopped.
+ * Currently we are only Processing TrapReason::STOPPED as we move further
+ * we will be adding more details to the trap reason.
+*/
 TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info) {
 	pid_t new_pid = -1;
 	pid_t pid_sig = tracee_info->getPid();
 
 	TrapReason trap_reason = { TrapReason::INVALID, -1 };
-
+	trap_reason.pid = pid_sig;
 	if(event.type == TraceeEvent::STOPPED && event.stopped.signal == SIGTRAP) {
 		if (PT_IF_CLONE(event.stopped.status)) {
 			m_log->trace("SIGTRAP : CLONE");
@@ -168,8 +175,9 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 				siginfo_t sig_info = {0};
 				ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
 				if (isBreakpointTrap(&sig_info)) {
-					m_log->trace("SIGTRAP : Breakpoint was hit !");
 					trap_reason.status = TrapReason::BREAKPOINT;
+					trap_reason.pid = pid_sig;
+					m_log->trace("SIGTRAP : TID [{}] Breakpoint was hit !", trap_reason.pid);
 				} else {
 					m_log->warn("SIGTRAP : Couldn't Find Why are we trapped! Need to handle this!");
 				}
@@ -178,14 +186,49 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 	} else if (event.type == TraceeEvent::STOPPED && PT_IF_SYSCALL(event.stopped.signal)) {
 		m_log->trace("SIGTRAP : SYSCALL");
 		trap_reason.status = TrapReason::SYSCALL;
-	} else if (event.type == TraceeEvent::STOPPED && event.stopped.signal == SIGSEGV) {
-		siginfo_t sig_info = {0};
-		ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
-		m_log->warn("That's right! Segfault, Reason: {} !", sig_info.si_code);
+		trap_reason.pid = pid_sig;
 	} else if (event.type == TraceeEvent::STOPPED) {
-		m_log->warn("This STOP Signal not understood by us!");
+
+		siginfo_t sig_info = {0};
+		/**
+		 * sig_info_t has following important field for our purpose:
+		 * 
+		 * si_signo - is the signal number which has been delivered and has
+		 * triggered this signal handler
+		 * 
+		 * si_code - is a value indicating why this signal was sent.
+		*/
+		
+		ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
+		
+		switch (event.stopped.signal) {
+		case SIGSEGV:
+			m_log->warn("That's right! Segfault, Reason: {} !", sig_info.si_code);
+			break;
+		case SIGILL:
+			m_log->warn("Illegal Instruction!");
+			break;
+		case SIGKILL:
+			m_log->warn("Killed!");
+			break;
+		default:
+			m_log->warn("This STOP Signal not understood by us! Code : {}", sig_info.si_code);
+			break;
+		}
+	} else {
+		m_log->debug("Not a stop signal!");
 	}
 	return trap_reason;
+}
+
+void Debugger::attach(pid_t tracee_pid) {
+	int pt_ret = ptrace(PTRACE_ATTACH, tracee_pid, 0, 0);
+
+	if (pt_ret == 0) {
+		m_log->trace("Attach successful for pid : {}", tracee_pid);
+	} else {
+		m_log->trace("Attach failed for pid {} reason {}", tracee_pid, pt_ret);
+	}
 }
 
 bool Debugger::eventLoop() {
@@ -363,6 +406,7 @@ bool Debugger::eventLoop() {
 					trap_reason.status == TrapReason::FORK || 
 					trap_reason.status == TrapReason::VFORK ) {
 					m_log->trace("CLONE/FORK/VFORK");
+					m_log->error("You shouldn't be getting this event!");
 					addChildTracee(trap_reason.pid);
 				} else if( trap_reason.status == TrapReason::EXEC) {
 					m_log->trace("EXEC: new child has been added please hand over to a different debugger");
@@ -402,7 +446,7 @@ bool Debugger::eventLoop() {
 					 */
 					debug_opts = traceeProgram->getDebugOpts();
 					
-					if (m_breakpointMngr->hasSuspendedBrkPnt()) {
+					if (m_breakpointMngr->hasSuspendedBrkPnt(debug_opts->m_pid)) {
 						m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
 						traceeProgram->contExecution();
 						break;
@@ -482,7 +526,12 @@ bool Debugger::eventLoop() {
 					// this can happend when you are dealing with fork/vfork/clone
 					// system call
 					m_log->trace("SYSCALL: CLONE/FORK/VFORK");
-					addChildTracee(trap_reason.pid);
+					TraceeProgram* tracee_prog = addChildTracee(trap_reason.pid);
+					if (trap_reason.status == TrapReason::CLONE) {
+						// attach(trap_reason.pid);
+						tracee_prog->setThreadGroupid(m_leader_tracee->getPid());
+						m_log->trace("New Thead is created with pid {} and tgid {}!", tracee_prog->getPid(), tracee_prog->getThreadGroupid());
+					}
 					// traceeProgram->contExecution();
 				} else if( trap_reason.status == TrapReason::EXEC) {
 					m_log->trace("SYSCALL: EXEC");
