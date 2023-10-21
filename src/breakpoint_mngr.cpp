@@ -37,7 +37,7 @@ void BreakpointMngr::addBrkPnt(Breakpoint *brkPtr)
     if (pnd_brk_iter != m_pending.end())
     {
         brk_offset = pnd_brk_iter->second;
-        m_log->warn("Module found!");
+        m_log->error("Module found!");
     }
 
     brk_offset.push_back(brkPtr);
@@ -48,7 +48,7 @@ void BreakpointMngr::addBrkPnt(Breakpoint *brkPtr)
 void BreakpointMngr::inject(DebugOpts *debug_opts)
 {
     debug_opts->m_procMap->print();
-    m_log->debug("Yeeahh... injecting all the pending Breakpoint!");
+    m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
 
     for (auto pend_iter = m_pending.cbegin(); pend_iter != m_pending.cend();)
     {
@@ -64,7 +64,7 @@ void BreakpointMngr::inject(DebugOpts *debug_opts)
         {
             Breakpoint *brkpnt_obj = brk_pending_objs.back();
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
-            m_log->info("Setting Brk at addr : 0x{:x}", brk_addr);
+            m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
             brkpnt_obj->addPid(debug_opts->getPid());
@@ -87,7 +87,7 @@ Breakpoint *BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)
     }
     else
     {
-        m_log->warn("No Breakpoint object found! This is very unusual!");
+        m_log->error("No Breakpoint object found! This is very unusual!");
         return nullptr;
     }
 }
@@ -102,9 +102,9 @@ void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
 
         if (suspend_bkpt_obj->shouldEnable()) {
             suspend_bkpt_obj->enable(debug_opts);
-            m_log->debug("Restoring");
+            m_log->trace("Restoring");
         } else {
-            m_log->debug("Not restoring");
+            m_log->trace("Not restoring");
             // although we don't need breakpoint object we are not deleting 
             // it that because it will be later used to summarize 
             // execution information

@@ -91,7 +91,7 @@ public:
         m_backupData = backup_data;
     }
 
-    void setAddress(uintptr_t brkpnt_addr) {
+    virtual void setAddress(uintptr_t brkpnt_addr) {
         // set concrete offset of breakpoint in process memory space
         m_addr = brkpnt_addr;
         m_backupData = new Addr(m_addr, BREAKPOINT_SIZE);

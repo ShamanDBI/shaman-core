@@ -60,6 +60,8 @@ set(SRC
   src/modules.cpp
   src/debugger.cpp
   src/breakpoint_mngr.cpp
+  src/breakpoint_reader.cpp
+  src/coverage_trace_writer.cpp
   src/tracee.cpp
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
