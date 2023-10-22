@@ -16,13 +16,13 @@ void* do_loop(void* data) {
     int me = *((int*)data);
 
     if (me == 1) {
-        for (i=0; i<10000; i++) {
-            for (j=0; j<500000; j++); // delay loop
+        for (i=0; i<100; i++) {
+            sleep(1);
             printf("Thread id : %d - Got %d\n", me, i);
         }
     } else {
-        for (i=0; i<10000; i++) {
-            for (j=0; j<500000; j++); // delay loop
+        for (i=0; i<100; i++) {
+            sleep(1);
             printf("Other Thread id : %d - Got %d\n", me, i);
         }
     }
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 8;
+    test_case_idx = 6;
     switch(test_case_idx) {
         case 1:
             rec_fork();

@@ -3,6 +3,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 #define REC_TYPE
 
@@ -45,6 +47,7 @@ public:
     void add_cov(pid_t tracee_pid, uint8_t module_id, uint64_t execution_addr);
 
     ~CoverageTraceWriter() {
+        spdlog::warn("closing coverage file");
         m_trace_file.close();
     }
 };

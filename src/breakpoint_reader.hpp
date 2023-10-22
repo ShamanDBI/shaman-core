@@ -70,10 +70,13 @@ public:
 	}
 
 	virtual bool handle(DebugOpts *debug_opts) {
+		// spdlog::warn("here were are");
 		m_trace_writer->add_cov(debug_opts->getPid(), m_module_id, m_addr);
+		return true;
 	}
 
 	virtual void setAddress(uintptr_t brkpnt_addr) {
+		Breakpoint::setAddress(brkpnt_addr);
 		uintptr_t base_addr = brkpnt_addr - m_offset;
 		m_trace_writer->update_module_base_addr(m_modname, base_addr);		
 	}

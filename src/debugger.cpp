@@ -187,8 +187,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info
 		m_log->trace("SIGTRAP : SYSCALL");
 		trap_reason.status = TrapReason::SYSCALL;
 		trap_reason.pid = pid_sig;
-	} else if (event.type == TraceeEvent::STOPPED) {
-
+	} else if (event.type == TraceeEvent::STOPPED && !tracee_info->isInitialized()) {
 		siginfo_t sig_info = {0};
 		/**
 		 * sig_info_t has following important field for our purpose:

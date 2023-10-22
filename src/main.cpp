@@ -112,7 +112,7 @@ void parser_basic_block_file(Debugger& debug, std::string bb_path,
 		}
 	}
 
-	spdlog::warn("Mod {} {}", bkpt_reader_obj.getCurrentModuleName().c_str(), brk_offset.size());
+	// spdlog::warn("Mod {} {}", bkpt_reader_obj.getCurrentModuleName().c_str(), brk_offset.size());
 	debug.m_breakpointMngr->m_pending[bkpt_reader_obj.getCurrentModuleName()] = brk_offset;
 }
 
@@ -143,6 +143,7 @@ int main(int argc, char **argv) {
 
     CLI11_PARSE(app, argc, argv);
 
+	spdlog::set_level(spdlog::level::warn); // Set global log level to debug
 
     if (app_log_path.length() > 0) {
     	auto main_logger = spdlog::basic_logger_mt("main_log", app_log_path);
@@ -163,7 +164,6 @@ int main(int argc, char **argv) {
 		// return 0;
 	}
 
-	spdlog::set_level(spdlog::level::debug); // Set global log level to debug
 
 	
 	debug.addBreakpoint(brk_pnt_addrs);

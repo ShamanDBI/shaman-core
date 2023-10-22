@@ -18,7 +18,7 @@ int Breakpoint::enable(DebugOpts* debug_opts) {
     m_backupData->print();
     tmp_backup_byte = m_backupData->m_data[0];
     if(tmp_backup_byte == BREAKPOINT_INST) {
-        spdlog::critical("Breakpoint is already in place!");
+        spdlog::critical("{} Breakpoint is already in place! {:x}", debug_opts->getPid(), m_addr);
     }
     m_backupData->m_data[0] = BREAKPOINT_INST;
     debug_opts->m_memory->write(m_backupData, BREAKPOINT_SIZE);

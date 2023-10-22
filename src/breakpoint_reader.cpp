@@ -40,7 +40,7 @@ Breakpoint* BreakpointReader::next() {
         m_cov_info.read((char *)&m_curr_func_offset, sizeof(m_curr_func_offset));
         m_cov_info.read((char *)&m_func_bb_count, sizeof(m_func_bb_count));
         
-        // log->trace(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, m_curr_func_offset, m_func_bb_count);
+        log->trace(" Function {} | offset - 0x{:x} | BB Count - {}", func_name, m_curr_func_offset, m_func_bb_count);
         
         // Immedetially following function record we have basic block offset
         // relative to function offset, thats why I havn't place break statement
@@ -63,7 +63,7 @@ Breakpoint* BreakpointReader::next() {
         if(m_func_bb_count == 0) {
             // once we are done parsing 
             m_record_type = REC_TYPE_NEXT;
-            log->warn("No more breakpoint left to debug");
+            // log->trace("No more breakpoint left to debug");
         }
         break;
 

@@ -39,7 +39,7 @@ struct Addr {
 
     void print() {
         auto log = spdlog::get("main_log");
-        log->debug("BKP {:x} VAL {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x}",
+        log->trace("BKP {:x} VAL {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x}",
             r_addr,
             m_data[0], m_data[1], m_data[2], m_data[3], m_data[4]
             , m_data[5], m_data[6], m_data[7] );
