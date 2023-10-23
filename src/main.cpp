@@ -129,6 +129,7 @@ int main(int argc, char **argv) {
 	bool trace_syscalls = false;
 	bool single_shot {false};
 	bool follow_fork = false;
+	int debug_log_level = 5;
     
     app.add_option("-l,--log", app_log_path, "application debug logs");
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
@@ -140,10 +141,11 @@ int main(int argc, char **argv) {
 	app.add_option("-e,--exec", exec_prog, "program to execute");//->expected(-1)->required();
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
+	app.add_option("--debug", debug_log_level, "set debug level, for eg 0 for trace and 6 for critical");
 
     CLI11_PARSE(app, argc, argv);
-
-	spdlog::set_level(spdlog::level::warn); // Set global log level to debug
+	
+	spdlog::set_level(static_cast<spdlog::level::level_enum>(debug_log_level)); // Set global log level to debug
 
     if (app_log_path.length() > 0) {
     	auto main_logger = spdlog::basic_logger_mt("main_log", app_log_path);
