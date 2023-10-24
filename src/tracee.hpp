@@ -40,6 +40,10 @@ enum TraceeState {
 	IN_SYSCALL,
 	// the process has existed and object is avaliable to free
 	EXITED, 
+
+	// there is hit for a breakpoint and the tracee is in the
+	// process of step over.
+	BREAKPOINT_HIT,
 	// Invalid state, not to be used anywhere!
 	UNKNOWN
 };
@@ -133,6 +137,8 @@ public:
 	void toStateSysCall();
 
 	void toStateExited();
+
+	void toStateBreakpoint();
 
 	bool hasExited();
 

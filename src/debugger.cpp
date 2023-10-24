@@ -432,6 +432,22 @@ bool Debugger::eventLoop() {
 
 			traceeProgram->contExecution();
 			break;
+		case TraceeState::BREAKPOINT_HIT:
+			// this state is the final state of breakpoint handling
+			// we either restore the breakpoint or continue without
+			// restoring it.
+			if(event.type == TraceeEvent::STOPPED && trap_reason.status == TrapReason::BREAKPOINT) {
+				debug_opts = traceeProgram->getDebugOpts();
+					
+				// debug_opts->m_register->getGPRegisters();
+				m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
+				traceeProgram->toStateRunning();
+				traceeProgram->contExecution();
+			} else {
+				m_log->error("State transistion is invalid!");
+			}
+
+			break;
 		case TraceeState::RUNNING:
 
 			m_log->debug("RUNNING");
@@ -495,17 +511,26 @@ bool Debugger::eventLoop() {
 					 * step wheather you want to restore the breakpoint or not.
 					 * Not sure why!
 					 */
+					// traceeProgram->toStateBreakpoint();
 					debug_opts = traceeProgram->getDebugOpts();
 					
-					if (m_breakpointMngr->hasSuspendedBrkPnt(debug_opts->m_pid)) {
-						m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
-						traceeProgram->contExecution();
-						break;
-					} else {
+					debug_opts->m_register->getGPRegisters();
+					uintptr_t brk_addr = debug_opts->m_register->getPC();
 
+					if(prev_brk_addr == brk_addr && prev_pid != debug_opts->getPid()) {
+						m_log->warn("hit the edge case!");
+						break;
+					}
+
+					// if (m_breakpointMngr->hasSuspendedBrkPnt(debug_opts->m_pid)) {
+					// 	prev_brk_addr = 0;
+					// 	m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
+					// 	traceeProgram->contExecution();
+					// 	break;
+					// } else {
+						prev_brk_addr = brk_addr;
+						prev_pid = debug_opts->getPid();
 						// PC points to the next instruction after execution
-						debug_opts->m_register->getGPRegisters();
-						uintptr_t brk_addr = debug_opts->m_register->getPC();
 
 						// this done to get previous the intruction which caused
 						// the hit, and its architecture dependent, so this is
@@ -517,11 +542,12 @@ bool Debugger::eventLoop() {
 						debug_opts->m_register->setPC(brk_addr);
 
 						debug_opts->m_register->setGPRegisters();
+						traceeProgram->toStateBreakpoint();
 						// debug_opts->m_register->print();
 						traceeProgram->singleStep();
 						// traceeProgram->contExecution();
 						break;
-					}
+					// }
 					break;
 				} else {
 					m_log->warn("Not sure why we have stopped!");

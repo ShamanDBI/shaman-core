@@ -4,7 +4,7 @@ Breakpoint* BreakpointReader::next() {
     auto log = spdlog::get("main_log");
     
     if (!m_is_data_available) {
-        log->warn("No more data is avaliable");
+        log->debug("No more data is avaliable");
         return nullptr;
     }
     BreakpointCoverage* curr_brk_pnt;

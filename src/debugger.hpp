@@ -136,7 +136,8 @@ public:
 	std::string* m_prog = nullptr;
 
 	std::vector<std::string>* m_argv = nullptr;
-	
+	uintptr_t prev_brk_addr = 0;
+	pid_t prev_pid = 0;
 	// std::vector<std::string>* brk_pnt_str; // remove
 
 	TraceeFactory* m_tracee_factory = nullptr; //remove

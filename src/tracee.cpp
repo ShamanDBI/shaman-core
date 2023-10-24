@@ -22,6 +22,10 @@ void TraceeProgram::toStateRunning() {
 	m_state = TraceeState::RUNNING;
 }
 
+void TraceeProgram::toStateBreakpoint() {
+	m_state = TraceeState::BREAKPOINT_HIT;
+}
+
 void TraceeProgram::toAttach() {
 	m_state = TraceeState::ATTACH;
 }
@@ -86,6 +90,9 @@ std::string TraceeProgram::getStateString() {
 			break;
 		case TraceeState::ATTACH:
 			return std::string("ATTACH");
+			break;
+		case TraceeState::BREAKPOINT_HIT:
+			return std::string("BREAKPOINT");
 			break;
 		default:
 			return std::string("Don't know whats that!");
