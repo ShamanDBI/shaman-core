@@ -43,6 +43,7 @@ Registers::Registers(pid_t tracee_pid) : m_pid(tracee_pid) {
 }
 
 uint64_t Registers::getPC() {
+    // PC register points to the next instruction
     return reinterpret_cast<uint64_t *>(gp_reg)[INTEL_X64_REGS::RIP];
 }
 

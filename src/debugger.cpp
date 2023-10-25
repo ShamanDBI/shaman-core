@@ -135,7 +135,7 @@ bool Debugger::isBreakpointTrap(siginfo_t* info) {
  * Currently we are only Processing TrapReason::STOPPED as we move further
  * we will be adding more details to the trap reason.
 */
-TrapReason Debugger::getTrapReason(TraceeEvent event, TraceeProgram* tracee_info) {
+TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_info) {
 	pid_t new_pid = -1;
 	pid_t pid_sig = tracee_info->getPid();
 
@@ -265,34 +265,58 @@ TraceeProgram* Debugger::getTracee(pid_t tracee_pid) {
 	}
 }
 
+
 bool Debugger::eventLoop() {
 		
 	DebugOpts* debug_opts = nullptr; 
 	TraceeProgram *traceeProgram;
 	siginfo_t pt_sig_info = {0};
 	TraceeEvent event;
-	TraceeEvent invalid_event = TraceeEvent();
-
+	TrapReason trap_reason;
+	// TraceeEvent invalid_event(TraceeEvent::INVALID);
+	queue<PendingEvent> pending_debug_events;
+	int ret_wait = -1;
+	pid_t pid_sig = 0;
+	bool processing_pending_event = false;
+	bool process_queue = false;
+	
 	while(!m_Tracees.empty()) {
+		spdlog::debug("=================================");
 		m_log->debug("------------------------------");
 		pt_sig_info.si_pid = 0;	
 		traceeProgram = nullptr;
-		event = invalid_event;
+		// event = invalid_event;
+		event.makeInvalid();
 		debug_opts = nullptr;
+		pid_sig = 0;
+		ret_wait = -1;
+
 		printAllTraceesInfo();
 
-		int ret_wait = waitid(
-			P_ALL, 0, 
-			&pt_sig_info,
-			WEXITED | WSTOPPED | WCONTINUED | WNOWAIT
-		);
+		if (!pending_debug_events.empty() && process_queue) {
+			processing_pending_event = true;
+			m_log->info("We have pending events. Pending {}", pending_debug_events.size());
+			std::tie(event, trap_reason) = pending_debug_events.front();
+			pending_debug_events.pop();
+			pid_sig = event.pid;
+			event.print();
+			trap_reason.print();
+			spdlog::debug("Pending process {}", pid_sig);
+		} else {
+			processing_pending_event = false;
+			ret_wait = waitid(
+				P_ALL, 0, 
+				&pt_sig_info,
+				WEXITED | WSTOPPED | WCONTINUED | WNOWAIT
+			);
 
-		if (ret_wait == -1) {
-			m_log->critical("waitid failed!");
-			exit(-1);
+			if (ret_wait == -1) {
+				m_log->critical("waitid failed!");
+				exit(-1);
+			}
+			pid_sig = pt_sig_info.si_pid;
 		}
 		
-		pid_t pid_sig = pt_sig_info.si_pid;
 		if (pid_sig == 0) {
 			m_log->warn("Special Case of waitid(), please handle it!");
 			exit(-1);
@@ -345,7 +369,7 @@ bool Debugger::eventLoop() {
 			m_log->info("Tracee is not under over management");
 			
 			// reset the current processed tracee info
-			event = invalid_event;
+			event.makeInvalid();
 
 			// we are not sure which pid has caused this issue
 			pid_sig = -1;
@@ -365,6 +389,7 @@ bool Debugger::eventLoop() {
 					pid_sig = tracee_pid;
 					traceeProgram = m_Tracees[pid_sig];
 					event = ts_event;
+					event.pid = pid_sig;
 					break;
 				}
 			}
@@ -372,21 +397,33 @@ bool Debugger::eventLoop() {
 				m_log->critical("No tracee with event found! This should not happend, handle it!");
 			}
 		} else {
-			event = get_wait_event(pid_sig);
+			if (!processing_pending_event) {
+				event = get_wait_event(pid_sig);
+				event.pid = pid_sig;
+				spdlog::debug("get fresh event");
+			}
 		}
 
-		if (!traceeProgram) {
-			m_log->critical("Tracee cannot be null!");
-			continue;
-		}
+		// if (!traceeProgram) {
+		// 	m_log->critical("Tracee cannot be null!");
+		// 	continue;
+		// }
 
-		TrapReason trap_reason = getTrapReason(event, traceeProgram);
+		if (!processing_pending_event) {
+			// get fresh data
+			trap_reason = getTrapReason(event, traceeProgram);
+			spdlog::debug("get fresh trap reason");
+		}
 		
 		// traceeProgram->processState(event, trap_reason);
 		// processTraceeState(tracee_info, trap_reason);
 
 		auto tracee_flags = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
 		int ret = -1;
+		if(processing_pending_event) {
+			event.print();
+			trap_reason.print();
+		}
 
 		switch(traceeProgram->m_state) {
 		case TraceeState::UNKNOWN:
@@ -437,14 +474,16 @@ bool Debugger::eventLoop() {
 			// we either restore the breakpoint or continue without
 			// restoring it.
 			if(event.type == TraceeEvent::STOPPED && trap_reason.status == TrapReason::BREAKPOINT) {
-				debug_opts = traceeProgram->getDebugOpts();
-					
-				// debug_opts->m_register->getGPRegisters();
+				debug_opts = traceeProgram->getDebugOpts();					
 				m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
 				traceeProgram->toStateRunning();
 				traceeProgram->contExecution();
+				m_log->info("Breakpoint handled 0x{:x}", prev_brk_addr);
+				prev_brk_addr = 0;
+				prev_pid = 0;
+				process_queue = true;
 			} else {
-				m_log->error("State transistion is invalid!");
+				m_log->error("Processing and Invalid Event! State transistion is invalid!");
 			}
 
 			break;
@@ -515,39 +554,34 @@ bool Debugger::eventLoop() {
 					debug_opts = traceeProgram->getDebugOpts();
 					
 					debug_opts->m_register->getGPRegisters();
-					uintptr_t brk_addr = debug_opts->m_register->getPC();
+					uintptr_t brk_addr = debug_opts->m_register->getPC() - 1;
 
 					if(prev_brk_addr == brk_addr && prev_pid != debug_opts->getPid()) {
-						m_log->warn("hit the edge case!");
+						m_log->info("Breakpoint stepover race condition!");
+						m_log->info("{} pid is attempting to execute {} pid's breakpoint handler", debug_opts->getPid(), prev_pid);
+						m_log->info("Breakpoint address 0x{:x}", prev_brk_addr);
+						pending_debug_events.push(PendingEvent(event, trap_reason));
+						process_queue = false;
 						break;
 					}
 
-					// if (m_breakpointMngr->hasSuspendedBrkPnt(debug_opts->m_pid)) {
-					// 	prev_brk_addr = 0;
-					// 	m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
-					// 	traceeProgram->contExecution();
-					// 	break;
-					// } else {
-						prev_brk_addr = brk_addr;
-						prev_pid = debug_opts->getPid();
-						// PC points to the next instruction after execution
+					prev_brk_addr = brk_addr;
+					prev_pid = debug_opts->getPid();
+					// PC points to the next instruction after execution
 
-						// this done to get previous the intruction which caused
-						// the hit, and its architecture dependent, so this is
-						// not the place to handle it
-						brk_addr--;
-						// debug_opts->m_register->print();
-						m_breakpointMngr->handleBreakpointHit(debug_opts, brk_addr);
+					// this done to get previous the intruction which caused
+					// the hit, and its architecture dependent, so this is
+					// not the place to handle it
+					// debug_opts->m_register->print();
+					m_breakpointMngr->handleBreakpointHit(debug_opts, brk_addr);
 
-						debug_opts->m_register->setPC(brk_addr);
+					debug_opts->m_register->setPC(brk_addr);
 
-						debug_opts->m_register->setGPRegisters();
-						traceeProgram->toStateBreakpoint();
-						// debug_opts->m_register->print();
-						traceeProgram->singleStep();
-						// traceeProgram->contExecution();
-						break;
-					// }
+					debug_opts->m_register->setGPRegisters();
+					traceeProgram->toStateBreakpoint();
+					// debug_opts->m_register->print();
+					traceeProgram->singleStep();
+					// traceeProgram->contExecution();
 					break;
 				} else {
 					m_log->warn("Not sure why we have stopped!");

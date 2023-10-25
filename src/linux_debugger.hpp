@@ -3,6 +3,8 @@
 
 #include <sys/wait.h>
 #include <spdlog/spdlog.h>
+#include <tuple>
+#include <utility>
 
 
 #define PT_IF_CLONE(status)   ( status >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)))
@@ -35,8 +37,79 @@ struct TraceeEvent {
 		} stopped;
 	};
 
-	TraceeEvent(TraceeEvent::EventType et): type(et) {}
+	// pid of the process which is causing this event
+	pid_t pid = 0;
+
+	TraceeEvent(EventType et): type(et) {}
+
+	TraceeEvent(TraceeEvent &eventObj):TraceeEvent() {
+		pid = eventObj.pid;
+		type = eventObj.type;
+
+		switch (type)
+		{
+		case EventType::SIGNALED:
+			signaled = eventObj.signaled;
+			break;
+		case EventType::EXITED:
+			exited = eventObj.exited;
+			break;
+		case EventType::STOPPED:
+			stopped.signal = eventObj.stopped.signal;
+			stopped.status = eventObj.stopped.status;
+		default:
+			break;
+		}
+	}
+
+	TraceeEvent(const TraceeEvent &eventObj) {
+		pid = eventObj.pid;
+		type = eventObj.type;
+		spdlog::debug("copy onst TraceeEvent");
+		switch (type)
+		{
+		case EventType::SIGNALED:
+			signaled = eventObj.signaled;
+			break;
+		case EventType::EXITED:
+			exited = eventObj.exited;
+			break;
+		case EventType::STOPPED:
+			stopped.signal = eventObj.stopped.signal;
+			stopped.status = eventObj.stopped.status;
+		default:
+			break;
+		}
+	}
+
+	TraceeEvent& operator=(const TraceeEvent& eventObj) {
+		spdlog::debug("assing value to TraceeEvent");
+		pid = eventObj.pid;
+		type = eventObj.type;
+		switch (type)
+		{
+		case EventType::SIGNALED:
+			signaled = eventObj.signaled;
+			break;
+		case EventType::EXITED:
+			exited = eventObj.exited;
+			break;
+		case EventType::STOPPED:
+			stopped.signal = eventObj.stopped.signal;
+			stopped.status = eventObj.stopped.status;
+		default:
+			break;
+		}
+		return *this;
+	}
+
+	void makeInvalid() {
+		type = INVALID;
+	}
+
 	TraceeEvent(): type(INVALID) {}
+	
+	~TraceeEvent();
 	
 	bool isValidEvent() {
 		return type != INVALID;
@@ -64,8 +137,11 @@ struct TrapReason {
 	} status;
 
 	pid_t pid; // this holds value of new pid in case of clone/vfork/frok
+	void print();
+	~TrapReason();
 };
 
 TraceeEvent get_wait_event(pid_t pid);
 
+typedef std::pair<TraceeEvent, TrapReason> PendingEvent;
 #endif

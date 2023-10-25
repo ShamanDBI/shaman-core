@@ -6,7 +6,7 @@
 
 
 void TraceeEvent::print() {
-	spdlog::debug("TraceeStatus");
+	spdlog::debug("[{}] TraceeStatus", pid);
 	switch (type) {
 		case TraceeEvent::EXITED :
 			spdlog::debug("EXITED : {}",exited.status);
@@ -23,10 +23,18 @@ void TraceeEvent::print() {
 		case TraceeEvent::INVALID:
 			spdlog::debug("INVALID");
 			break;
+		default:
+			spdlog::debug("Don't Know");
+			break;
 	}
 
 }
 
+TraceeEvent::~TraceeEvent() {
+	spdlog::debug("~TraceeEvent : out of scope");
+	type = TraceeEvent::INVALID;
+	pid = 0;
+}
 
 TraceeEvent get_wait_event(pid_t pid) {
 	TraceeEvent t_status;
@@ -62,4 +70,31 @@ TraceeEvent get_wait_event(pid_t pid) {
 		exit(-1);
 	}
 	return t_status;
+}
+
+void TrapReason::print() {
+	spdlog::debug("[{}] TrapReason", pid);
+	switch (status) {
+		case TrapReason::EXEC :
+			spdlog::debug("EXITED");
+			break;
+		case TrapReason::FORK:
+			spdlog::debug("FORK");
+			break;
+		case TrapReason::BREAKPOINT:
+			spdlog::debug("BREAKPOINT");
+			break;
+		case TrapReason::SYSCALL:
+			spdlog::debug("SYSCALL");
+			break;
+		case TrapReason::INVALID:
+			spdlog::debug("INVALID");
+			break;
+	}
+}
+
+TrapReason::~TrapReason() {
+	spdlog::debug("~TrapReason : out of scope");
+	status = INVALID;
+	pid = 0;
 }

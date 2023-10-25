@@ -4,6 +4,9 @@
 #include <map>
 #include <spdlog/spdlog.h>
 #include <unistd.h>
+#include <queue>
+#include <tuple>
+
 
 #include "tracee.hpp"
 #include "syscall_mngr.hpp"
@@ -171,7 +174,7 @@ public:
 
 	void printAllTraceesInfo();
 
-	TrapReason getTrapReason(TraceeEvent event, TraceeProgram* tracee_info);
+	TrapReason getTrapReason(TraceeEvent& event, TraceeProgram* tracee_info);
 
 	bool eventLoop();
 
