@@ -5,17 +5,20 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "breakpoint_reader.hpp"
+#include "syscall.hpp"
 
 class OverwriteFileData : public FileOperationTracer {
 
 public:
 
-	bool onFilter(DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+	bool onFilter(SyscallTraceData *sc_trace) {
 		
 		// spdlog::warn("onFilter!");
 
-		switch(sc_trace->sc_id) {
-		case NR_openat:
+		switch(sc_trace->syscall_id) {
+		case SysCallId::OPENAT:
+		/**
+		 * 
 			Addr file_path_addr_t(sc_trace->v_arg[1], 100);
 			debug_opts->m_memory->read(&file_path_addr_t, 100);
 			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
@@ -23,11 +26,12 @@ public:
 				return true;
 			}
 			break;
+		*/
 		}
 		return false;
 	}
 
-	void onRead(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+	void onRead(SyscallState sys_state, SyscallTraceData *sc_trace) {
 		if(sys_state == SyscallState::ON_ENTER) {
 			spdlog::debug("onRead: onEnter");
 			int fd = static_cast<int>(sc_trace->v_arg[0]);
@@ -47,7 +51,7 @@ public:
 		}
 	}
 
-	void onClose(SyscallState sys_state, DebugOpts* debug_opts, SyscallTraceData *sc_trace) {
+	void onClose(SyscallState sys_state, SyscallTraceData *sc_trace) {
 		spdlog::trace("onClose");
 	}
 
@@ -57,14 +61,14 @@ public:
 class OpenAt1Handler : public SyscallHandler {
 
 public:	
-	OpenAt1Handler(): SyscallHandler(NR_openat) {}
+	OpenAt1Handler(): SyscallHandler(SyscallId::OPEN) {}
 
-	int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+	int onEnter(SyscallTraceData* sc_trace) {
 		spdlog::trace("onEnter : System call handler test");
 		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
 	}
-	int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+	int onExit(SyscallTraceData* sc_trace) {
 		spdlog::trace("onExit : System call handler test");
 		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
@@ -77,13 +81,13 @@ class OpenAt2Handler : public SyscallHandler {
 public:	
 	OpenAt2Handler(): SyscallHandler(NR_openat) {}
 
-	int onEnter(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+	int onEnter(SyscallTraceData* sc_trace) {
 		spdlog::debug("onEnter : System call handler test again!");
 		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
 	}
 
-	int onExit(DebugOpts* debug_opts, SyscallTraceData* sc_trace) {
+	int onExit(SyscallTraceData* sc_trace) {
 		spdlog::debug("onExit : System call handler test again!");
 		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
 		return 0;
@@ -125,6 +129,8 @@ int main(int argc, char **argv) {
 	pid_t attach_pid {-1};
 	std::vector<std::string> exec_prog;
 	std::vector<std::string> brk_pnt_addrs;
+	CPU_ARCH target_cpu_arch;
+	CPU_MODE target_cpu_mode;
 	std::string log_file_name;
 	bool trace_syscalls = false;
 	bool single_shot {false};
@@ -133,14 +139,21 @@ int main(int argc, char **argv) {
     
     app.add_option("-l,--log", app_log_path, "application debug logs");
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
-	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
+	
+	app.add_option("-a,--arch", target_cpu_arch, "Architecture of the process");
+	app.add_option("-m,--cpu-mode", target_cpu_mode, "Target architecture CPU mode");
+
 	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
 	app.add_option("-c,--cov-basic-block", basic_block_path, "Basic Block addresses which will be used for coverage collection");
 	app.add_option("--cov-out", coverage_output, "Output of the coverage data");	
 	app.add_flag("--single-shot", single_shot, "Coverage collection should be single shot");
+	
 	app.add_option("-e,--exec", exec_prog, "program to execute");//->expected(-1)->required();
+	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
+	
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
+	
 	app.add_option("--debug", debug_log_level, "set debug level, for eg 0 for trace and 6 for critical");
 
     CLI11_PARSE(app, argc, argv);

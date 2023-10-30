@@ -47,6 +47,9 @@ struct Addr {
 
     ~Addr() {
         free(m_data);
+        m_data = NULL;
+        r_addr = 0;
+        m_size = 0;
     }
 };
 
@@ -61,7 +64,7 @@ public:
     RemoteMemory(pid_t tracee_pid);
     
     ~RemoteMemory();
-
+    void setPid(pid_t tracee_pid) { m_pid = tracee_pid;});
     int read(Addr *dest, size_t readSize);
     int write(Addr *data, size_t writeSize);
     int read_cstring(Addr *data);

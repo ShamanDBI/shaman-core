@@ -124,7 +124,29 @@ class TraceeFactory;
 */
 
 // this is current state of the tracee
+enum CPU_ARCH : uint8_t {
+	X86 = 0x00,
+	AMD64 = 0x01,
+	ARM = 0x10,
+	ARM = 0x20
+};
 
+enum CPU_MODE : uint8_t{
+	x86_16 = 0x00,
+	x86_32 = 0x01,
+	x86_64 = 0x02,
+	THUMB = 0x10,
+	ARM = 0x11,
+	ARM_64 = 0x12
+};
+
+struct TargetDescription {
+	CPU_MODE m_cpu_mode;
+	CPU_ARCH m_cpu_arch;
+};
+
+
+template<class TraceeT>
 class Debugger {
 
 public:
@@ -132,9 +154,9 @@ public:
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
-	std::map<pid_t, TraceeProgram*> m_Tracees;
+	std::map<pid_t, TraceeT*> m_Tracees;
 
-	TraceeProgram* m_leader_tracee = nullptr;
+	TraceeT* m_leader_tracee = nullptr;
 	
 	std::string* m_prog = nullptr;
 
@@ -150,6 +172,7 @@ public:
 	bool m_traceSyscall = false;
 	bool m_followFork = false;
 
+	TargetDescription& m_target_desc;
 
 	Debugger& followFork() {
 		m_followFork = true;
@@ -167,6 +190,8 @@ public:
 
 	void attach(pid_t tracee_pid);
 	void attachThread(pid_t tracee_pid);
+
+	void setCPUMode(CPU_ARCH cpu_arch, CPU_MODE cpu_mode);
 
 	TraceeProgram* addChildTracee(pid_t child_tracee_pid);
 
@@ -216,5 +241,27 @@ public:
 	};
 
 };
+
+template<class T> createDebugger(CPU_ARCH cpu_arch, CPU_MODE cpu_mode) {
+
+	switch (cpu_arch) {
+		case CPU_ARCH::X86:
+			cpuRegister = new X86Register(tracee_pid);
+			TraceeProgram<X86DebugOpts>(tracee_pid);
+			break;
+		case CPU_ARCH::AMD64:
+			TraceeProgram<AMD64DebugOpts>(tracee_pid);
+			break;
+		case CPU_ARCH::ARM:
+			cpuRegister = new ARMRegister(tracee_pid);
+			break;
+		case CPU_ARCH::ARM64:
+			cpuRegister = new ARM64Register(tracee_pid);
+			break;
+		default:
+			m_log->error("not possible");
+		break;
+	}
+}
 
 #endif

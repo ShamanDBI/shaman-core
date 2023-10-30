@@ -1,5 +1,4 @@
 #include "tracee.hpp"
-#include "syscall_x64.hpp"
 
 // returns true if the tracee is in valid state
 bool TraceeProgram::isValidState() {
@@ -49,7 +48,7 @@ int TraceeProgram::contExecution(uint32_t sig) {
 	if (debugType & DebugType::DEFAULT) {
 		m_log->trace("contExec Tracee CONT");
 		pt_ret = ptrace(PTRACE_CONT, getPid(), 0L, sig);
-	} else if (debugType & DebugType::SYSCALL) {
+	} else if (debugType & DebugType::TRACE_SYSCALL) {
 		m_log->trace("contExec Tracee Syscall");
 		pt_ret = ptrace(PTRACE_SYSCALL, getPid(), 0L, sig);
 	} else if (debugType & DebugType::SINGLE_STEP) {
@@ -110,24 +109,28 @@ void TraceeProgram::printStatus() {
 // 	}
 // }
 
-// #include "spdlog/fmt/fmt.h"
-
-TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_type) {
-
-	auto traceeMemory = new RemoteMemory(tracee_pid);
-	auto cpuRegister = new Registers(tracee_pid);
-	auto procMap = new ProcessMap(tracee_pid);
-
-	auto debugOpts = new DebugOpts(tracee_pid);
-	debugOpts->setRemoteMemory(traceeMemory)
-		.setRegisters(cpuRegister)
-		.setProcessMap(procMap);
+TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_type, TargetDescription* target_desc) {
 	
-	auto tracee_obj = new TraceeProgram(debug_type);
-	tracee_obj->setDebugOpts(debugOpts)
-		.setPid(tracee_pid)
-		.setThreadGroupid(tracee_pid);
-		// ->setLogFile(string("hussain"));
+	// m_target_description
+	Register* cpuRegister;
+	switch (target_desc.m_cpu_arch) {
+		case CPU_ARCH::X86:
+			cpuRegister = new X86Register(tracee_pid);
+			TraceeProgram<X86DebugOpts>(tracee_pid);
+			break;
+		case CPU_ARCH::AMD64:
+			TraceeProgram<AMD64DebugOpts>(tracee_pid);
+			break;
+		case CPU_ARCH::ARM:
+			cpuRegister = new ARMRegister(tracee_pid);
+			break;
+		case CPU_ARCH::ARM64:
+			cpuRegister = new ARM64Register(tracee_pid);
+			break;
+		default:
+			m_log->error("not possible");
+		break;
+	}
 
 	return tracee_obj;
 }

@@ -49,9 +49,20 @@ add_executable(shaman)
 target_compile_features(shaman PUBLIC cxx_std_11)
 
 set(ARCH_SRC
-  src/arch/intel/breakpoint.cpp
-  src/arch/intel/registers.cpp
-  src/arch/intel/syscall_x64.cpp
+  src/arch/intel/x86_breakpoint.cpp
+  src/arch/intel/x86_registers.cpp
+
+  src/arch/intel/amd64_registers.cpp
+  src/arch/intel/amd64_registers.cpp
+  src/arch/intel/amd64_syscall.cpp
+
+  src/arch/intel/arm_breakpoint.cpp
+  src/arch/intel/arm_registers.cpp
+  src/arch/intel/arm_syscall.cpp
+
+  src/arch/intel/arm64_breakpoint.cpp
+  src/arch/intel/arm64_registers.cpp
+  src/arch/intel/arm64_syscall.cpp
 )
 
 
@@ -65,6 +76,7 @@ set(SRC
   src/tracee.cpp
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
+  src/syscall.cpp
 )
 
 

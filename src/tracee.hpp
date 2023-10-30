@@ -17,7 +17,7 @@ enum DebugType {
 	DEFAULT        = (1 << 1),
 	BREAKPOINT     = (1 << 2),
 	FOLLOW_FORK    = (1 << 3),
-	SYSCALL        = (1 << 4),
+	TRACE_SYSCALL  = (1 << 4),
 	SINGLE_STEP    = (1 << 5),
 	FOLLOW_OPTS    = (1 << 6)
 };
@@ -48,24 +48,25 @@ enum TraceeState {
 	UNKNOWN
 };
 
+template<class DebugOptsT>
 class TraceeProgram {
 
 public:
 	TraceeState m_state;
 
+	// pid of the process which is getting traced
 	pid_t m_pid;
+
+	// thread groud id, which is the pid of the parent thread
 	pid_t m_tg_pid;
 
 	// Debugger* m_debugger;
-	DebugOpts* m_debug_opts = nullptr;
+	DebugOptsT& m_debug_opts = nullptr;
 	// SyscallManager* m_syscallMngr = nullptr;
-
 
   	bool m_followFork = false;
 
   	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
-
-public:
 
 	DebugType debugType;
 	// BreakpointMngr* m_breakpointMngr;
@@ -83,6 +84,11 @@ public:
 		spdlog::warn("TraceeProgram : going out of scope!");
 	}
 
+	TraceeProgram(pid_t _tracee_pid):
+		m_state(TraceeState::INITIAL_STOP), debug_type(DebugType::DEFAULT),
+		m_pid(_tracee_pid), m_tg_pid(_tracee_pid),
+		debugOpts(DebugOpts(_tracee_pid)) {}
+
 	// this is used when new tracee is found
 	TraceeProgram(DebugType debug_type):
 		m_state(TraceeState::INITIAL_STOP),
@@ -90,8 +96,6 @@ public:
 	
 	TraceeProgram():
 		TraceeProgram(DebugType::DEFAULT) {}
-
-
 
 	TraceeProgram& setDebugOpts(DebugOpts* debug_opts) {
 		m_debug_opts = debug_opts;
@@ -104,6 +108,7 @@ public:
 
 	TraceeProgram& setPid(pid_t tracee_pid) {
 		m_pid = tracee_pid;
+		m_debug_opts.setPid(tracee_pid);
 		return *this;
 	};
 
@@ -150,7 +155,7 @@ public:
 
 	void printStatus();
 
-	void addPendingBrkPnt(std::vector<std::string>& brk_pnt_str);
+	// void addPendingBrkPnt(std::vector<std::string>& brk_pnt_str);
 	
 };
 

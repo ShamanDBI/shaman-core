@@ -40,27 +40,28 @@ int Debugger::spawn(vector<string>& cmdline) {
 	// remove the program path argument list
 	// cmdline.erase(cmdline.begin());
 	m_argv = &cmdline;
-	m_log->info("Spawning process {}", m_prog->c_str());
+	m_log->info("Spawning new process : {}", m_prog->c_str());
 	pid_t childPid = fork();
 	
 	if (childPid == -1) {
-		m_log->error("fork() for tracee failed failed!");
+		m_log->error("fork() for tracee failed!");
 		return -1;
 	}
 
 	if (childPid == 0) {
 		if (ptrace(PTRACE_TRACEME, 0, 0, 0)) {
+			m_log->error("PTRACE_TRACEME failed!");
 			return -1;
 		}
 		
 		int status_code = execvp(args[0], const_cast<char* const *>(args.data()));
 
 		if (status_code == -1) {
-			m_log->error("Process did not terminate correctly\n");
+			m_log->error("Process did not terminate correctly");
 			exit(1);
 		}
 
-		m_log->debug("This line will not be printed if execvp() runs correctly\n");
+		m_log->error("error while spawning new process with `execvp`");
 
 		return 0;
 	}
@@ -79,7 +80,7 @@ TraceeProgram* Debugger::addChildTracee(pid_t child_tracee_pid) {
 		m_log->debug("New child {} is added to tracee list!", child_tracee_pid);
 		auto trace_flag = DebugType::DEFAULT;
 		if(m_traceSyscall) {
-			trace_flag = DebugType::SYSCALL;
+			trace_flag = DebugType::TRACE_SYSCALL;
 		}
 		auto tracee_obj = m_tracee_factory->createTracee(child_tracee_pid, trace_flag);
 		// tracee_obj->setDebugger(this);
@@ -137,15 +138,15 @@ bool Debugger::isBreakpointTrap(siginfo_t* info) {
 */
 TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_info) {
 	pid_t new_pid = -1;
-	pid_t pid_sig = tracee_info->getPid();
+	pid_t signalled_pid = tracee_info->getPid();
 
 	TrapReason trap_reason = { TrapReason::INVALID, -1 };
-	trap_reason.pid = pid_sig;
+	trap_reason.pid = signalled_pid;
 	if(event.type == TraceeEvent::STOPPED && event.stopped.signal == SIGTRAP) {
 		if (PT_IF_CLONE(event.stopped.status)) {
 			m_log->trace("SIGTRAP : CLONE");
 			new_pid = 0;
-			int pt_ret = ptrace(PTRACE_GETEVENTMSG, pid_sig, 0, &new_pid);
+			int pt_ret = ptrace(PTRACE_GETEVENTMSG, signalled_pid, 0, &new_pid);
 			// m_log->trace("SIGTRAP : PT CLONE : ret {}");
 			trap_reason.status = TrapReason::CLONE;
 			trap_reason.pid = new_pid;
@@ -160,23 +161,23 @@ TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_inf
 		} else if (PT_IF_FORK(event.stopped.status)) {
 			m_log->trace("SIGTRAP : Fork");
 			new_pid = 0;
-			int pt_ret = ptrace(PTRACE_GETEVENTMSG, pid_sig, 0, &new_pid);
+			int pt_ret = ptrace(PTRACE_GETEVENTMSG, signalled_pid, 0, &new_pid);
 			trap_reason.status = TrapReason::FORK;
 			trap_reason.pid = new_pid;
 		} else if (PT_IF_VFORK(event.stopped.status)) {
 			m_log->trace("SIGTRAP : VFork");
 			new_pid = 0;
 			// Get the PID of the new process
-			int pt_ret = ptrace(PTRACE_GETEVENTMSG, pid_sig, 0, &new_pid);
+			int pt_ret = ptrace(PTRACE_GETEVENTMSG, signalled_pid, 0, &new_pid);
 			trap_reason.status = TrapReason::VFORK;
 			trap_reason.pid = new_pid;
 		} else {
 			if(!tracee_info->isInitialized()) {
 				siginfo_t sig_info = {0};
-				ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
+				ptrace(PTRACE_GETSIGINFO, signalled_pid, nullptr, &sig_info);
 				if (isBreakpointTrap(&sig_info)) {
 					trap_reason.status = TrapReason::BREAKPOINT;
-					trap_reason.pid = pid_sig;
+					trap_reason.pid = signalled_pid;
 					m_log->trace("SIGTRAP : TID [{}] Breakpoint was hit !", trap_reason.pid);
 				} else {
 					m_log->warn("SIGTRAP : Couldn't Find Why are we trapped! Need to handle this!");
@@ -186,7 +187,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_inf
 	} else if (event.type == TraceeEvent::STOPPED && PT_IF_SYSCALL(event.stopped.signal)) {
 		m_log->trace("SIGTRAP : SYSCALL");
 		trap_reason.status = TrapReason::SYSCALL;
-		trap_reason.pid = pid_sig;
+		trap_reason.pid = signalled_pid;
 	} else if (event.type == TraceeEvent::STOPPED && !tracee_info->isInitialized()) {
 		siginfo_t sig_info = {0};
 		/**
@@ -198,7 +199,7 @@ TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_inf
 		 * si_code - is a value indicating why this signal was sent.
 		*/
 		
-		ptrace(PTRACE_GETSIGINFO, pid_sig, nullptr, &sig_info);
+		ptrace(PTRACE_GETSIGINFO, signalled_pid, nullptr, &sig_info);
 		
 		switch (event.stopped.signal) {
 		case SIGSEGV:
@@ -222,11 +223,12 @@ TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_inf
 
 void Debugger::attach(pid_t tracee_pid) {
 
+	m_log->info("Attaching to thread : {}", tracee_pid);
 	attachThread(tracee_pid);
 	auto traceeProgram = getTracee(tracee_pid);
 	traceeProgram->getDebugOpts()->m_procMap->list_child_threads();
-	
 	auto child_pids = traceeProgram->getDebugOpts()->m_procMap->m_child_thread_pids;
+	m_log->info("Attaching to child threads, No of threads {}", tracee_pid, child_pids.size());
 
 	for (auto iter = child_pids.begin() ; iter != child_pids.end(); ++iter) {
 		pid_t child_pid = *iter;
@@ -239,7 +241,7 @@ void Debugger::attachThread(pid_t tracee_pid) {
 	auto tracee_obj = getTracee(tracee_pid);
 	
 	if (tracee_obj != nullptr) {
-		// this means we are already tracing this tracee
+		m_log->warn("We are already attached to pid : {}", tracee_pid);
 		return;
 	}
 
@@ -250,7 +252,7 @@ void Debugger::attachThread(pid_t tracee_pid) {
 		TraceeProgram* traceeProg = addChildTracee(tracee_pid);
 		traceeProg->toAttach();
 	} else {
-		m_log->trace("Attach failed for pid {} reason {}", tracee_pid, pt_ret);
+		m_log->error("Failed to attach debugger to pid {}, reason {}", tracee_pid, pt_ret);
 	}
 }
 
@@ -273,35 +275,44 @@ bool Debugger::eventLoop() {
 	siginfo_t pt_sig_info = {0};
 	TraceeEvent event;
 	TrapReason trap_reason;
-	// TraceeEvent invalid_event(TraceeEvent::INVALID);
-	queue<PendingEvent> pending_debug_events;
 	int ret_wait = -1;
-	pid_t pid_sig = 0;
+	pid_t signalled_pid = 0;
+	
+	/**
+	 * these variables was introduced because once we put the breakpoint event
+	 * in queue we don't want to process it right away, we are waiting for
+	 * the other breakpoint to complete the stepover and then process this
+	 * pending breakpoint, so below three variable are using to achieve
+	 * this usecase.
+	 * I think we need a better way to deal with this issue. Because I want
+	 * to signal specific set of breakpoint to be process and all the things
+	 * in the queue.
+	*/
+
+	queue<PendingEvent> pending_debug_events;
 	bool processing_pending_event = false;
-	bool process_queue = false;
+	bool process_pending_event_queue = false;
 	
 	while(!m_Tracees.empty()) {
-		spdlog::debug("=================================");
 		m_log->debug("------------------------------");
 		pt_sig_info.si_pid = 0;	
 		traceeProgram = nullptr;
-		// event = invalid_event;
 		event.makeInvalid();
 		debug_opts = nullptr;
-		pid_sig = 0;
+		signalled_pid = 0;
 		ret_wait = -1;
 
 		printAllTraceesInfo();
 
-		if (!pending_debug_events.empty() && process_queue) {
+		if (!pending_debug_events.empty() && process_pending_event_queue) {
 			processing_pending_event = true;
 			m_log->info("We have pending events. Pending {}", pending_debug_events.size());
 			std::tie(event, trap_reason) = pending_debug_events.front();
 			pending_debug_events.pop();
-			pid_sig = event.pid;
+			signalled_pid = event.pid;
 			event.print();
 			trap_reason.print();
-			spdlog::debug("Pending process {}", pid_sig);
+			spdlog::debug("Pending Signaled Pid {}", signalled_pid);
 		} else {
 			processing_pending_event = false;
 			ret_wait = waitid(
@@ -314,17 +325,16 @@ bool Debugger::eventLoop() {
 				m_log->critical("waitid failed!");
 				exit(-1);
 			}
-			pid_sig = pt_sig_info.si_pid;
+			signalled_pid = pt_sig_info.si_pid;
+			m_log->info("Signaled Pid : {} Signal Code : {}", signalled_pid, pt_sig_info.si_code);
 		}
 		
-		if (pid_sig == 0) {
+		if (signalled_pid == 0) {
 			m_log->warn("Special Case of waitid(), please handle it!");
 			exit(-1);
 		}
 
-		m_log->info("Signaled Pid : {} Signal Code : {}", pid_sig, pt_sig_info.si_code);
-
-		auto tracee_iter = m_Tracees.find(pid_sig);
+		auto tracee_iter = m_Tracees.find(signalled_pid);
 		if (tracee_iter != m_Tracees.end()) {
 			// tracee is found, its under over management
 			traceeProgram = tracee_iter->second;
@@ -372,7 +382,7 @@ bool Debugger::eventLoop() {
 			event.makeInvalid();
 
 			// we are not sure which pid has caused this issue
-			pid_sig = -1;
+			signalled_pid = -1;
 			bool found_event = false;
 			
 			for (auto i = m_Tracees.begin(); i != m_Tracees.end(); i++) {
@@ -386,44 +396,32 @@ bool Debugger::eventLoop() {
 				if (ts_event.isValidEvent()) {
 					found_event = true;
 					m_log->debug("Event from PID : {}", tracee_pid);
-					pid_sig = tracee_pid;
-					traceeProgram = m_Tracees[pid_sig];
+					signalled_pid = tracee_pid;
+					traceeProgram = m_Tracees[signalled_pid];
 					event = ts_event;
-					event.pid = pid_sig;
+					event.pid = signalled_pid;
 					break;
 				}
 			}
 			if(!found_event) {
+				// if this happens, and we are not handling ptrace events properly.
+				// This mean we need to solve and Edge case. Its an OS level issue
 				m_log->critical("No tracee with event found! This should not happend, handle it!");
+				continue;
 			}
 		} else {
 			if (!processing_pending_event) {
-				event = get_wait_event(pid_sig);
-				event.pid = pid_sig;
-				spdlog::debug("get fresh event");
+				event = get_wait_event(signalled_pid);
+				event.pid = signalled_pid;
 			}
 		}
 
-		// if (!traceeProgram) {
-		// 	m_log->critical("Tracee cannot be null!");
-		// 	continue;
-		// }
-
 		if (!processing_pending_event) {
-			// get fresh data
 			trap_reason = getTrapReason(event, traceeProgram);
-			spdlog::debug("get fresh trap reason");
 		}
 		
-		// traceeProgram->processState(event, trap_reason);
-		// processTraceeState(tracee_info, trap_reason);
-
 		auto tracee_flags = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
 		int ret = -1;
-		if(processing_pending_event) {
-			event.print();
-			trap_reason.print();
-		}
 
 		switch(traceeProgram->m_state) {
 		case TraceeState::UNKNOWN:
@@ -449,7 +447,7 @@ bool Debugger::eventLoop() {
 					PTRACE_O_TRACEVFORK;
 			}
 
-			ret = ptrace(PTRACE_SETOPTIONS, pid_sig, 0, tracee_flags);
+			ret = ptrace(PTRACE_SETOPTIONS, signalled_pid, 0, tracee_flags);
 
 			if (ret == -1) {
 				m_log->error("Error occured while setting ptrace options while restarting the tracee!");
@@ -481,7 +479,7 @@ bool Debugger::eventLoop() {
 				m_log->info("Breakpoint handled 0x{:x}", prev_brk_addr);
 				prev_brk_addr = 0;
 				prev_pid = 0;
-				process_queue = true;
+				process_pending_event_queue = true;
 			} else {
 				m_log->error("Processing and Invalid Event! State transistion is invalid!");
 			}
@@ -492,11 +490,11 @@ bool Debugger::eventLoop() {
 			m_log->debug("RUNNING");
 			switch (event.type) {
 			case TraceeEvent::EXITED:
-				m_log->info("EXITED : process {} has exited!", pid_sig);
+				m_log->info("EXITED : process {} has exited!", signalled_pid);
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::SIGNALED:
-				m_log->critical("SIGNALLED : process {} terminated by a signal!!", pid_sig);
+				m_log->critical("SIGNALLED : process {} terminated by a signal!!", signalled_pid);
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::STOPPED:
@@ -519,7 +517,7 @@ bool Debugger::eventLoop() {
 					// New child has been added which is completed different from our
 					// process so probablity create new Debugger instance and hand 
 					// this child to that instance
-					// ProcessMap m_procMap(pid_sig);
+					// ProcessMap m_procMap(signalled_pid);
 					// m_procMap.parse();
 					// m_procMap.print();
 				} else if( trap_reason.status == TrapReason::EXIT ) {
@@ -561,7 +559,7 @@ bool Debugger::eventLoop() {
 						m_log->info("{} pid is attempting to execute {} pid's breakpoint handler", debug_opts->getPid(), prev_pid);
 						m_log->info("Breakpoint address 0x{:x}", prev_brk_addr);
 						pending_debug_events.push(PendingEvent(event, trap_reason));
-						process_queue = false;
+						process_pending_event_queue = false;
 						break;
 					}
 
@@ -616,11 +614,11 @@ bool Debugger::eventLoop() {
 			*/
 			switch (event.type) {
 			case TraceeEvent::EXITED:
-				m_log->info("SYSCALL : EXITED : process {} has exited!", pid_sig);
+				m_log->info("SYSCALL : EXITED : process {} has exited!", signalled_pid);
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::SIGNALED:
-				m_log->critical("SYSCALL : SIGNALLED : process {} terminated by a signal, Possibly in kernel space!!", pid_sig);
+				m_log->critical("SYSCALL : SIGNALLED : process {} terminated by a signal, Possibly in kernel space!!", signalled_pid);
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::STOPPED:

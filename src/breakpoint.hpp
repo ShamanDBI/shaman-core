@@ -13,6 +13,31 @@
 
 #define BREAKPOINT_SIZE sizeof(uint64_t)
 
+struct BreakpointInjector {
+    
+    uint8_t m_brk_size = 0;
+
+    virtual void inject(DebugOpts* debug_opts, Addr *m_backupData) = 0;
+    virtual void restore(DebugOpts* debug_opts, Addr *m_backupData) = 0;
+};
+
+struct X86BreakpointInjector : BreakpointInjector {
+    uint8_t m_brk_size = 1;
+
+    X86BreakpointInjector() {
+    }
+
+    void inject(DebugOpts* debug_opts, Addr *m_backupData);
+    void restore(DebugOpts* debug_opts, Addr *m_backupData);
+};
+
+struct ARMBreakpointInjector : BreakpointInjector {
+    uint8_t m_brk_size = 1;
+    void inject(DebugOpts* debug_opts, Addr *m_backupData);
+    void restore(DebugOpts* debug_opts, Addr *m_backupData);
+};
+
+
 class Breakpoint {
 
 public:
@@ -25,26 +50,29 @@ public:
         NORMAL
     } m_type;
 
+    std::shared_ptr<BreakpointInjector> m_bkpt_injector;
+
     bool m_enabled = false;
-    
-    // DebugOpts* m_debug_opts = nullptr;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
     
     // this is the concrete address of the breakpoint
     // resolved address
     uintptr_t m_addr = 0;
-
-    // name of the module in which this breakpoint exist
-    std::string& m_modname;
-
-
+    
     // breakpoint instruction data is stored to the memory
     // later restored when brk pnt is hit
     Addr *m_backupData = nullptr;
+    
+    // DebugOpts* m_debug_opts = nullptr;
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+    
+    // name of the module in which this breakpoint exist
+    std::string& m_modname;
 
     // number of time this breakpoint was hit
     uint32_t m_count = 0;
 
+    // max hit count after which you want remove the breakpoint
+    uint32_t m_max_hit_count = UINT32_MAX;
 
     // offset from the module
     uintptr_t m_offset = 0;
@@ -53,7 +81,6 @@ public:
     std::vector<pid_t> m_pids; // pid of tracee
 
     std::string m_label;
-    
 
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
         std::string* _label, BreakpointType brk_type) :
@@ -78,8 +105,13 @@ public:
         // delete m_label;
     }
 
-    Breakpoint makeSingleShot() {
+    Breakpoint& makeSingleShot() {
         m_type = BreakpointType::SINGLE_SHOT;
+        return *this;
+    }
+
+    Breakpoint& setMaxHitCount(uint32_t max_hit_count) {
+        m_max_hit_count = max_hit_count;
         return *this;
     }
 
@@ -123,10 +155,15 @@ public:
         return m_enabled;
     }
 
-    virtual int enable(DebugOpts* debug_opts);
+    virtual int enable(DebugOpts* debug_opts) {
+        m_bkpt_injector->inject(debug_opts, m_backupData);
+        m_enabled = true;
+    };
 
-    virtual int disable(DebugOpts* debug_opts);
+    virtual int disable(DebugOpts* debug_opts) {
+        m_bkpt_injector->restore(debug_opts, m_backupData);
+        m_enabled = false;
+    };
 };
 
-typedef unique_ptr<Breakpoint> BreakpointPtr;
 #endif
