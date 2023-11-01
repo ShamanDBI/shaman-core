@@ -17,8 +17,8 @@ struct BreakpointInjector {
     
     uint8_t m_brk_size = 0;
 
-    virtual void inject(DebugOpts* debug_opts, Addr *m_backupData) = 0;
-    virtual void restore(DebugOpts* debug_opts, Addr *m_backupData) = 0;
+    virtual void inject(DebugOpts& debug_opts, Addr *m_backupData) = 0;
+    virtual void restore(DebugOpts& debug_opts, Addr *m_backupData) = 0;
 };
 
 struct X86BreakpointInjector : BreakpointInjector {
@@ -27,14 +27,18 @@ struct X86BreakpointInjector : BreakpointInjector {
     X86BreakpointInjector() {
     }
 
-    void inject(DebugOpts* debug_opts, Addr *m_backupData);
-    void restore(DebugOpts* debug_opts, Addr *m_backupData);
+    void inject(DebugOpts& debug_opts, Addr *m_backupData);
+    void restore(DebugOpts& debug_opts, Addr *m_backupData);
 };
 
 struct ARMBreakpointInjector : BreakpointInjector {
+
+    #define BREAKINST_ARM	0xe7f001f0
+    #define BREAKINST_THUMB	0xde01
+    
     uint8_t m_brk_size = 1;
-    void inject(DebugOpts* debug_opts, Addr *m_backupData);
-    void restore(DebugOpts* debug_opts, Addr *m_backupData);
+    void inject(DebugOpts& debug_opts, Addr *m_backupData);
+    void restore(DebugOpts& debug_opts, Addr *m_backupData);
 };
 
 
@@ -62,7 +66,7 @@ public:
     // later restored when brk pnt is hit
     Addr *m_backupData = nullptr;
     
-    // DebugOpts* m_debug_opts = nullptr;
+    // DebugOpts& m_debug_opts = nullptr;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
     
     // name of the module in which this breakpoint exist
@@ -145,7 +149,7 @@ public:
         }
     }
 
-    virtual bool handle(DebugOpts* debug_opts) {
+    virtual bool handle(DebugOpts& debug_opts) {
         m_count++;
         // printDebug();
         return true;
@@ -155,14 +159,16 @@ public:
         return m_enabled;
     }
 
-    virtual int enable(DebugOpts* debug_opts) {
+    virtual int enable(DebugOpts& debug_opts) {
         m_bkpt_injector->inject(debug_opts, m_backupData);
         m_enabled = true;
+        return 1;
     };
 
-    virtual int disable(DebugOpts* debug_opts) {
+    virtual int disable(DebugOpts& debug_opts) {
         m_bkpt_injector->restore(debug_opts, m_backupData);
         m_enabled = false;
+        return 1;
     };
 };
 

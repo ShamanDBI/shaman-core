@@ -20,18 +20,18 @@ public:
 		/**
 		 * 
 			Addr file_path_addr_t(sc_trace->v_arg[1], 100);
-			debug_opts->m_memory->read(&file_path_addr_t, 100);
+			debug_opts.m_memory.read(&file_path_addr_t, 100);
 			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
 				spdlog::trace("We found the file we wanted to mess with!");
 				return true;
 			}
-			break;
 		*/
+			break;
 		}
 		return false;
 	}
 
-	void onRead(SyscallState sys_state, SyscallTraceData *sc_trace) {
+	void onRead(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData *sc_trace) {
 		if(sys_state == SyscallState::ON_ENTER) {
 			spdlog::debug("onRead: onEnter");
 			int fd = static_cast<int>(sc_trace->v_arg[0]);
@@ -43,11 +43,11 @@ public:
 			int fd = static_cast<int>(sc_trace->v_arg[0]);
 			uint64_t buf_len = sc_trace->v_arg[2];
 			Addr buf(sc_trace->v_arg[1], buf_len);
-			debug_opts->m_memory->read(&buf, buf_len);
+			debug_opts.m_memory.read(&buf, buf_len);
 			printf("read %s\n", reinterpret_cast<char*>(buf.m_data));
 			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
 			memcpy(buf.m_data, "Malicous\x00", 9);
-			debug_opts->m_memory->write(&buf, buf_len);
+			debug_opts.m_memory.write(&buf, buf_len);
 		}
 	}
 
@@ -61,7 +61,7 @@ public:
 class OpenAt1Handler : public SyscallHandler {
 
 public:	
-	OpenAt1Handler(): SyscallHandler(SyscallId::OPEN) {}
+	OpenAt1Handler(): SyscallHandler(SysCallId::OPEN) {}
 
 	int onEnter(SyscallTraceData* sc_trace) {
 		spdlog::trace("onEnter : System call handler test");
@@ -79,7 +79,7 @@ public:
 class OpenAt2Handler : public SyscallHandler {
 
 public:	
-	OpenAt2Handler(): SyscallHandler(NR_openat) {}
+	OpenAt2Handler(): SyscallHandler(SysCallId::OPENAT) {}
 
 	int onEnter(SyscallTraceData* sc_trace) {
 		spdlog::debug("onEnter : System call handler test again!");
@@ -168,8 +168,10 @@ int main(int argc, char **argv) {
 
 	auto log = spdlog::get("main_log");
     log->info("Welcome to Shaman!");
-	
-	Debugger debug;
+	TargetDescription targetDesc ;
+	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
+	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
+	Debugger debug(targetDesc);
 	shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
 
 	if (basic_block_path.length() > 0) {

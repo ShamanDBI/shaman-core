@@ -64,7 +64,7 @@ public:
     RemoteMemory(pid_t tracee_pid);
     
     ~RemoteMemory();
-    void setPid(pid_t tracee_pid) { m_pid = tracee_pid;});
+    void setPid(pid_t tracee_pid) { m_pid = tracee_pid;};
     int read(Addr *dest, size_t readSize);
     int write(Addr *data, size_t writeSize);
     int read_cstring(Addr *data);

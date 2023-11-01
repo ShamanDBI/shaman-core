@@ -9,7 +9,7 @@
 using namespace std;
 
 
-Debugger::Debugger() {
+Debugger::Debugger(TargetDescription& _target_desc): m_target_desc(_target_desc) {
 	m_log = spdlog::get("main_log");
 	
 	m_tracee_factory = new TraceeFactory();
@@ -82,7 +82,7 @@ TraceeProgram* Debugger::addChildTracee(pid_t child_tracee_pid) {
 		if(m_traceSyscall) {
 			trace_flag = DebugType::TRACE_SYSCALL;
 		}
-		auto tracee_obj = m_tracee_factory->createTracee(child_tracee_pid, trace_flag);
+		auto tracee_obj = m_tracee_factory->createTracee(child_tracee_pid, trace_flag, m_target_desc);
 		// tracee_obj->setDebugger(this);
 		
 		if (m_followFork)
@@ -226,8 +226,8 @@ void Debugger::attach(pid_t tracee_pid) {
 	m_log->info("Attaching to thread : {}", tracee_pid);
 	attachThread(tracee_pid);
 	auto traceeProgram = getTracee(tracee_pid);
-	traceeProgram->getDebugOpts()->m_procMap->list_child_threads();
-	auto child_pids = traceeProgram->getDebugOpts()->m_procMap->m_child_thread_pids;
+	traceeProgram->getDebugOpts().m_procMap.list_child_threads();
+	auto child_pids = traceeProgram->getDebugOpts().m_procMap.m_child_thread_pids;
 	m_log->info("Attaching to child threads, No of threads {}", tracee_pid, child_pids.size());
 
 	for (auto iter = child_pids.begin() ; iter != child_pids.end(); ++iter) {
@@ -456,7 +456,7 @@ bool Debugger::eventLoop() {
 			traceeProgram->toStateRunning();
 
 			// TODO : figure out the lifetime of this param
-			traceeProgram->getDebugOpts()->m_procMap->parse();
+			traceeProgram->getDebugOpts().m_procMap.parse();
 			
 			// TODO : this is not appropriate point to injectrea
 			// breakpoint in case of fork
@@ -472,8 +472,7 @@ bool Debugger::eventLoop() {
 			// we either restore the breakpoint or continue without
 			// restoring it.
 			if(event.type == TraceeEvent::STOPPED && trap_reason.status == TrapReason::BREAKPOINT) {
-				debug_opts = traceeProgram->getDebugOpts();					
-				m_breakpointMngr->restoreSuspendedBreakpoint(debug_opts);
+				m_breakpointMngr->restoreSuspendedBreakpoint(traceeProgram->getDebugOpts());
 				traceeProgram->toStateRunning();
 				traceeProgram->contExecution();
 				m_log->info("Breakpoint handled 0x{:x}", prev_brk_addr);
@@ -549,10 +548,11 @@ bool Debugger::eventLoop() {
 					 * Not sure why!
 					 */
 					// traceeProgram->toStateBreakpoint();
-					debug_opts = traceeProgram->getDebugOpts();
-					
-					debug_opts->m_register->getGPRegisters();
-					uintptr_t brk_addr = debug_opts->m_register->getPC() - 1;
+					debug_opts = &traceeProgram->getDebugOpts();				
+					debug_opts->m_register.fetch();
+					AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
+
+					uintptr_t brk_addr = amdReg.getProgramCounter() - 1;
 
 					if(prev_brk_addr == brk_addr && prev_pid != debug_opts->getPid()) {
 						m_log->info("Breakpoint stepover race condition!");
@@ -571,11 +571,11 @@ bool Debugger::eventLoop() {
 					// the hit, and its architecture dependent, so this is
 					// not the place to handle it
 					// debug_opts->m_register->print();
-					m_breakpointMngr->handleBreakpointHit(debug_opts, brk_addr);
+					m_breakpointMngr->handleBreakpointHit(*debug_opts, brk_addr);
 
-					debug_opts->m_register->setPC(brk_addr);
+					amdReg.setProgramCounter(brk_addr);
 
-					debug_opts->m_register->setGPRegisters();
+					amdReg.update();
 					traceeProgram->toStateBreakpoint();
 					// debug_opts->m_register->print();
 					traceeProgram->singleStep();

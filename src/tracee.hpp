@@ -6,11 +6,11 @@
 
 #include "syscall_mngr.hpp"
 #include "memory.hpp"
-#include "debugger.hpp"
 #include "modules.hpp"
 #include "breakpoint_mngr.hpp"
 #include "linux_debugger.hpp"
 #include "registers.hpp"
+#include "debugger.hpp"
 
 
 enum DebugType {
@@ -48,7 +48,6 @@ enum TraceeState {
 	UNKNOWN
 };
 
-template<class DebugOptsT>
 class TraceeProgram {
 
 public:
@@ -61,7 +60,7 @@ public:
 	pid_t m_tg_pid;
 
 	// Debugger* m_debugger;
-	DebugOptsT& m_debug_opts = nullptr;
+	DebugOpts& m_debug_opts;
 	// SyscallManager* m_syscallMngr = nullptr;
 
   	bool m_followFork = false;
@@ -84,25 +83,17 @@ public:
 		spdlog::warn("TraceeProgram : going out of scope!");
 	}
 
-	TraceeProgram(pid_t _tracee_pid):
-		m_state(TraceeState::INITIAL_STOP), debug_type(DebugType::DEFAULT),
+	TraceeProgram(pid_t _tracee_pid, DebugType debug_type, DebugOpts& _debug_opts):
+		m_state(TraceeState::INITIAL_STOP), debugType(debug_type),
 		m_pid(_tracee_pid), m_tg_pid(_tracee_pid),
-		debugOpts(DebugOpts(_tracee_pid)) {}
+		m_debug_opts(_debug_opts) {}
 
-	// this is used when new tracee is found
-	TraceeProgram(DebugType debug_type):
-		m_state(TraceeState::INITIAL_STOP),
-		debugType(debug_type) {}
-	
-	TraceeProgram():
-		TraceeProgram(DebugType::DEFAULT) {}
+	// TraceeProgram& setDebugOpts(const DebugOpts& debug_opts) {
+	// 	m_debug_opts = debug_opts;
+	// 	return *this;
+	// };
 
-	TraceeProgram& setDebugOpts(DebugOpts* debug_opts) {
-		m_debug_opts = debug_opts;
-		return *this;
-	};
-
-	DebugOpts* getDebugOpts() {
+	DebugOpts& getDebugOpts() {
 		return m_debug_opts;
 	};
 
@@ -168,9 +159,11 @@ public:
 	
 	// this function fills the cache with dummy tracees
 	// this will reduce the creation time
-	void createDummyTracee();
+	// void createDummyTracee();
 
-	TraceeProgram* createTracee(pid_t tracee_pid, DebugType debug_type);
+	TraceeProgram* createTracee(pid_t tracee_pid, DebugType debug_type,
+		TargetDescription& target_desc);
+
 	void releaseTracee(TraceeProgram* tracee_obj);
 };
 

@@ -56,13 +56,13 @@ set(ARCH_SRC
   src/arch/intel/amd64_registers.cpp
   src/arch/intel/amd64_syscall.cpp
 
-  src/arch/intel/arm_breakpoint.cpp
-  src/arch/intel/arm_registers.cpp
-  src/arch/intel/arm_syscall.cpp
+  # src/arch/intel/arm_breakpoint.cpp
+  # src/arch/intel/arm_registers.cpp
+  # src/arch/intel/arm_syscall.cpp
 
-  src/arch/intel/arm64_breakpoint.cpp
-  src/arch/intel/arm64_registers.cpp
-  src/arch/intel/arm64_syscall.cpp
+  # src/arch/intel/arm64_breakpoint.cpp
+  # src/arch/intel/arm64_registers.cpp
+  # src/arch/intel/arm64_syscall.cpp
 )
 
 

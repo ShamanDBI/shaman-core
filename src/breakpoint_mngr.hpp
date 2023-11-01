@@ -80,7 +80,7 @@ public:
     void addBrkPnt(Breakpoint* brkPtr);
 
     // put all the pending breakpoint in the tracee    
-    void inject(DebugOpts* debug_opts);
+    void inject(DebugOpts& debug_opts);
 
     Breakpoint* getBreakpointObj(uintptr_t bk_addr);
 
@@ -94,13 +94,13 @@ public:
         return false;
     }
 
-    void restoreSuspendedBreakpoint(DebugOpts* debug_opts);
+    void restoreSuspendedBreakpoint(DebugOpts& debug_opts);
 
-    void handleBreakpointHit(DebugOpts* debug_opts, uintptr_t brk_addr);
+    void handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_addr);
 
     void printStats();
 
-    void setBreakpointAtAddr(DebugOpts* debug_opts, uintptr_t brk_addr, string* label);
+    void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, string* label);
 };
 
 #endif

@@ -20,23 +20,26 @@
  *	x86	    eax			eax		ebx		ecx		edx		esi		edi		ebp
  *	x86_64	rax			rax		rdi		rsi		rdx		r10		r8		r9
 */
-void SyscallManager::readSyscallParams(DebugOpts* debug_opts) {
-	debug_opts->m_register->getGPRegisters();
+void SyscallManager::readSyscallParams(DebugOpts& debug_opts) {
+	AMD64Register& regObj = reinterpret_cast<AMD64Register&>(debug_opts.m_register);
+
+	debug_opts.m_register.fetch();
 	m_cached_args.syscall_id.setValue(
-		static_cast<int16_t>(debug_opts->m_register->getRegIdx(SYSCALL_ID_INTEL))
+		static_cast<int16_t>(regObj.getRegIdx(SYSCALL_ID_INTEL))
 	);
 	
-	m_cached_args.v_arg[0] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_0);
-	m_cached_args.v_arg[1] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_1);
-	m_cached_args.v_arg[2] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_2);
-	m_cached_args.v_arg[3] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_3);
-	m_cached_args.v_arg[4] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_4);
-	m_cached_args.v_arg[5] = debug_opts->m_register->getRegIdx(SYSCALL_ARG_5);
+	m_cached_args.v_arg[0] = regObj.getRegIdx(SYSCALL_ARG_0);
+	m_cached_args.v_arg[1] = regObj.getRegIdx(SYSCALL_ARG_1);
+	m_cached_args.v_arg[2] = regObj.getRegIdx(SYSCALL_ARG_2);
+	m_cached_args.v_arg[3] = regObj.getRegIdx(SYSCALL_ARG_3);
+	m_cached_args.v_arg[4] = regObj.getRegIdx(SYSCALL_ARG_4);
+	m_cached_args.v_arg[5] = regObj.getRegIdx(SYSCALL_ARG_5);
 }
 
-void SyscallManager::readRetValue(DebugOpts* debug_opts) {
-	debug_opts->m_register->getGPRegisters();
-	m_cached_args.v_rval = debug_opts->m_register->getRegIdx(SYSCALL_RET);
+void SyscallManager::readRetValue(DebugOpts& debug_opts) {
+	AMD64Register& regObj = reinterpret_cast<AMD64Register&>(debug_opts.m_register);
+	regObj.fetch();
+	m_cached_args.v_rval = regObj.getRegIdx(SYSCALL_RET);
 }
 
 int SyscallManager::addFileOperationHandler(FileOperationTracer* file_opt_handler) {
@@ -58,7 +61,7 @@ int SyscallManager::removeSyscallHandler(SyscallHandler* syscall_hdlr) {
 	return 0;
 }
 
-int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts* debug_opts) {
+int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts) {
 	int fd = static_cast<int>(m_cached_args.v_arg[0]);
 
 	auto file_ops_iter = m_file_ops_handler.find(fd);  
@@ -90,7 +93,7 @@ int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts* debug_opts)
 	return 0;
 }
 
-int SyscallManager::onEnter(DebugOpts* debug_opts) {
+int SyscallManager::onEnter(DebugOpts& debug_opts) {
 	readSyscallParams(debug_opts);
 	
 	// File operation handler
@@ -118,7 +121,7 @@ int SyscallManager::onEnter(DebugOpts* debug_opts) {
 	return 0;
 }
 
-int SyscallManager::onExit(DebugOpts* debug_opts) {
+int SyscallManager::onExit(DebugOpts& debug_opts) {
 	m_log->debug("NAME : <- {} ()", m_cached_args.syscall_id.getString(), m_cached_args.v_rval);
 	readRetValue(debug_opts);
 	FileOperationTracer* f_opts = nullptr;

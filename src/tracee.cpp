@@ -109,30 +109,33 @@ void TraceeProgram::printStatus() {
 // 	}
 // }
 
-TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_type, TargetDescription* target_desc) {
+TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_type, TargetDescription& target_desc) {
 	
-	// m_target_description
-	Register* cpuRegister;
+	Registers* cpuRegister;
+
 	switch (target_desc.m_cpu_arch) {
 		case CPU_ARCH::X86:
 			cpuRegister = new X86Register(tracee_pid);
-			TraceeProgram<X86DebugOpts>(tracee_pid);
 			break;
 		case CPU_ARCH::AMD64:
-			TraceeProgram<AMD64DebugOpts>(tracee_pid);
+			cpuRegister = new AMD64Register(tracee_pid);
 			break;
-		case CPU_ARCH::ARM:
+		case CPU_ARCH::ARM32:
 			cpuRegister = new ARMRegister(tracee_pid);
 			break;
 		case CPU_ARCH::ARM64:
 			cpuRegister = new ARM64Register(tracee_pid);
 			break;
 		default:
-			m_log->error("not possible");
+			spdlog::error("Invalid ARCH parameter for register");
 		break;
 	}
 
-	return tracee_obj;
+	DebugOpts* db_opts = new DebugOpts(tracee_pid, *cpuRegister,
+		*new RemoteMemory(tracee_pid),*new ProcessMap(tracee_pid));
+	TraceeProgram* traceeProg = new TraceeProgram(tracee_pid, debug_type, *db_opts);
+	
+	return traceeProg;
 }
 
 void TraceeFactory::releaseTracee(TraceeProgram* tracee_obj) {

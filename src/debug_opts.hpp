@@ -5,26 +5,22 @@
 #include "registers.hpp"
 #include "modules.hpp"
 
-template<class RegisterT>
+
 struct DebugOpts {
 
 	pid_t m_pid;
 
+	Registers& m_register;
 	RemoteMemory& m_memory;
-	RegisterT& m_register;
 	ProcessMap& m_procMap;
 
-	DebugOpts(pid_t _tracee_pid) : 
-		m_pid(_tracee_pid), m_register(RegisterT(_tracee_pid)),
-		m_memory(RemoteMemory(_tracee_pid)),
-		m_procMap(ProcessMap(_tracee_pid)) {}
+	DebugOpts(pid_t _tracee_pid, Registers& _registers, 
+		RemoteMemory& _remote_mem, ProcessMap& _proc_map) :
+		m_pid(_tracee_pid), m_register(_registers),
+		m_memory(_remote_mem),
+		m_procMap(_proc_map) {}
 
 	~DebugOpts() { m_pid = 0; };
-
-	DebugOpts& setPid(pid_t tracee_pid) {
-		m_pid = tracee_pid;
-		return *this;
-	}
 
 	pid_t getPid() {
 		return m_pid;
@@ -37,26 +33,21 @@ struct DebugOpts {
 		return *this;
 	};
 
-	DebugOpts& setRemoteMemory(RemoteMemory* memory) {
+	DebugOpts& setRemoteMemory(RemoteMemory& memory) {
 		m_memory = memory;
 		return *this;
 	}
 	
-	DebugOpts& setRegisters(RegisterT* reg_obj) {
+	DebugOpts& setRegisters(Registers& reg_obj) {
 		m_register = reg_obj;
 		return *this;
 	}
 
-	DebugOpts& setProcessMap(ProcessMap* procMap) {
+	DebugOpts& setProcessMap(ProcessMap& procMap) {
 		m_procMap = procMap;
 		return *this;
 	}
 };
 
-
-typedef DebugOpts<AMD64Register> AMD64DebugOpts;
-typedef DebugOpts<X86Register> X86DebugOpts;
-typedef DebugOpts<ARMRegister> ARM64DebugOpts;
-typedef DebugOpts<ARM64Register> ARM64DebugOpts;
 
 #endif

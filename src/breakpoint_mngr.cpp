@@ -45,9 +45,9 @@ void BreakpointMngr::addBrkPnt(Breakpoint *brkPtr)
 }
 
 // put all the pending breakpoint in the tracee
-void BreakpointMngr::inject(DebugOpts *debug_opts)
+void BreakpointMngr::inject(DebugOpts& debug_opts)
 {
-    debug_opts->m_procMap->print();
+    debug_opts.m_procMap->print();
     m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
 
     for (auto pend_iter = m_pending.cbegin(); pend_iter != m_pending.cend();)
@@ -55,7 +55,7 @@ void BreakpointMngr::inject(DebugOpts *debug_opts)
 
         // find the module base address
         std::string mod_name = pend_iter->first;
-        auto mod_base_addr = debug_opts->m_procMap->findModuleBaseAddr(mod_name);
+        auto mod_base_addr = debug_opts.m_procMap->findModuleBaseAddr(mod_name);
 
         // iterate over all the breakpoint for that module
         // for(auto brkpnt_obj: pend_iter->second) {
@@ -67,7 +67,7 @@ void BreakpointMngr::inject(DebugOpts *debug_opts)
             m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
-            brkpnt_obj->addPid(debug_opts->getPid());
+            brkpnt_obj->addPid(debug_opts.getPid());
 
             m_active_brkpnt[brk_addr] = brkpnt_obj;
             brk_pending_objs.pop_back();
@@ -92,10 +92,10 @@ Breakpoint *BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)
     }
 }
 
-void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
+void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts& debug_opts)
 {
     m_log->debug("Restoring breakpoint and resuming execution!");
-    auto sus_bkpt_iter = m_suspendedBrkPnt.find(debug_opts->m_pid);
+    auto sus_bkpt_iter = m_suspendedBrkPnt.find(debug_opts.m_pid);
     if (sus_bkpt_iter != m_suspendedBrkPnt.end()) {
         // tracee is found, its under over management
         auto suspend_bkpt_obj = sus_bkpt_iter->second;
@@ -109,14 +109,14 @@ void BreakpointMngr::restoreSuspendedBreakpoint(DebugOpts *debug_opts)
             // it that because it will be later used to summarize 
             // execution information
         }
-        m_suspendedBrkPnt.erase(debug_opts->m_pid);
+        m_suspendedBrkPnt.erase(debug_opts.m_pid);
     } else {
         m_log->info("No suspended breakpoint found!");
         auto suspend_bkpt_obj = nullptr;
     }
 }
 
-void BreakpointMngr::handleBreakpointHit(DebugOpts *debug_opts, uintptr_t brk_addr)
+void BreakpointMngr::handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_addr)
 {
     // PC points to the next instruction after execution
     m_log->trace("Breakpoint Hit! addr 0x{:x}", brk_addr);
@@ -127,7 +127,7 @@ void BreakpointMngr::handleBreakpointHit(DebugOpts *debug_opts, uintptr_t brk_ad
         exit(-1);
         return;
     }
-    m_suspendedBrkPnt[debug_opts->m_pid] = brk_obj;
+    m_suspendedBrkPnt[debug_opts.m_pid] = brk_obj;
     brk_obj->handle(debug_opts);
     
     // m_log->debug("Brkpnt obj found!");

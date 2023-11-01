@@ -57,7 +57,7 @@ struct FileOperationTracer {
 	 * @return true if you want to track the file descriptor
 	 * @return false if you want dont want to track the file descriptor
 	 */
-	virtual bool onFilter(SyscallTraceData& sc_trace) {
+	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		return true;
 	};
 
@@ -65,19 +65,19 @@ struct FileOperationTracer {
 	 * @brief callback on open file event
 	 * 
 	 */
-	virtual void onOpen(SyscallState sys_state, SyscallTraceData& sc_trace) {
+	virtual void onOpen(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->error("FT : onOpen");
 	};
-	virtual void onClose(SyscallState sys_state, SyscallTraceData& sc_trace) {
+	virtual void onClose(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->error("FT : onClose");
 	};
-	virtual void onRead(SyscallState sys_state, SyscallTraceData& sc_trace) {
+	virtual void onRead(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->error("FT : onRead");
 	};
-	virtual void onWrite(SyscallState sys_state, SyscallTraceData& sc_trace) {
+	virtual void onWrite(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->error("FT : onWrite");
 	};
-	virtual void onIoctl(SyscallState sys_state, SyscallTraceData& sc_trace) {
+	virtual void onIoctl(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->error("FT : onIoctl");
 	};
 };
@@ -110,7 +110,6 @@ struct SyscallHandler {
 
 };
 
-template<class DebugOptsT>
 class SyscallManager {
 	
 	// this system call which are related to filer operations
@@ -137,11 +136,11 @@ class SyscallManager {
 
 public:
 
-	void readSyscallParams(DebugOptsT* debug_opts);
+	void readSyscallParams(DebugOpts& debug_opts);
 
-	void readRetValue(DebugOptsT* debug_opts);
+	void readRetValue(DebugOpts& debug_opts);
 
-	int handleFileOpt(SyscallState sys_state, DebugOptsT* debug_opts);
+	int handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts);
 
 	virtual int addFileOperationHandler(FileOperationTracer* file_opt_handler);
 	virtual int removeFileOperationHandler(FileOperationTracer* file_opt_handler);
@@ -149,9 +148,9 @@ public:
 	virtual int addSyscallHandler(SyscallHandler* syscall_hdlr);
 	virtual int removeSyscallHandler(SyscallHandler* syscall_hdlr);
 
-	virtual int onEnter(DebugOptsT* debug_opts);
+	virtual int onEnter(DebugOpts& debug_opts);
 
-	virtual int onExit(DebugOptsT* debug_opts);
+	virtual int onExit(DebugOpts& debug_opts);
 
 };
 

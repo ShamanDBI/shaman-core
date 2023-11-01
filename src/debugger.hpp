@@ -127,8 +127,8 @@ class TraceeFactory;
 enum CPU_ARCH : uint8_t {
 	X86 = 0x00,
 	AMD64 = 0x01,
-	ARM = 0x10,
-	ARM = 0x20
+	ARM32 = 0x10,
+	ARM64 = 0x20
 };
 
 enum CPU_MODE : uint8_t{
@@ -146,7 +146,6 @@ struct TargetDescription {
 };
 
 
-template<class TraceeT>
 class Debugger {
 
 public:
@@ -154,9 +153,9 @@ public:
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
-	std::map<pid_t, TraceeT*> m_Tracees;
+	std::map<pid_t, TraceeProgram*> m_Tracees;
 
-	TraceeT* m_leader_tracee = nullptr;
+	TraceeProgram* m_leader_tracee = nullptr;
 	
 	std::string* m_prog = nullptr;
 
@@ -184,14 +183,17 @@ public:
 		return *this;
 	}
 
-	Debugger();
+	Debugger(TargetDescription& _target_desc);
 
 	int spawn(std::vector<std::string>& cmdline);
 
 	void attach(pid_t tracee_pid);
 	void attachThread(pid_t tracee_pid);
 
-	void setCPUMode(CPU_ARCH cpu_arch, CPU_MODE cpu_mode);
+	// in and architecture CPU mode can change not its architecture
+	// for eg 64 bit machine can run 32 bit program but and ARM
+	// cannot natively run x64 binary
+	void setCPUMode(CPU_MODE cpu_mode);
 
 	TraceeProgram* addChildTracee(pid_t child_tracee_pid);
 
@@ -241,27 +243,5 @@ public:
 	};
 
 };
-
-template<class T> createDebugger(CPU_ARCH cpu_arch, CPU_MODE cpu_mode) {
-
-	switch (cpu_arch) {
-		case CPU_ARCH::X86:
-			cpuRegister = new X86Register(tracee_pid);
-			TraceeProgram<X86DebugOpts>(tracee_pid);
-			break;
-		case CPU_ARCH::AMD64:
-			TraceeProgram<AMD64DebugOpts>(tracee_pid);
-			break;
-		case CPU_ARCH::ARM:
-			cpuRegister = new ARMRegister(tracee_pid);
-			break;
-		case CPU_ARCH::ARM64:
-			cpuRegister = new ARM64Register(tracee_pid);
-			break;
-		default:
-			m_log->error("not possible");
-		break;
-	}
-}
 
 #endif
