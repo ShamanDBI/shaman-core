@@ -96,7 +96,7 @@ public:
 
 
 void parser_basic_block_file(Debugger& debug, std::string bb_path,
-	bool is_single_shot, shared_ptr<CoverageTraceWriter> cov_trace_writer) {
+	bool is_single_shot, std::shared_ptr<CoverageTraceWriter> cov_trace_writer) {
 	
 	bool should_cont = true;
 	std::list<Breakpoint *> brk_offset;
@@ -172,10 +172,10 @@ int main(int argc, char **argv) {
 	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
 	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
 	Debugger debug(targetDesc);
-	shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
+	std::shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
 
 	if (basic_block_path.length() > 0) {
-		cov_trace_writer = make_shared<CoverageTraceWriter>(coverage_output);
+		cov_trace_writer = std::make_shared<CoverageTraceWriter>(coverage_output);
 		log->info("Processing basic block file {}", single_shot);
 		parser_basic_block_file(debug, basic_block_path, single_shot, cov_trace_writer);
 		// return 0;
