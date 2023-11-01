@@ -1,10 +1,6 @@
 #ifndef H_MEMORY_ACCESSOR_H
 #define H_MEMORY_ACCESSOR_H
 
-#include <cstdint>
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
 #include <fstream>
 
 

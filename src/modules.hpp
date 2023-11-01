@@ -1,15 +1,10 @@
 #ifndef H_PROC_MODULE
 #define H_PROC_MODULE
 
-#include <cstdint>
 #include <string>
-#include <memory>
-#include <spdlog/spdlog.h>
-#include <dirent.h>
+#include "spdlog/spdlog.h"
 
-
-class dev_major_minor_t {
-public:
+struct dev_major_minor_t {
     int major;
     int minor;
 };

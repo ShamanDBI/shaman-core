@@ -1,11 +1,7 @@
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <dirent.h>
 #include "modules.hpp"
 
 uint8_t ProcessMap::praseMapPermission(char const *perms)

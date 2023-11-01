@@ -1,12 +1,10 @@
 #ifndef H_REGISTER_H
 #define H_REGISTER_H
 
-#include <cstdint>
 #include <spdlog/spdlog.h>
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <elf.h>
-
 
 struct RegisterAliases {
   const char *const name;

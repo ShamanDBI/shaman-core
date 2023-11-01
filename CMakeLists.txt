@@ -46,8 +46,6 @@ FetchContent_MakeAvailable(cli11)
 
 add_executable(shaman)
 
-target_compile_features(shaman PUBLIC cxx_std_11)
-
 set(ARCH_SRC
   src/arch/intel/x86_breakpoint.cpp
   src/arch/intel/x86_registers.cpp
