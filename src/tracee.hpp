@@ -22,7 +22,6 @@ enum DebugType {
 	FOLLOW_OPTS    = (1 << 6)
 };
 
-
 // this is current state of the tracee
 enum TraceeState {
 	// once the tracee is spawned it is assigned this state
@@ -150,6 +149,8 @@ public:
 	
 };
 
+
+class TargetDescription;
 
 class TraceeFactory {
 

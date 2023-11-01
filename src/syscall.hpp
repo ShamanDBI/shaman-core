@@ -408,6 +408,11 @@ public:
   std::string getString() const;
   bool hasValue(syscall_no value);
   syscall_no getValue() const;
+  
+  int16_t getIntValue() { 
+    return static_cast<int16_t>(m_syscall_value); 
+  };
+
   bool operator==(const SysCallId& rhs) const;
   bool operator!=(const SysCallId& rhs) const;
   void setValue(int16_t _syscall_id) {
