@@ -1,12 +1,14 @@
 #ifndef H_DEBUGGER_H
 #define H_DEBUGGER_H
 
-#include <map>
-#include <spdlog/spdlog.h>
-#include <unistd.h>
-#include <queue>
+#include <iostream>
 #include <tuple>
+#include <queue>
+#include <map>
+#include <unistd.h>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 #include "tracee.hpp"
 #include "syscall_mngr.hpp"
@@ -176,12 +178,12 @@ public:
 	Debugger& followFork() {
 		m_followFork = true;
 		return *this;
-	}
+	};
 
 	Debugger& traceSyscall() {
 		m_traceSyscall = true;
 		return *this;
-	}
+	};
 
 	Debugger(TargetDescription& _target_desc);
 
@@ -238,9 +240,9 @@ public:
 		m_syscallMngr->addFileOperationHandler(file_opts);
 	};
 
-	void setBreakpoint(Breakpoint* breakpoint) {
+	// void setBreakpoint(Breakpoint* breakpoint) {
 
-	};
+	// };
 
 };
 

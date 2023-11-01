@@ -4,43 +4,49 @@
 #include <vector>
 #include <string>
 #include <sys/ptrace.h>
-#include <spdlog/spdlog.h>
+
 #include "spdlog/spdlog.h"
 
-#include "debug_opts.hpp"
 #include "memory.hpp"
+#include "debug_opts.hpp"
 
 
-#define BREAKPOINT_SIZE sizeof(uint64_t)
+class BreakpointInjector {
 
-struct BreakpointInjector {
-    
+protected:
+
     uint8_t m_brk_size = 0;
 
-    virtual void inject(DebugOpts& debug_opts, Addr *m_backupData) = 0;
-    virtual void restore(DebugOpts& debug_opts, Addr *m_backupData) = 0;
+public:
+
+    BreakpointInjector(uint8_t _brk_size):  m_brk_size(_brk_size) {};
+
+    virtual void inject(DebugOpts& debug_opts, Addr *m_backupData) {};
+    virtual void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
 };
 
-struct X86BreakpointInjector : BreakpointInjector {
-    uint8_t m_brk_size = 1;
+#define INTEL_BREAKPOINT_INST_SIZE 1
 
-    X86BreakpointInjector() {
-    }
+class X86BreakpointInjector : public BreakpointInjector {
+
+public:
+    X86BreakpointInjector() : BreakpointInjector(INTEL_BREAKPOINT_INST_SIZE) {};
 
     void inject(DebugOpts& debug_opts, Addr *m_backupData);
     void restore(DebugOpts& debug_opts, Addr *m_backupData);
 };
 
-struct ARMBreakpointInjector : BreakpointInjector {
+#define BREAKINST_ARM	0xe7f001f0
+#define BREAKINST_THUMB	0xde01
 
-    #define BREAKINST_ARM	0xe7f001f0
-    #define BREAKINST_THUMB	0xde01
-    
-    uint8_t m_brk_size = 1;
-    void inject(DebugOpts& debug_opts, Addr *m_backupData);
-    void restore(DebugOpts& debug_opts, Addr *m_backupData);
+class ARMBreakpointInjector : public BreakpointInjector {
+
+public:
+    ARMBreakpointInjector(): BreakpointInjector(4) {}
+
+    void inject(DebugOpts& debug_opts, Addr *m_backupData) {};
+    void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
 };
-
 
 class Breakpoint {
 
@@ -54,7 +60,7 @@ public:
         NORMAL
     } m_type;
 
-    std::shared_ptr<BreakpointInjector> m_bkpt_injector;
+    BreakpointInjector* m_bkpt_injector;
 
     bool m_enabled = false;
     
@@ -87,12 +93,7 @@ public:
     std::string m_label;
 
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
-        std::string* _label, BreakpointType brk_type) :
-        m_modname(modname), m_offset(offset), m_type(brk_type) {
-            if(_label == nullptr) {
-                m_label = spdlog::fmt_lib::format("{}@{:x}", m_modname.c_str(), offset);
-            }
-        }
+        std::string* _label, BreakpointType brk_type);
     
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t brk_addr) :
         Breakpoint(modname, offset, brk_addr, nullptr, NORMAL) {}
@@ -130,7 +131,7 @@ public:
     virtual void setAddress(uintptr_t brkpnt_addr) {
         // set concrete offset of breakpoint in process memory space
         m_addr = brkpnt_addr;
-        m_backupData = new Addr(m_addr, BREAKPOINT_SIZE);
+        m_backupData = new Addr(m_addr, 1);
     }
 
     void printDebug() {

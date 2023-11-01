@@ -1,12 +1,6 @@
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/basic_file_sink.h"
-
 #include "debugger.hpp"
 #include "memory.hpp"
 #include "modules.hpp"
-
-
-using namespace std;
 
 
 Debugger::Debugger(TargetDescription& _target_desc): m_target_desc(_target_desc) {
@@ -24,10 +18,10 @@ void Debugger::addBreakpoint(std::vector<std::string>& _brk_pnt_str) {
 	}
 }
 
-int Debugger::spawn(vector<string>& cmdline) {
+int Debugger::spawn(std::vector<std::string>& cmdline) {
 
 	// covert cmdline arguments to exev parameter type
-	vector<const char *> args;
+	std::vector<const char *> args;
 	
 	args.reserve(cmdline.size() + 1);
 	for(const auto& sp: cmdline) {
@@ -90,7 +84,7 @@ TraceeProgram* Debugger::addChildTracee(pid_t child_tracee_pid) {
 		
 		// tracee_obj->addPendingBrkPnt(brk_pnt_str);
 
-		m_Tracees.insert(make_pair(child_tracee_pid, tracee_obj));
+		m_Tracees.insert(std::make_pair(child_tracee_pid, tracee_obj));
 		return tracee_obj;
 	}
 }
@@ -289,7 +283,7 @@ bool Debugger::eventLoop() {
 	 * in the queue.
 	*/
 
-	queue<PendingEvent> pending_debug_events;
+	std::queue<PendingEvent> pending_debug_events;
 	bool processing_pending_event = false;
 	bool process_pending_event_queue = false;
 	

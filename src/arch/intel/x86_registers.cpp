@@ -2,7 +2,7 @@
 
 
 void X86Register::print() {
-    uint32_t *cpu_reg = reinterpret_cast<uint32_t *>(gp_reg);
+    uint32_t *cpu_reg = reinterpret_cast<uint32_t *>(m_gp_reg_data);
     m_log->debug("---------------------------------[ REGISTERS START]--------------------------------");
     m_log->debug("RAX {:16x} RBX {:16x} RCX {:16x} RDX {:16x}", 
         cpu_reg[X86Register::EAX], cpu_reg[X86Register::EBX],

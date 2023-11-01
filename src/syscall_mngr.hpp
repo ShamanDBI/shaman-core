@@ -18,8 +18,8 @@
  * 
  */
 struct SyscallTraceData {
-	pid_t m_pid;						/* If 0, this tcb is free */
-	SysCallId syscall_id;					/* System call number */
+	pid_t m_pid;						/* If 0, this syscall trace data is free */
+	SysCallId syscall_id;				/* System call number */
 	int64_t v_rval;						/* Return value */
 	uint8_t nargs;						/* number of argument */
 	uint64_t v_arg[SYSCALL_MAXARGS];	/* System call arguments */
@@ -27,6 +27,10 @@ struct SyscallTraceData {
 	SyscallTraceData() {
 		syscall_id = SysCallId::NO_SYSCALL;
 	};
+
+	int16_t getSyscallNo() {
+		return syscall_id.getIntValue();
+	}
 
 	~SyscallTraceData() {
 		syscall_id = SysCallId::NO_SYSCALL;
@@ -113,23 +117,24 @@ struct SyscallHandler {
 class SyscallManager {
 	
 	// this system call which are related to filer operations
-	std::unordered_set<SysCallId> file_ops_syscall_id{
+	std::unordered_set<int16_t> file_ops_syscall_id{
 		SysCallId::READ,
 		SysCallId::WRITE,
 		SysCallId::CLOSE,
-		SysCallId::IOCTL
+		SysCallId::IOCTL,
+		SysCallId::STAT
 	};
 
 	// this arguments are preserved between syscall enter and syscall exit
 	// arguments should be filled on entry and cleared on exit, Ideal!
 	SyscallTraceData m_cached_args;
 
-	// SyscallEntry* m_syscall_info = nullptr;
+	std::multimap<int16_t, SyscallHandler*> m_syscall_handler_map;
 
-	std::multimap<SysCallId, SyscallHandler*> m_syscall_handler_map;
-
+	// maps file descriptor to File operation class
 	std::map<int, FileOperationTracer*> m_file_ops_handler;
 
+	// file operations which are waiting to find its file descriptor
 	std::list<FileOperationTracer*> m_file_ops_pending;
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
@@ -153,5 +158,7 @@ public:
 	virtual int onExit(DebugOpts& debug_opts);
 
 };
+
+SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number)
 
 #endif

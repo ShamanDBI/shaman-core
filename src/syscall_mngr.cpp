@@ -52,7 +52,7 @@ int SyscallManager::removeFileOperationHandler(FileOperationTracer* file_opt_han
 }
 
 int SyscallManager::addSyscallHandler(SyscallHandler* syscall_hdlr) {
-	m_syscall_handler_map.insert({syscall_hdlr->m_syscall_id, syscall_hdlr});
+	m_syscall_handler_map.insert({syscall_hdlr->m_syscall_id.getIntValue(), syscall_hdlr});
 	return 0;
 }
 
@@ -97,18 +97,18 @@ int SyscallManager::onEnter(DebugOpts& debug_opts) {
 	readSyscallParams(debug_opts);
 	
 	// File operation handler
-	if (file_ops_syscall_id.count(m_cached_args.syscall_id)) {
+	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
 		m_log->trace("FILE OPT DETECED");
 		handleFileOpt(SyscallState::ON_ENTER, debug_opts);
 	}
 
 	// Find and invoke system call handler
-	auto map_key = static_cast<SysCallId>(m_cached_args.syscall_id);
+	auto map_key = m_cached_args.getSyscallNo();
 	auto sc_handler_iter = m_syscall_handler_map.equal_range(map_key);
 	bool sys_hdl_not_fnd = true;
 
 	for (auto it=sc_handler_iter.first; it!=sc_handler_iter.second; ++it) {
-		it->second->onEnter(debug_opts, m_cached_args);
+		it->second->onEnter(m_cached_args);
 		sys_hdl_not_fnd = false;
 	}
 
@@ -144,18 +144,18 @@ int SyscallManager::onExit(DebugOpts& debug_opts) {
 	    }
 	}
 
-	if (file_ops_syscall_id.count(m_cached_args.syscall_id)) {
+	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
 		m_log->debug("FILE OPT DETECED");
 		handleFileOpt(SyscallState::ON_EXIT, debug_opts);
 	}
 	
 	// Find and invoke system call handler
-	auto map_key = m_cached_args.syscall_id;
+	auto map_key = m_cached_args.getSyscallNo();
 	auto sys_hd_iter = m_syscall_handler_map.equal_range(map_key);
 	bool sys_hdl_not_fnd = true;
 
 	for (auto it=sys_hd_iter.first; it!=sys_hd_iter.second; ++it) {
-		it->second->onExit(debug_opts, m_cached_args);
+		it->second->onExit(m_cached_args);
 		sys_hdl_not_fnd = false;
 	}
 

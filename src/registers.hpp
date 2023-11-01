@@ -127,7 +127,7 @@ public:
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::EBP);
     }
 
-    void print() {};
+    void print();
 };
 
 
@@ -173,7 +173,7 @@ public:
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::RBP);
     }
 
-    void print() {};
+    void print();
 
 };
 

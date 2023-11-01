@@ -13,7 +13,44 @@
 #include "memory.hpp"
 
 #include <fstream>
-using namespace std;
+
+
+Addr::Addr(uint64_t _r_addr, size_t _size): m_size(_size), r_addr(_r_addr) {
+    m_data = (uint8_t *) malloc(_size);
+    // printf("mem alloc , %lu\n", size);
+};
+
+Addr::Addr(Addr &addrObj) {
+    m_size = addrObj.m_size;
+    r_addr = addrObj.r_addr;
+    m_data = (uint8_t *) malloc(m_size);
+    memcpy(m_data, addrObj.m_data, addrObj.m_size);
+};
+
+void Addr::print() {
+    auto log = spdlog::get("main_log");
+    log->trace("BKP {:x} VAL {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x}",
+        r_addr,
+        m_data[0], m_data[1], m_data[2], m_data[3], m_data[4]
+        , m_data[5], m_data[6], m_data[7] );
+};
+
+Addr::~Addr() {
+    free(m_data);
+    m_data = NULL;
+    r_addr = 0;
+    m_size = 0;
+}
+
+void Addr::clean() {
+    // set the data to zero
+    memset(m_data, 0, m_size);
+};
+
+void Addr::resize(uint64_t new_size) {
+    m_size = new_size;
+};
+
 
 
 RemoteMemory::RemoteMemory(pid_t tracee_pid) {
@@ -23,7 +60,7 @@ RemoteMemory::RemoteMemory(pid_t tracee_pid) {
     
     sprintf(path, "/proc/%d/mem", m_pid);
     
-    m_mem_file = new fstream(path, 
+    m_mem_file = new std::fstream(path, 
         std::ios::binary | std::ios::in | std::ios::out);
 
     if (m_mem_file->is_open()) {

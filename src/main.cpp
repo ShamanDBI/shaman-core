@@ -15,7 +15,7 @@ public:
 		
 		// spdlog::warn("onFilter!");
 
-		switch(sc_trace->syscall_id) {
+		switch(sc_trace->getSyscallNo()) {
 		case SysCallId::OPENAT:
 		/**
 		 * 

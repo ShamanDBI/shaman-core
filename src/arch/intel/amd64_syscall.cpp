@@ -1,541 +1,529 @@
 #include <iostream>
-
-enum AMD64_SYSCALL : int16_t {
-    IO_SETUP = 0,
-    IO_DESTROY = 1,
-    IO_SUBMIT = 2,
-    IO_CANCEL = 3,
-    IO_GETEVENTS = 4,
-    SETXATTR = 5,
-    LSETXATTR = 6,
-    FSETXATTR = 7,
-    GETXATTR = 8,
-    LGETXATTR = 9,
-    FGETXATTR = 10,
-    LISTXATTR = 11,
-    LLISTXATTR = 12,
-    FLISTXATTR = 13,
-    REMOVEXATTR = 14,
-    LREMOVEXATTR = 15,
-    FREMOVEXATTR = 16,
-    GETCWD = 17,
-    LOOKUP_DCOOKIE = 18,
-    EVENTFD2 = 19,
-    EPOLL_CREATE1 = 20,
-    EPOLL_CTL = 21,
-    EPOLL_PWAIT = 22,
-    DUP = 23,
-    DUP3 = 24,
-    FCNTL = 25,
-    INOTIFY_INIT1 = 26,
-    INOTIFY_ADD_WATCH = 27,
-    INOTIFY_RM_WATCH = 28,
-    IOCTL = 29,
-    IOPRIO_SET = 30,
-    IOPRIO_GET = 31,
-    FLOCK = 32,
-    MKNODAT = 33,
-    MKDIRAT = 34,
-    UNLINKAT = 35,
-    SYMLINKAT = 36,
-    LINKAT = 37,
-    RENAMEAT = 38,
-    UMOUNT2 = 39,
-    MOUNT = 40,
-    PIVOT_ROOT = 41,
-    NFSSERVCTL = 42,
-    STATFS = 43,
-    FSTATFS = 44,
-    TRUNCATE = 45,
-    FTRUNCATE = 46,
-    FALLOCATE = 47,
-    FACCESSAT = 48,
-    CHDIR = 49,
-    FCHDIR = 50,
-    CHROOT = 51,
-    FCHMOD = 52,
-    FCHMODAT = 53,
-    FCHOWNAT = 54,
-    FCHOWN = 55,
-    OPENAT = 56,
-    CLOSE = 57,
-    VHANGUP = 58,
-    PIPE2 = 59,
-    QUOTACTL = 60,
-    GETDENTS64 = 61,
-    LSEEK = 62,
-    READ = 63,
-    WRITE = 64,
-    READV = 65,
-    WRITEV = 66,
-    PREAD64 = 67,
-    PWRITE64 = 68,
-    PREADV = 69,
-    PWRITEV = 70,
-    SENDFILE = 71,
-    PSELECT6 = 72,
-    PPOLL = 73,
-    SIGNALFD4 = 74,
-    VMSPLICE = 75,
-    SPLICE = 76,
-    TEE = 77,
-    READLINKAT = 78,
-    NEWFSTATAT = 79,
-    FSTAT = 80,
-    SYNC = 81,
-    FSYNC = 82,
-    FDATASYNC = 83,
-    SYNC_FILE_RANGE2 = 84,
-    SYNC_FILE_RANGE = 84,
-    TIMERFD_CREATE = 85,
-    TIMERFD_SETTIME = 86,
-    TIMERFD_GETTIME = 87,
-    UTIMENSAT = 88,
-    ACCT = 89,
-    CAPGET = 90,
-    CAPSET = 91,
-    PERSONALITY = 92,
-    EXIT = 93,
-    EXIT_GROUP = 94,
-    WAITID = 95,
-    SET_TID_ADDRESS = 96,
-    UNSHARE = 97,
-    FUTEX = 98,
-    SET_ROBUST_LIST = 99,
-    GET_ROBUST_LIST = 100,
-    NANOSLEEP = 101,
-    GETITIMER = 102,
-    SETITIMER = 103,
-    KEXEC_LOAD = 104,
-    INIT_MODULE = 105,
-    DELETE_MODULE = 106,
-    TIMER_CREATE = 107,
-    TIMER_GETTIME = 108,
-    TIMER_GETOVERRUN = 109,
-    TIMER_SETTIME = 110,
-    TIMER_DELETE = 111,
-    CLOCK_SETTIME = 112,
-    CLOCK_GETTIME = 113,
-    CLOCK_GETRES = 114,
-    CLOCK_NANOSLEEP = 115,
-    SYSLOG = 116,
-    PTRACE = 117,
-    SCHED_SETPARAM = 118,
-    SCHED_SETSCHEDULER = 119,
-    SCHED_GETSCHEDULER = 120,
-    SCHED_GETPARAM = 121,
-    SCHED_SETAFFINITY = 122,
-    SCHED_GETAFFINITY = 123,
-    SCHED_YIELD = 124,
-    SCHED_GET_PRIORITY_MAX = 125,
-    SCHED_GET_PRIORITY_MIN = 126,
-    SCHED_RR_GET_INTERVAL = 127,
-    KILL = 129,
-    TKILL = 130,
-    TGKILL = 131,
-    SIGALTSTACK = 132,
-    RT_SIGSUSPEND = 133,
-    RT_SIGACTION = 134,
-    RT_SIGPROCMASK = 135,
-    RT_SIGPENDING = 136,
-    RT_SIGTIMEDWAIT = 137,
-    RT_SIGQUEUEINFO = 138,
-    RT_SIGRETURN = 139,
-    SETPRIORITY = 140,
-    GETPRIORITY = 141,
-    REBOOT = 142,
-    SETREGID = 143,
-    SETGID = 144,
-    SETREUID = 145,
-    SETUID = 146,
-    SETRESUID = 147,
-    GETRESUID = 148,
-    SETRESGID = 149,
-    GETRESGID = 150,
-    SETFSUID = 151,
-    SETFSGID = 152,
-    TIMES = 153,
-    SETPGID = 154,
-    GETPGID = 155,
-    GETSID = 156,
-    SETSID = 157,
-    GETGROUPS = 158,
-    SETGROUPS = 159,
-    UNAME = 160,
-    SETHOSTNAME = 161,
-    SETDOMAINNAME = 162,
-    GETRLIMIT = 163,
-    SETRLIMIT = 164,
-    GETRUSAGE = 165,
-    UMASK = 166,
-    PRCTL = 167,
-    GETCPU = 168,
-    GETTIMEOFDAY = 169,
-    SETTIMEOFDAY = 170,
-    ADJTIMEX = 171,
-    GETPID = 172,
-    GETPPID = 173,
-    GETUID = 174,
-    GETEUID = 175,
-    GETGID = 176,
-    GETEGID = 177,
-    GETTID = 178,
-    SYSINFO = 179,
-    MQ_OPEN = 180,
-    MQ_UNLINK = 181,
-    MQ_TIMEDSEND = 182,
-    MQ_TIMEDRECEIVE = 183,
-    MQ_NOTIFY = 184,
-    MQ_GETSETATTR = 185,
-    MSGGET = 186,
-    MSGCTL = 187,
-    MSGRCV = 188,
-    MSGSND = 189,
-    SEMGET = 190,
-    SEMCTL = 191,
-    SEMTIMEDOP = 192,
-    SEMOP = 193,
-    SHMGET = 194,
-    SHMCTL = 195,
-    SHMAT = 196,
-    SHMDT = 197,
-    SOCKET = 198,
-    SOCKETPAIR = 199,
-    BIND = 200,
-    LISTEN = 201,
-    ACCEPT = 202,
-    CONNECT = 203,
-    GETSOCKNAME = 204,
-    GETPEERNAME = 205,
-    SENDTO = 206,
-    RECVFROM = 207,
-    SETSOCKOPT = 208,
-    GETSOCKOPT = 209,
-    SHUTDOWN = 210,
-    SENDMSG = 211,
-    RECVMSG = 212,
-    READAHEAD = 213,
-    BRK = 214,
-    MUNMAP = 215,
-    MREMAP = 216,
-    ADD_KEY = 217,
-    REQUEST_KEY = 218,
-    KEYCTL = 219,
-    CLONE = 220,
-    EXECVE = 221,
-    MMAP = 222,
-    FADVISE64 = 223,
-    SWAPON = 224,
-    SWAPOFF = 225,
-    MPROTECT = 226,
-    MSYNC = 227,
-    MLOCK = 228,
-    MUNLOCK = 229,
-    MLOCKALL = 230,
-    MUNLOCKALL = 231,
-    MINCORE = 232,
-    MADVISE = 233,
-    REMAP_FILE_PAGES = 234,
-    MBIND = 235,
-    GET_MEMPOLICY = 236,
-    SET_MEMPOLICY = 237,
-    MIGRATE_PAGES = 238,
-    MOVE_PAGES = 239,
-    RT_TGSIGQUEUEINFO = 240,
-    PERF_EVENT_OPEN = 241,
-    ACCEPT4 = 242,
-    RECVMMSG = 243,
-    WAIT4 = 260,
-    PRLIMIT64 = 261,
-    FANOTIFY_INIT = 262,
-    FANOTIFY_MARK = 263,
-    NAME_TO_HANDLE_AT = 264,
-    OPEN_BY_HANDLE_AT = 265,
-    CLOCK_ADJTIME = 266,
-    SYNCFS = 267,
-    SETNS = 268,
-    SENDMMSG = 269,
-    PROCESS_VM_READV = 270,
-    PROCESS_VM_WRITEV = 271,
-    KCMP = 272,
-    FINIT_MODULE = 273,
-    SCHED_SETATTR = 274,
-    SCHED_GETATTR = 275,
-    GETRANDOM = 278
-};
+#include "syscall.hpp"
 
 
-#define SYSCALL_MAPSYSCALL) case AMD64_SYSCALL::##SYSCALL: \
-  return SysCallId::##SYSCALL;
-
-#define UNSUPPORTED_SYSCALL_MAPSYSCALL) case aarch64_sys_##SYSCALL: \
-  return SysCallId::NO_SYSCALL;
-
-
-static SysCallId amd64_canonicalize_syscall (AMD64_SYSCALL syscall_number)
+SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number)
 {
     switch (syscall_number)
     {
-      SYSCALL_MAP(IO_SETUP);
-      SYSCALL_MAP(IO_DESTROY);
-      SYSCALL_MAP(IO_SUBMIT);
-      SYSCALL_MAP(IO_CANCEL);
-      SYSCALL_MAP(IO_GETEVENTS);
-      SYSCALL_MAP(SETXATTR);
-      SYSCALL_MAP(LSETXATTR);
-      SYSCALL_MAP(FSETXATTR);
-      SYSCALL_MAP(GETXATTR);
-      SYSCALL_MAP(LGETXATTR);
-      SYSCALL_MAP(FGETXATTR);
-      SYSCALL_MAP(LISTXATTR);
-      SYSCALL_MAP(LLISTXATTR);
-      SYSCALL_MAP(FLISTXATTR);
-      SYSCALL_MAP(REMOVEXATTR);
-      SYSCALL_MAP(LREMOVEXATTR);
-      SYSCALL_MAP(FREMOVEXATTR);
-      SYSCALL_MAP(GETCWD);
-      SYSCALL_MAP(LOOKUP_DCOOKIE);
-      SYSCALL_MAP(EVENTFD2);
-      SYSCALL_MAP(EPOLL_CREATE1);
-      SYSCALL_MAP(EPOLL_CTL);
-      SYSCALL_MAP(EPOLL_PWAIT);
-      SYSCALL_MAP(DUP);
-      SYSCALL_MAP(DUP3);
-      SYSCALL_MAP(FCNTL);
-      SYSCALL_MAP(INOTIFY_INIT1);
-      SYSCALL_MAP(INOTIFY_ADD_WATCH);
-      SYSCALL_MAP(INOTIFY_RM_WATCH);
-      SYSCALL_MAP(IOCTL);
-      SYSCALL_MAP(IOPRIO_SET);
-      SYSCALL_MAP(IOPRIO_GET);
-      SYSCALL_MAP(FLOCK);
-      SYSCALL_MAP(MKNODAT);
-      SYSCALL_MAP(MKDIRAT);
-      SYSCALL_MAP(UNLINKAT);
-      SYSCALL_MAP(SYMLINKAT);
-      SYSCALL_MAP(LINKAT);
-      SYSCALL_MAP(RENAMEAT);
-      UNSUPPORTED_SYSCALL_MAP(UMOUNT2);
-      SYSCALL_MAP(MOUNT);
-      SYSCALL_MAP(PIVOT_ROOT);
-      SYSCALL_MAP(NFSSERVCTL);
-      SYSCALL_MAP(STATFS);
-      SYSCALL_MAP(TRUNCATE);
-      SYSCALL_MAP(FTRUNCATE);
-      SYSCALL_MAP(FALLOCATE);
-      SYSCALL_MAP(FACCESSAT);
-      SYSCALL_MAP(FCHDIR);
-      SYSCALL_MAP(CHROOT);
-      SYSCALL_MAP(FCHMOD);
-      SYSCALL_MAP(FCHMODAT);
-      SYSCALL_MAP(FCHOWNAT);
-      SYSCALL_MAP(FCHOWN);
-      SYSCALL_MAP(OPENAT);
-      SYSCALL_MAP(CLOSE);
-      SYSCALL_MAP(VHANGUP);
-      SYSCALL_MAP(PIPE2);
-      SYSCALL_MAP(QUOTACTL);
-      SYSCALL_MAP(GETDENTS64);
-      SYSCALL_MAP(LSEEK);
-      SYSCALL_MAP(READ);
-      SYSCALL_MAP(WRITE);
-      SYSCALL_MAP(READV);
-      SYSCALL_MAP(WRITEV);
-      SYSCALL_MAP(PREAD64);
-      SYSCALL_MAP(PWRITE64);
-      UNSUPPORTED_SYSCALL_MAP(PREADV);
-      UNSUPPORTED_SYSCALL_MAP(PWRITEV);
-      SYSCALL_MAP(SENDFILE);
-      SYSCALL_MAP(PSELECT6);
-      SYSCALL_MAP(PPOLL);
-      UNSUPPORTED_SYSCALL_MAP(SIGNALFD4);
-      SYSCALL_MAP(VMSPLICE);
-      SYSCALL_MAP(SPLICE);
-      SYSCALL_MAP(TEE);
-      SYSCALL_MAP(READLINKAT);
-      SYSCALL_MAP(NEWFSTATAT);
-      SYSCALL_MAP(FSTAT);
-      SYSCALL_MAP(SYNC);
-      SYSCALL_MAP(FSYNC);
-      SYSCALL_MAP(FDATASYNC);
-      SYSCALL_MAP(SYNC_FILE_RANGE);
-      UNSUPPORTED_SYSCALL_MAP(TIMERFD_CREATE);
-      UNSUPPORTED_SYSCALL_MAP(TIMERFD_SETTIME);
-      UNSUPPORTED_SYSCALL_MAP(TIMERFD_GETTIME);
-      UNSUPPORTED_SYSCALL_MAP(UTIMENSAT);
-      SYSCALL_MAP(ACCT);
-      SYSCALL_MAP(CAPGET);
-      SYSCALL_MAP(CAPSET);
-      SYSCALL_MAP(PERSONALITY);
-      SYSCALL_MAP(EXIT);
-      SYSCALL_MAP(EXIT_GROUP);
-      SYSCALL_MAP(WAITID);
-      SYSCALL_MAP(SET_TID_ADDRESS);
-      SYSCALL_MAP(UNSHARE);
-      SYSCALL_MAP(FUTEX);
-      SYSCALL_MAP(SET_ROBUST_LIST);
-      SYSCALL_MAP(GET_ROBUST_LIST);
-      SYSCALL_MAP(NANOSLEEP);
-      SYSCALL_MAP(GETITIMER);
-      SYSCALL_MAP(SETITIMER);
-      SYSCALL_MAP(KEXEC_LOAD);
-      SYSCALL_MAP(INIT_MODULE);
-      SYSCALL_MAP(DELETE_MODULE);
-      SYSCALL_MAP(TIMER_CREATE);
-      SYSCALL_MAP(TIMER_SETTIME);
-      SYSCALL_MAP(TIMER_GETTIME);
-      SYSCALL_MAP(TIMER_GETOVERRUN);
-      SYSCALL_MAP(TIMER_DELETE);
-      SYSCALL_MAP(CLOCK_SETTIME);
-      SYSCALL_MAP(CLOCK_GETTIME);
-      SYSCALL_MAP(CLOCK_GETRES);
-      SYSCALL_MAP(CLOCK_NANOSLEEP);
-      SYSCALL_MAP(SYSLOG);
-      SYSCALL_MAP(PTRACE);
-      SYSCALL_MAP(SCHED_SETPARAM);
-      SYSCALL_MAP(SCHED_SETSCHEDULER);
-      SYSCALL_MAP(SCHED_GETSCHEDULER);
-      SYSCALL_MAP(SCHED_GETPARAM);
-      SYSCALL_MAP(SCHED_SETAFFINITY);
-      SYSCALL_MAP(SCHED_GETAFFINITY);
-      SYSCALL_MAP(SCHED_YIELD);
-      SYSCALL_MAP(SCHED_GET_PRIORITY_MAX);
-      SYSCALL_MAP(SCHED_GET_PRIORITY_MIN);
-      SYSCALL_MAP(SCHED_RR_GET_INTERVAL);
-      SYSCALL_MAP(KILL);
-      SYSCALL_MAP(TKILL);
-      SYSCALL_MAP(TGKILL);
-      SYSCALL_MAP(SIGALTSTACK);
-      SYSCALL_MAP(RT_SIGSUSPEND);
-      SYSCALL_MAP(RT_SIGACTION);
-      SYSCALL_MAP(RT_SIGPROCMASK);
-      SYSCALL_MAP(RT_SIGPENDING);
-      SYSCALL_MAP(RT_SIGTIMEDWAIT);
-      SYSCALL_MAP(RT_SIGQUEUEINFO);
-      SYSCALL_MAP(RT_SIGRETURN);
-      SYSCALL_MAP(SETPRIORITY);
-      SYSCALL_MAP(GETPRIORITY);
-      SYSCALL_MAP(REBOOT);
-      SYSCALL_MAP(SETREGID);
-      SYSCALL_MAP(SETGID);
-      SYSCALL_MAP(SETREUID);
-      SYSCALL_MAP(SETUID);
-      SYSCALL_MAP(SETRESUID);
-      SYSCALL_MAP(GETRESUID);
-      SYSCALL_MAP(SETRESGID);
-      SYSCALL_MAP(GETRESGID);
-      SYSCALL_MAP(SETFSUID);
-      SYSCALL_MAP(SETFSGID);
-      SYSCALL_MAP(TIMES);
-      SYSCALL_MAP(SETPGID);
-      SYSCALL_MAP(GETPGID);
-      SYSCALL_MAP(GETSID);
-      SYSCALL_MAP(SETSID);
-      SYSCALL_MAP(GETGROUPS);
-      SYSCALL_MAP(SETGROUPS);
-      SYSCALL_MAP(UNAME);
-      SYSCALL_MAP(SETHOSTNAME);
-      SYSCALL_MAP(SETDOMAINNAME);
-      SYSCALL_MAP(GETRLIMIT);
-      SYSCALL_MAP(SETRLIMIT);
-      SYSCALL_MAP(GETRUSAGE);
-      SYSCALL_MAP(UMASK);
-      SYSCALL_MAP(PRCTL);
-      SYSCALL_MAP(GETCPU);
-      SYSCALL_MAP(GETTIMEOFDAY);
-      SYSCALL_MAP(SETTIMEOFDAY);
-      SYSCALL_MAP(ADJTIMEX);
-      SYSCALL_MAP(GETPID);
-      SYSCALL_MAP(GETPPID);
-      SYSCALL_MAP(GETUID);
-      SYSCALL_MAP(GETEUID);
-      SYSCALL_MAP(GETGID);
-      SYSCALL_MAP(GETEGID);
-      SYSCALL_MAP(GETTID);
-      SYSCALL_MAP(SYSINFO);
-      SYSCALL_MAP(MQ_OPEN);
-      SYSCALL_MAP(MQ_UNLINK);
-      SYSCALL_MAP(MQ_TIMEDSEND);
-      SYSCALL_MAP(MQ_TIMEDRECEIVE);
-      SYSCALL_MAP(MQ_NOTIFY);
-      SYSCALL_MAP(MQ_GETSETATTR);
-      SYSCALL_MAP(MSGGET);
-      SYSCALL_MAP(MSGCTL);
-      SYSCALL_MAP(MSGRCV);
-      SYSCALL_MAP(MSGSND);
-      SYSCALL_MAP(SEMGET);
-      SYSCALL_MAP(SEMCTL);
-      SYSCALL_MAP(SEMTIMEDOP);
-      SYSCALL_MAP(SEMOP);
-      SYSCALL_MAP(SHMGET);
-      SYSCALL_MAP(SHMCTL);
-      SYSCALL_MAP(SHMAT);
-      SYSCALL_MAP(SHMDT);
-      SYSCALL_MAP(SOCKET);
-      SYSCALL_MAP(SOCKETPAIR);
-      SYSCALL_MAP(BIND);
-      SYSCALL_MAP(LISTEN);
-      SYSCALL_MAP(ACCEPT);
-      SYSCALL_MAP(CONNECT);
-      SYSCALL_MAP(GETSOCKNAME);
-      SYSCALL_MAP(GETPEERNAME);
-      SYSCALL_MAP(SENDTO);
-      SYSCALL_MAP(RECVFROM);
-      SYSCALL_MAP(SETSOCKOPT);
-      SYSCALL_MAP(GETSOCKOPT);
-      SYSCALL_MAP(SHUTDOWN);
-      SYSCALL_MAP(SENDMSG);
-      SYSCALL_MAP(RECVMSG);
-      SYSCALL_MAP(READAHEAD);
-      SYSCALL_MAP(BRK);
-      SYSCALL_MAP(MUNMAP);
-      SYSCALL_MAP(MREMAP);
-      SYSCALL_MAP(ADD_KEY);
-      SYSCALL_MAP(REQUEST_KEY);
-      SYSCALL_MAP(KEYCTL);
-      SYSCALL_MAP(CLONE);
-      SYSCALL_MAP(EXECVE);
+      case AMD64_SYSCALL::IO_SETUP:
+        return SysCallId::IO_SETUP;
+      case AMD64_SYSCALL::IO_DESTROY:
+        return SysCallId::IO_DESTROY;
+      case AMD64_SYSCALL::IO_SUBMIT:
+        return SysCallId::IO_SUBMIT;
+      case AMD64_SYSCALL::IO_CANCEL:
+        return SysCallId::IO_CANCEL;
+      case AMD64_SYSCALL::IO_GETEVENTS:
+        return SysCallId::IO_GETEVENTS;
+      case AMD64_SYSCALL::SETXATTR:
+        return SysCallId::SETXATTR;
+      case AMD64_SYSCALL::LSETXATTR:
+        return SysCallId::LSETXATTR;
+      case AMD64_SYSCALL::FSETXATTR:
+        return SysCallId::FSETXATTR;
+      case AMD64_SYSCALL::GETXATTR:
+        return SysCallId::GETXATTR;
+      case AMD64_SYSCALL::LGETXATTR:
+        return SysCallId::LGETXATTR;
+      case AMD64_SYSCALL::FGETXATTR:
+        return SysCallId::FGETXATTR;
+      case AMD64_SYSCALL::LISTXATTR:
+        return SysCallId::LISTXATTR;
+      case AMD64_SYSCALL::LLISTXATTR:
+        return SysCallId::LLISTXATTR;
+      case AMD64_SYSCALL::FLISTXATTR:
+        return SysCallId::FLISTXATTR;
+      case AMD64_SYSCALL::REMOVEXATTR:
+        return SysCallId::REMOVEXATTR;
+      case AMD64_SYSCALL::LREMOVEXATTR:
+        return SysCallId::LREMOVEXATTR;
+      case AMD64_SYSCALL::FREMOVEXATTR:
+        return SysCallId::FREMOVEXATTR;
+      case AMD64_SYSCALL::GETCWD:
+        return SysCallId::GETCWD;
+      case AMD64_SYSCALL::LOOKUP_DCOOKIE:
+        return SysCallId::LOOKUP_DCOOKIE;
+      case AMD64_SYSCALL::EVENTFD2:
+        return SysCallId::EVENTFD2;
+      case AMD64_SYSCALL::EPOLL_CREATE1:
+        return SysCallId::EPOLL_CREATE1;
+      case AMD64_SYSCALL::EPOLL_CTL:
+        return SysCallId::EPOLL_CTL;
+      case AMD64_SYSCALL::EPOLL_PWAIT:
+        return SysCallId::EPOLL_PWAIT;
+      case AMD64_SYSCALL::DUP:
+        return SysCallId::DUP;
+      case AMD64_SYSCALL::DUP3:
+        return SysCallId::DUP3;
+      case AMD64_SYSCALL::FCNTL:
+        return SysCallId::FCNTL;
+      case AMD64_SYSCALL::INOTIFY_INIT1:
+        return SysCallId::INOTIFY_INIT1;
+      case AMD64_SYSCALL::INOTIFY_ADD_WATCH:
+        return SysCallId::INOTIFY_ADD_WATCH;
+      case AMD64_SYSCALL::INOTIFY_RM_WATCH:
+        return SysCallId::INOTIFY_RM_WATCH;
+      case AMD64_SYSCALL::IOCTL:
+        return SysCallId::IOCTL;
+      case AMD64_SYSCALL::IOPRIO_SET:
+        return SysCallId::IOPRIO_SET;
+      case AMD64_SYSCALL::IOPRIO_GET:
+        return SysCallId::IOPRIO_GET;
+      case AMD64_SYSCALL::FLOCK:
+        return SysCallId::FLOCK;
+      case AMD64_SYSCALL::MKNODAT:
+        return SysCallId::MKNODAT;
+      case AMD64_SYSCALL::MKDIRAT:
+        return SysCallId::MKDIRAT;
+      case AMD64_SYSCALL::UNLINKAT:
+        return SysCallId::UNLINKAT;
+      case AMD64_SYSCALL::SYMLINKAT:
+        return SysCallId::SYMLINKAT;
+      case AMD64_SYSCALL::LINKAT:
+        return SysCallId::LINKAT;
+      case AMD64_SYSCALL::RENAMEAT:
+        return SysCallId::RENAMEAT;
+      case AMD64_SYSCALL::UMOUNT2:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::MOUNT:
+        return SysCallId::MOUNT;
+      case AMD64_SYSCALL::PIVOT_ROOT:
+        return SysCallId::PIVOT_ROOT;
+      case AMD64_SYSCALL::NFSSERVCTL:
+        return SysCallId::NFSSERVCTL;
+      case AMD64_SYSCALL::STATFS:
+        return SysCallId::STATFS;
+      case AMD64_SYSCALL::TRUNCATE:
+        return SysCallId::TRUNCATE;
+      case AMD64_SYSCALL::FTRUNCATE:
+        return SysCallId::FTRUNCATE;
+      case AMD64_SYSCALL::FALLOCATE:
+        return SysCallId::FALLOCATE;
+      case AMD64_SYSCALL::FACCESSAT:
+        return SysCallId::FACCESSAT;
+      case AMD64_SYSCALL::FCHDIR:
+        return SysCallId::FCHDIR;
+      case AMD64_SYSCALL::CHROOT:
+        return SysCallId::CHROOT;
+      case AMD64_SYSCALL::FCHMOD:
+        return SysCallId::FCHMOD;
+      case AMD64_SYSCALL::FCHMODAT:
+        return SysCallId::FCHMODAT;
+      case AMD64_SYSCALL::FCHOWNAT:
+        return SysCallId::FCHOWNAT;
+      case AMD64_SYSCALL::FCHOWN:
+        return SysCallId::FCHOWN;
+      case AMD64_SYSCALL::OPENAT:
+        return SysCallId::OPENAT;
+      case AMD64_SYSCALL::CLOSE:
+        return SysCallId::CLOSE;
+      case AMD64_SYSCALL::VHANGUP:
+        return SysCallId::VHANGUP;
+      case AMD64_SYSCALL::PIPE2:
+        return SysCallId::PIPE2;
+      case AMD64_SYSCALL::QUOTACTL:
+        return SysCallId::QUOTACTL;
+      case AMD64_SYSCALL::GETDENTS64:
+        return SysCallId::GETDENTS64;
+      case AMD64_SYSCALL::LSEEK:
+        return SysCallId::LSEEK;
+      case AMD64_SYSCALL::READ:
+        return SysCallId::READ;
+      case AMD64_SYSCALL::WRITE:
+        return SysCallId::WRITE;
+      case AMD64_SYSCALL::READV:
+        return SysCallId::READV;
+      case AMD64_SYSCALL::WRITEV:
+        return SysCallId::WRITEV;
+      case AMD64_SYSCALL::PREAD64:
+        return SysCallId::PREAD64;
+      case AMD64_SYSCALL::PWRITE64:
+        return SysCallId::PWRITE64;
+      case AMD64_SYSCALL::PREADV:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::PWRITEV:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SENDFILE:
+        return SysCallId::SENDFILE;
+      case AMD64_SYSCALL::PSELECT6:
+        return SysCallId::PSELECT6;
+      case AMD64_SYSCALL::PPOLL:
+        return SysCallId::PPOLL;
+      case AMD64_SYSCALL::SIGNALFD4:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::VMSPLICE:
+        return SysCallId::VMSPLICE;
+      case AMD64_SYSCALL::SPLICE:
+        return SysCallId::SPLICE;
+      case AMD64_SYSCALL::TEE:
+        return SysCallId::TEE;
+      case AMD64_SYSCALL::READLINKAT:
+        return SysCallId::READLINKAT;
+      case AMD64_SYSCALL::NEWFSTATAT:
+        return SysCallId::NEWFSTATAT;
+      case AMD64_SYSCALL::FSTAT:
+        return SysCallId::FSTAT;
+      case AMD64_SYSCALL::SYNC:
+        return SysCallId::SYNC;
+      case AMD64_SYSCALL::FSYNC:
+        return SysCallId::FSYNC;
+      case AMD64_SYSCALL::FDATASYNC:
+        return SysCallId::FDATASYNC;
+      case AMD64_SYSCALL::SYNC_FILE_RANGE:
+        return SysCallId::SYNC_FILE_RANGE;
+      case AMD64_SYSCALL::TIMERFD_CREATE:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::TIMERFD_SETTIME:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::TIMERFD_GETTIME:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::UTIMENSAT:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::ACCT:
+        return SysCallId::ACCT;
+      case AMD64_SYSCALL::CAPGET:
+        return SysCallId::CAPGET;
+      case AMD64_SYSCALL::CAPSET:
+        return SysCallId::CAPSET;
+      case AMD64_SYSCALL::PERSONALITY:
+        return SysCallId::PERSONALITY;
+      case AMD64_SYSCALL::EXIT:
+        return SysCallId::EXIT;
+      case AMD64_SYSCALL::EXIT_GROUP:
+        return SysCallId::EXIT_GROUP;
+      case AMD64_SYSCALL::WAITID:
+        return SysCallId::WAITID;
+      case AMD64_SYSCALL::SET_TID_ADDRESS:
+        return SysCallId::SET_TID_ADDRESS;
+      case AMD64_SYSCALL::UNSHARE:
+        return SysCallId::UNSHARE;
+      case AMD64_SYSCALL::FUTEX:
+        return SysCallId::FUTEX;
+      case AMD64_SYSCALL::SET_ROBUST_LIST:
+        return SysCallId::SET_ROBUST_LIST;
+      case AMD64_SYSCALL::GET_ROBUST_LIST:
+        return SysCallId::GET_ROBUST_LIST;
+      case AMD64_SYSCALL::NANOSLEEP:
+        return SysCallId::NANOSLEEP;
+      case AMD64_SYSCALL::GETITIMER:
+        return SysCallId::GETITIMER;
+      case AMD64_SYSCALL::SETITIMER:
+        return SysCallId::SETITIMER;
+      case AMD64_SYSCALL::KEXEC_LOAD:
+        return SysCallId::KEXEC_LOAD;
+      case AMD64_SYSCALL::INIT_MODULE:
+        return SysCallId::INIT_MODULE;
+      case AMD64_SYSCALL::DELETE_MODULE:
+        return SysCallId::DELETE_MODULE;
+      case AMD64_SYSCALL::TIMER_CREATE:
+        return SysCallId::TIMER_CREATE;
+      case AMD64_SYSCALL::TIMER_SETTIME:
+        return SysCallId::TIMER_SETTIME;
+      case AMD64_SYSCALL::TIMER_GETTIME:
+        return SysCallId::TIMER_GETTIME;
+      case AMD64_SYSCALL::TIMER_GETOVERRUN:
+        return SysCallId::TIMER_GETOVERRUN;
+      case AMD64_SYSCALL::TIMER_DELETE:
+        return SysCallId::TIMER_DELETE;
+      case AMD64_SYSCALL::CLOCK_SETTIME:
+        return SysCallId::CLOCK_SETTIME;
+      case AMD64_SYSCALL::CLOCK_GETTIME:
+        return SysCallId::CLOCK_GETTIME;
+      case AMD64_SYSCALL::CLOCK_GETRES:
+        return SysCallId::CLOCK_GETRES;
+      case AMD64_SYSCALL::CLOCK_NANOSLEEP:
+        return SysCallId::CLOCK_NANOSLEEP;
+      case AMD64_SYSCALL::SYSLOG:
+        return SysCallId::SYSLOG;
+      case AMD64_SYSCALL::PTRACE:
+        return SysCallId::PTRACE;
+      case AMD64_SYSCALL::SCHED_SETPARAM:
+        return SysCallId::SCHED_SETPARAM;
+      case AMD64_SYSCALL::SCHED_SETSCHEDULER:
+        return SysCallId::SCHED_SETSCHEDULER;
+      case AMD64_SYSCALL::SCHED_GETSCHEDULER:
+        return SysCallId::SCHED_GETSCHEDULER;
+      case AMD64_SYSCALL::SCHED_GETPARAM:
+        return SysCallId::SCHED_GETPARAM;
+      case AMD64_SYSCALL::SCHED_SETAFFINITY:
+        return SysCallId::SCHED_SETAFFINITY;
+      case AMD64_SYSCALL::SCHED_GETAFFINITY:
+        return SysCallId::SCHED_GETAFFINITY;
+      case AMD64_SYSCALL::SCHED_YIELD:
+        return SysCallId::SCHED_YIELD;
+      case AMD64_SYSCALL::SCHED_GET_PRIORITY_MAX:
+        return SysCallId::SCHED_GET_PRIORITY_MAX;
+      case AMD64_SYSCALL::SCHED_GET_PRIORITY_MIN:
+        return SysCallId::SCHED_GET_PRIORITY_MIN;
+      case AMD64_SYSCALL::SCHED_RR_GET_INTERVAL:
+        return SysCallId::SCHED_RR_GET_INTERVAL;
+      case AMD64_SYSCALL::KILL:
+        return SysCallId::KILL;
+      case AMD64_SYSCALL::TKILL:
+        return SysCallId::TKILL;
+      case AMD64_SYSCALL::TGKILL:
+        return SysCallId::TGKILL;
+      case AMD64_SYSCALL::SIGALTSTACK:
+        return SysCallId::SIGALTSTACK;
+      case AMD64_SYSCALL::RT_SIGSUSPEND:
+        return SysCallId::RT_SIGSUSPEND;
+      case AMD64_SYSCALL::RT_SIGACTION:
+        return SysCallId::RT_SIGACTION;
+      case AMD64_SYSCALL::RT_SIGPROCMASK:
+        return SysCallId::RT_SIGPROCMASK;
+      case AMD64_SYSCALL::RT_SIGPENDING:
+        return SysCallId::RT_SIGPENDING;
+      case AMD64_SYSCALL::RT_SIGTIMEDWAIT:
+        return SysCallId::RT_SIGTIMEDWAIT;
+      case AMD64_SYSCALL::RT_SIGQUEUEINFO:
+        return SysCallId::RT_SIGQUEUEINFO;
+      case AMD64_SYSCALL::RT_SIGRETURN:
+        return SysCallId::RT_SIGRETURN;
+      case AMD64_SYSCALL::SETPRIORITY:
+        return SysCallId::SETPRIORITY;
+      case AMD64_SYSCALL::GETPRIORITY:
+        return SysCallId::GETPRIORITY;
+      case AMD64_SYSCALL::REBOOT:
+        return SysCallId::REBOOT;
+      case AMD64_SYSCALL::SETREGID:
+        return SysCallId::SETREGID;
+      case AMD64_SYSCALL::SETGID:
+        return SysCallId::SETGID;
+      case AMD64_SYSCALL::SETREUID:
+        return SysCallId::SETREUID;
+      case AMD64_SYSCALL::SETUID:
+        return SysCallId::SETUID;
+      case AMD64_SYSCALL::SETRESUID:
+        return SysCallId::SETRESUID;
+      case AMD64_SYSCALL::GETRESUID:
+        return SysCallId::GETRESUID;
+      case AMD64_SYSCALL::SETRESGID:
+        return SysCallId::SETRESGID;
+      case AMD64_SYSCALL::GETRESGID:
+        return SysCallId::GETRESGID;
+      case AMD64_SYSCALL::SETFSUID:
+        return SysCallId::SETFSUID;
+      case AMD64_SYSCALL::SETFSGID:
+        return SysCallId::SETFSGID;
+      case AMD64_SYSCALL::TIMES:
+        return SysCallId::TIMES;
+      case AMD64_SYSCALL::SETPGID:
+        return SysCallId::SETPGID;
+      case AMD64_SYSCALL::GETPGID:
+        return SysCallId::GETPGID;
+      case AMD64_SYSCALL::GETSID:
+        return SysCallId::GETSID;
+      case AMD64_SYSCALL::SETSID:
+        return SysCallId::SETSID;
+      case AMD64_SYSCALL::GETGROUPS:
+        return SysCallId::GETGROUPS;
+      case AMD64_SYSCALL::SETGROUPS:
+        return SysCallId::SETGROUPS;
+      case AMD64_SYSCALL::UNAME:
+        return SysCallId::UNAME;
+      case AMD64_SYSCALL::SETHOSTNAME:
+        return SysCallId::SETHOSTNAME;
+      case AMD64_SYSCALL::SETDOMAINNAME:
+        return SysCallId::SETDOMAINNAME;
+      case AMD64_SYSCALL::GETRLIMIT:
+        return SysCallId::GETRLIMIT;
+      case AMD64_SYSCALL::SETRLIMIT:
+        return SysCallId::SETRLIMIT;
+      case AMD64_SYSCALL::GETRUSAGE:
+        return SysCallId::GETRUSAGE;
+      case AMD64_SYSCALL::UMASK:
+        return SysCallId::UMASK;
+      case AMD64_SYSCALL::PRCTL:
+        return SysCallId::PRCTL;
+      case AMD64_SYSCALL::GETCPU:
+        return SysCallId::GETCPU;
+      case AMD64_SYSCALL::GETTIMEOFDAY:
+        return SysCallId::GETTIMEOFDAY;
+      case AMD64_SYSCALL::SETTIMEOFDAY:
+        return SysCallId::SETTIMEOFDAY;
+      case AMD64_SYSCALL::ADJTIMEX:
+        return SysCallId::ADJTIMEX;
+      case AMD64_SYSCALL::GETPID:
+        return SysCallId::GETPID;
+      case AMD64_SYSCALL::GETPPID:
+        return SysCallId::GETPPID;
+      case AMD64_SYSCALL::GETUID:
+        return SysCallId::GETUID;
+      case AMD64_SYSCALL::GETEUID:
+        return SysCallId::GETEUID;
+      case AMD64_SYSCALL::GETGID:
+        return SysCallId::GETGID;
+      case AMD64_SYSCALL::GETEGID:
+        return SysCallId::GETEGID;
+      case AMD64_SYSCALL::GETTID:
+        return SysCallId::GETTID;
+      case AMD64_SYSCALL::SYSINFO:
+        return SysCallId::SYSINFO;
+      case AMD64_SYSCALL::MQ_OPEN:
+        return SysCallId::MQ_OPEN;
+      case AMD64_SYSCALL::MQ_UNLINK:
+        return SysCallId::MQ_UNLINK;
+      case AMD64_SYSCALL::MQ_TIMEDSEND:
+        return SysCallId::MQ_TIMEDSEND;
+      case AMD64_SYSCALL::MQ_TIMEDRECEIVE:
+        return SysCallId::MQ_TIMEDRECEIVE;
+      case AMD64_SYSCALL::MQ_NOTIFY:
+        return SysCallId::MQ_NOTIFY;
+      case AMD64_SYSCALL::MQ_GETSETATTR:
+        return SysCallId::MQ_GETSETATTR;
+      case AMD64_SYSCALL::MSGGET:
+        return SysCallId::MSGGET;
+      case AMD64_SYSCALL::MSGCTL:
+        return SysCallId::MSGCTL;
+      case AMD64_SYSCALL::MSGRCV:
+        return SysCallId::MSGRCV;
+      case AMD64_SYSCALL::MSGSND:
+        return SysCallId::MSGSND;
+      case AMD64_SYSCALL::SEMGET:
+        return SysCallId::SEMGET;
+      case AMD64_SYSCALL::SEMCTL:
+        return SysCallId::SEMCTL;
+      case AMD64_SYSCALL::SEMTIMEDOP:
+        return SysCallId::SEMTIMEDOP;
+      case AMD64_SYSCALL::SEMOP:
+        return SysCallId::SEMOP;
+      case AMD64_SYSCALL::SHMGET:
+        return SysCallId::SHMGET;
+      case AMD64_SYSCALL::SHMCTL:
+        return SysCallId::SHMCTL;
+      case AMD64_SYSCALL::SHMAT:
+        return SysCallId::SHMAT;
+      case AMD64_SYSCALL::SHMDT:
+        return SysCallId::SHMDT;
+      case AMD64_SYSCALL::SOCKET:
+        return SysCallId::SOCKET;
+      case AMD64_SYSCALL::SOCKETPAIR:
+        return SysCallId::SOCKETPAIR;
+      case AMD64_SYSCALL::BIND:
+        return SysCallId::BIND;
+      case AMD64_SYSCALL::LISTEN:
+        return SysCallId::LISTEN;
+      case AMD64_SYSCALL::ACCEPT:
+        return SysCallId::ACCEPT;
+      case AMD64_SYSCALL::CONNECT:
+        return SysCallId::CONNECT;
+      case AMD64_SYSCALL::GETSOCKNAME:
+        return SysCallId::GETSOCKNAME;
+      case AMD64_SYSCALL::GETPEERNAME:
+        return SysCallId::GETPEERNAME;
+      case AMD64_SYSCALL::SENDTO:
+        return SysCallId::SENDTO;
+      case AMD64_SYSCALL::RECVFROM:
+        return SysCallId::RECVFROM;
+      case AMD64_SYSCALL::SETSOCKOPT:
+        return SysCallId::SETSOCKOPT;
+      case AMD64_SYSCALL::GETSOCKOPT:
+        return SysCallId::GETSOCKOPT;
+      case AMD64_SYSCALL::SHUTDOWN:
+        return SysCallId::SHUTDOWN;
+      case AMD64_SYSCALL::SENDMSG:
+        return SysCallId::SENDMSG;
+      case AMD64_SYSCALL::RECVMSG:
+        return SysCallId::RECVMSG;
+      case AMD64_SYSCALL::READAHEAD:
+        return SysCallId::READAHEAD;
+      case AMD64_SYSCALL::BRK:
+        return SysCallId::BRK;
+      case AMD64_SYSCALL::MUNMAP:
+        return SysCallId::MUNMAP;
+      case AMD64_SYSCALL::MREMAP:
+        return SysCallId::MREMAP;
+      case AMD64_SYSCALL::ADD_KEY:
+        return SysCallId::ADD_KEY;
+      case AMD64_SYSCALL::REQUEST_KEY:
+        return SysCallId::REQUEST_KEY;
+      case AMD64_SYSCALL::KEYCTL:
+        return SysCallId::KEYCTL;
+      case AMD64_SYSCALL::CLONE:
+        return SysCallId::CLONE;
+      case AMD64_SYSCALL::EXECVE:
+        return SysCallId::EXECVE;
       case AMD64_SYSCALL::MMAP:
-        return SyscallId::MMAP2;
-      SYSCALL_MAP(FADVISE64);
-      SYSCALL_MAP(SWAPON);
-      SYSCALL_MAP(SWAPOFF);
-      SYSCALL_MAP(MPROTECT);
-      SYSCALL_MAP(MSYNC);
-      SYSCALL_MAP(MLOCK);
-      SYSCALL_MAP(MUNLOCK);
-      SYSCALL_MAP(MLOCKALL);
-      SYSCALL_MAP(MUNLOCKALL);
-      SYSCALL_MAP(MINCORE);
-      SYSCALL_MAP(MADVISE);
-      SYSCALL_MAP(REMAP_FILE_PAGES);
-      SYSCALL_MAP(MBIND);
-      SYSCALL_MAP(GET_MEMPOLICY);
-      SYSCALL_MAP(SET_MEMPOLICY);
-      SYSCALL_MAP(MIGRATE_PAGES);
-      SYSCALL_MAP(MOVE_PAGES);
-      UNSUPPORTED_SYSCALL_MAP(RT_TGSIGQUEUEINFO);
-      UNSUPPORTED_SYSCALL_MAP(PERF_EVENT_OPEN);
-      UNSUPPORTED_SYSCALL_MAP(ACCEPT4);
-      UNSUPPORTED_SYSCALL_MAP(RECVMMSG);
-      SYSCALL_MAP(WAIT4);
-      UNSUPPORTED_SYSCALL_MAP(PRLIMIT64);
-      UNSUPPORTED_SYSCALL_MAP(FANOTIFY_INIT);
-      UNSUPPORTED_SYSCALL_MAP(FANOTIFY_MARK);
-      UNSUPPORTED_SYSCALL_MAP(NAME_TO_HANDLE_AT);
-      UNSUPPORTED_SYSCALL_MAP(OPEN_BY_HANDLE_AT);
-      UNSUPPORTED_SYSCALL_MAP(CLOCK_ADJTIME);
-      UNSUPPORTED_SYSCALL_MAP(SYNCFS);
-      UNSUPPORTED_SYSCALL_MAP(SETNS);
-      UNSUPPORTED_SYSCALL_MAP(SENDMMSG);
-      UNSUPPORTED_SYSCALL_MAP(PROCESS_VM_READV);
-      UNSUPPORTED_SYSCALL_MAP(PROCESS_VM_WRITEV);
-      UNSUPPORTED_SYSCALL_MAP(KCMP);
-      UNSUPPORTED_SYSCALL_MAP(FINIT_MODULE);
-      UNSUPPORTED_SYSCALL_MAP(SCHED_SETATTR);
-      UNSUPPORTED_SYSCALL_MAP(SCHED_GETATTR);
-      SYSCALL_MAP(GETRANDOM);
-  default:
-    return gdb_sys_no_syscall;
+        return SysCallId::MMAP2;
+      case AMD64_SYSCALL::FADVISE64:
+        return SysCallId::FADVISE64;
+      case AMD64_SYSCALL::SWAPON:
+        return SysCallId::SWAPON;
+      case AMD64_SYSCALL::SWAPOFF:
+        return SysCallId::SWAPOFF;
+      case AMD64_SYSCALL::MPROTECT:
+        return SysCallId::MPROTECT;
+      case AMD64_SYSCALL::MSYNC:
+        return SysCallId::MSYNC;
+      case AMD64_SYSCALL::MLOCK:
+        return SysCallId::MLOCK;
+      case AMD64_SYSCALL::MUNLOCK:
+        return SysCallId::MUNLOCK;
+      case AMD64_SYSCALL::MLOCKALL:
+        return SysCallId::MLOCKALL;
+      case AMD64_SYSCALL::MUNLOCKALL:
+        return SysCallId::MUNLOCKALL;
+      case AMD64_SYSCALL::MINCORE:
+        return SysCallId::MINCORE;
+      case AMD64_SYSCALL::MADVISE:
+        return SysCallId::MADVISE;
+      case AMD64_SYSCALL::REMAP_FILE_PAGES:
+        return SysCallId::REMAP_FILE_PAGES;
+      case AMD64_SYSCALL::MBIND:
+        return SysCallId::MBIND;
+      case AMD64_SYSCALL::GET_MEMPOLICY:
+        return SysCallId::GET_MEMPOLICY;
+      case AMD64_SYSCALL::SET_MEMPOLICY:
+        return SysCallId::SET_MEMPOLICY;
+      case AMD64_SYSCALL::MIGRATE_PAGES:
+        return SysCallId::MIGRATE_PAGES;
+      case AMD64_SYSCALL::MOVE_PAGES:
+        return SysCallId::MOVE_PAGES;
+      case AMD64_SYSCALL::RT_TGSIGQUEUEINFO:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::PERF_EVENT_OPEN:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::ACCEPT4:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::RECVMMSG:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::WAIT4:
+        return SysCallId::WAIT4;
+      case AMD64_SYSCALL::PRLIMIT64:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::FANOTIFY_INIT:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::FANOTIFY_MARK:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::NAME_TO_HANDLE_AT:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::OPEN_BY_HANDLE_AT:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::CLOCK_ADJTIME:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SYNCFS:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SETNS:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SENDMMSG:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::PROCESS_VM_READV:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::PROCESS_VM_WRITEV:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::KCMP:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::FINIT_MODULE:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SCHED_SETATTR:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::SCHED_GETATTR:
+        return SysCallId::NO_SYSCALL;
+      case AMD64_SYSCALL::GETRANDOM:
+        return SysCallId::GETRANDOM;
+    default:
+      return SysCallId::NO_SYSCALL;
     }
 }
+

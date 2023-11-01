@@ -1,3 +1,6 @@
+#ifndef _H_BRK_POINT_READER
+#define _H_BRK_POINT_READER
+
 #include <fstream>
 #include "breakpoint.hpp"
 #include "coverage_trace_writer.hpp"
@@ -25,11 +28,11 @@ struct BreakpointReader
 
 	bool m_is_data_available = true;
 	uint8_t m_record_type = -1;
-	shared_ptr<CoverageTraceWriter> m_trace_writer;
+	std::shared_ptr<CoverageTraceWriter> m_trace_writer;
 
 	BreakpointReader(
 		std::string cov_path,
-		shared_ptr<CoverageTraceWriter> trace_writer)
+		std::shared_ptr<CoverageTraceWriter> trace_writer)
 			: m_trace_writer(trace_writer)
 	{
 		m_cov_info = std::ifstream(cov_path, std::ios::binary | std::ios::in);
@@ -55,12 +58,12 @@ struct BreakpointReader
 
 class BreakpointCoverage : public Breakpoint
 {
-	shared_ptr<CoverageTraceWriter> m_trace_writer;
+	std::shared_ptr<CoverageTraceWriter> m_trace_writer;
 	uint8_t m_module_id = 0;
 
 public:
 	BreakpointCoverage(
-		shared_ptr<CoverageTraceWriter> trace_writer,
+		std::shared_ptr<CoverageTraceWriter> trace_writer,
 		std::string &modname,
 		uintptr_t offset)
 		: Breakpoint(modname, offset),
@@ -81,3 +84,5 @@ public:
 		m_trace_writer->update_module_base_addr(m_modname, base_addr);		
 	}
 };
+
+#endif

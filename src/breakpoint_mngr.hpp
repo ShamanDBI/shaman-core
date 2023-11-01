@@ -5,9 +5,8 @@
 #include <list>
 
 #include "modules.hpp"
+#include "debug_opts.hpp"
 #include "breakpoint.hpp"
-
-using namespace std;
 
 
 /**
@@ -58,24 +57,24 @@ public:
     // this map will have pair of module name and
     // offset within the module where the breakpoint 
     // has to be placed
-    map<string, list<Breakpoint*>> m_pending;
+    std::map<std::string, std::list<Breakpoint*>> m_pending;
 
-    map<uintptr_t, Breakpoint*> m_active_brkpnt;
+    std::map<uintptr_t, Breakpoint*> m_active_brkpnt;
 
     // this is brk point is saved to restore the breakpoint
     // once it has executed, if there is no breakpoint has 
     // hit then this value should be null
     // this stores the key as thread on which the breakpoint was hit
     // and value is the breakpoint which was hit.
-    map<pid_t, Breakpoint*> m_suspendedBrkPnt;
+    std::map<pid_t, Breakpoint*> m_suspendedBrkPnt;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 
     // add breakpoint in format module@addr1,addr2,add3
-    void parseModuleBrkPnt(string& brk_mod_addr);
+    void parseModuleBrkPnt(std::string& brk_mod_addr);
 
-    void addModBreakpoint(string& brk_mod_addr, uintptr_t mod_offset, string* label = nullptr);
+    void addModBreakpoint(std::string& brk_mod_addr, uintptr_t mod_offset, std::string* label = nullptr);
     
     void addBrkPnt(Breakpoint* brkPtr);
 
@@ -100,7 +99,7 @@ public:
 
     void printStats();
 
-    void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, string* label);
+    void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, std::string* label);
 };
 
 #endif

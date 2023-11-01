@@ -5,7 +5,7 @@ project(ShamanDBI)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set (CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 
@@ -56,13 +56,13 @@ set(ARCH_SRC
   src/arch/intel/amd64_registers.cpp
   src/arch/intel/amd64_syscall.cpp
 
-  # src/arch/intel/arm_breakpoint.cpp
-  # src/arch/intel/arm_registers.cpp
-  # src/arch/intel/arm_syscall.cpp
+  src/arch/arm/arm32_breakpoint.cpp
+  src/arch/arm/arm32_registers.cpp
+  src/arch/arm/arm32_syscall.cpp
 
-  # src/arch/intel/arm64_breakpoint.cpp
-  # src/arch/intel/arm64_registers.cpp
-  # src/arch/intel/arm64_syscall.cpp
+  src/arch/arm/arm64_breakpoint.cpp
+  src/arch/arm/arm64_registers.cpp
+  src/arch/arm/arm64_syscall.cpp
 )
 
 
@@ -70,6 +70,8 @@ set(SRC
   src/memory.cpp
   src/modules.cpp
   src/debugger.cpp
+  src/debug_opts.cpp
+  src/breakpoint.cpp
   src/breakpoint_mngr.cpp
   src/breakpoint_reader.cpp
   src/coverage_trace_writer.cpp

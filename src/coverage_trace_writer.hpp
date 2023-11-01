@@ -1,3 +1,6 @@
+#ifndef _H_COV_TRACE_WRITER
+#define _H_COV_TRACE_WRITER
+
 #include <fstream>
 #include <unistd.h>
 #include <map>
@@ -52,6 +55,5 @@ public:
     }
 };
 
-
-
 // typedef std::shared_ptr<CoverageTraceWriter> CoverageTraceWriterPtr;
+#endif

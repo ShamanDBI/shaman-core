@@ -2,7 +2,7 @@
 
 
 void AMD64Register::print() {
-    uint64_t *cpu_reg = reinterpret_cast<uint64_t *>(gp_reg);
+    uint64_t *cpu_reg = reinterpret_cast<uint64_t *>(m_gp_reg_data);
     m_log->debug("---------------------------------[ REGISTERS START]--------------------------------");
     m_log->debug("RAX {:16x} RBX {:16x} RCX {:16x} RDX {:16x}", 
         cpu_reg[AMD64Register::RAX], cpu_reg[AMD64Register::RBX],

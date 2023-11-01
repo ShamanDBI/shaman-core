@@ -107,7 +107,7 @@ public:
 		return *this;
 	};
 
-	TraceeProgram& setLogFile(string log_name) {
+	TraceeProgram& setLogFile(std::string log_name) {
 		auto log_file_name = spdlog::fmt_lib::format("{}_{}.log", log_name, getPid());
 		auto log_inst_name = spdlog::fmt_lib::format("tc-{}",getPid());
 		m_log = spdlog::basic_logger_mt(log_inst_name, log_file_name);

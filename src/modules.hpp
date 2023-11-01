@@ -8,12 +8,14 @@
 #include <dirent.h>
 
 
-struct dev_major_minor_t {
+class dev_major_minor_t {
+public:
     int major;
     int minor;
 };
 
-struct ProcMap {
+class ProcMap {
+public:
     enum MAPS_PERMS {
         PERMS_READ    = 1 << 0,
         PERMS_WRITE   = 1 << 1,
@@ -41,12 +43,12 @@ public:
     
     ProcessMap(pid_t tracee_pid): m_pid(tracee_pid) {
         m_map.reserve(32);
-    }
+    };
     
     ProcessMap* setPid(pid_t tracee_pid) {
         m_pid = tracee_pid;
         return this;
-    }
+    };
 
     uint8_t praseMapPermission(char const *perms);
 	uintptr_t findModuleBaseAddr(std::string &module_path);

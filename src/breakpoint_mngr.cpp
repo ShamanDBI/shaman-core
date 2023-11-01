@@ -47,7 +47,7 @@ void BreakpointMngr::addBrkPnt(Breakpoint *brkPtr)
 // put all the pending breakpoint in the tracee
 void BreakpointMngr::inject(DebugOpts& debug_opts)
 {
-    debug_opts.m_procMap->print();
+    debug_opts.m_procMap.print();
     m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
 
     for (auto pend_iter = m_pending.cbegin(); pend_iter != m_pending.cend();)
@@ -55,7 +55,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
 
         // find the module base address
         std::string mod_name = pend_iter->first;
-        auto mod_base_addr = debug_opts.m_procMap->findModuleBaseAddr(mod_name);
+        auto mod_base_addr = debug_opts.m_procMap.findModuleBaseAddr(mod_name);
 
         // iterate over all the breakpoint for that module
         // for(auto brkpnt_obj: pend_iter->second) {
