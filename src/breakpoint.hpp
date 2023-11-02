@@ -7,9 +7,8 @@
 
 #include "spdlog/spdlog.h"
 
-#include "memory.hpp"
 #include "debug_opts.hpp"
-
+#include "memory.hpp"
 
 class BreakpointInjector {
 
@@ -47,6 +46,7 @@ public:
     void inject(DebugOpts& debug_opts, Addr *m_backupData) {};
     void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
 };
+
 
 class Breakpoint {
 
@@ -152,7 +152,6 @@ public:
 
     virtual bool handle(DebugOpts& debug_opts) {
         m_count++;
-        // printDebug();
         return true;
     }
 
@@ -160,17 +159,9 @@ public:
         return m_enabled;
     }
 
-    virtual int enable(DebugOpts& debug_opts) {
-        m_bkpt_injector->inject(debug_opts, m_backupData);
-        m_enabled = true;
-        return 1;
-    };
+    virtual int enable(DebugOpts& debug_opts);
 
-    virtual int disable(DebugOpts& debug_opts) {
-        m_bkpt_injector->restore(debug_opts, m_backupData);
-        m_enabled = false;
-        return 1;
-    };
+    virtual int disable(DebugOpts& debug_opts);
 };
 
 #endif

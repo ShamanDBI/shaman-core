@@ -7,16 +7,9 @@
 #include <spdlog/spdlog.h>
 
 #include "syscall.hpp"
-#include "registers.hpp"
-#include "memory.hpp"
 #include "debug_opts.hpp"
 
 
-
-/**
- * @brief dfd
- * 
- */
 struct SyscallTraceData {
 	pid_t m_pid;						/* If 0, this syscall trace data is free */
 	SysCallId syscall_id;				/* System call number */
@@ -36,6 +29,7 @@ struct SyscallTraceData {
 		syscall_id = SysCallId::NO_SYSCALL;
 	};
 };
+
 
 enum SyscallState {
 	ON_ENTER = 1,
@@ -159,6 +153,6 @@ public:
 
 };
 
-SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number)
+SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number);
 
 #endif

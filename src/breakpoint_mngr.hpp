@@ -4,7 +4,6 @@
 #include <map>
 #include <list>
 
-#include "modules.hpp"
 #include "debug_opts.hpp"
 #include "breakpoint.hpp"
 

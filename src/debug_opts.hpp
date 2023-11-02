@@ -3,8 +3,7 @@
 
 #include "memory.hpp"
 #include "registers.hpp"
-
-class ProcessMap;
+#include "modules.hpp"
 
 class DebugOpts {
 public:

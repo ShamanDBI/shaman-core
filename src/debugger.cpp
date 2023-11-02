@@ -1,6 +1,7 @@
 #include "debugger.hpp"
-#include "memory.hpp"
 #include "modules.hpp"
+#include "tracee.hpp"
+#include "breakpoint.hpp"
 
 
 Debugger::Debugger(TargetDescription& _target_desc): m_target_desc(_target_desc) {

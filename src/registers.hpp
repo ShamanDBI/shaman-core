@@ -1,7 +1,7 @@
 #ifndef H_REGISTER_H
 #define H_REGISTER_H
 
-#include <spdlog/spdlog.h>
+#include "spdlog/spdlog.h"
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <elf.h>
@@ -10,10 +10,6 @@ struct RegisterAliases {
   const char *const name;
   int regnum;
 };
-
-#define REG_OFFSET_NAME(r, ARCH) \
-	{.name = #r, .offset = offsetof(struct pt_regs, ##ARCH_##r)}
-#define REG_OFFSET_END {.name = NULL, .offset = 0}
 
 
 class Registers {
@@ -83,11 +79,26 @@ public:
     IRegisters(pid_t tracee_pid, uint8_t _gp_reg_cnt) 
     : Registers::Registers(tracee_pid, _gp_reg_cnt, sizeof(T) * _gp_reg_cnt) {};
     
-    virtual T getProgramCounter();
-    virtual void setProgramCounter(T reg_val);
-    virtual T getStackPointer();
-    virtual T getRegIdx(uint8_t reg_idx);
-    virtual T setRegIdx(uint8_t reg_idx, T value);
+    virtual T getRegIdx(uint8_t reg_idx) {
+        return reinterpret_cast<T *>(m_gp_reg_data)[reg_idx];
+    }
+
+    virtual void setRegIdx(uint8_t reg_idx, T value) {
+        reinterpret_cast<T *>(m_gp_reg_data)[reg_idx] = value;
+    }
+
+    virtual T getProgramCounter() {
+        // PC register points to the next instruction
+        return getRegIdx(program_register_idx);
+    }
+
+    void setProgramCounter(T reg_val) {
+        reinterpret_cast<T *>(m_gp_reg_data)[program_register_idx] = reg_val;
+    }
+
+    virtual T getStackPointer() {
+        return getRegIdx(stack_pointer_register_idx);
+    }
 
     virtual void print() = 0;
 
@@ -130,6 +141,7 @@ public:
 
 
 #define ARCH_AMD64_GP_REG_CNT 27
+
 
 class AMD64Register: public IRegisters<uint64_t> {
 

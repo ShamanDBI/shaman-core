@@ -10,7 +10,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
-#include "tracee.hpp"
+
 #include "syscall_mngr.hpp"
 #include "breakpoint_mngr.hpp"
 
