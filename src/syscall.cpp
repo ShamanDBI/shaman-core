@@ -718,6 +718,8 @@ std::string SysCallId::getString() const {
       return "SEMTIMEDOP";
     case SysCallId::NEWFSTATAT:
       return "NEWFSTATAT";
+    case SysCallId::ARCH_PRCTL:
+      return "ARCH_PRCTL";
     default:
       return "UNKNOWN";
       break;

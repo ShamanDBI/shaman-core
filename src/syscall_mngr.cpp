@@ -22,11 +22,15 @@
 */
 void SyscallManager::readSyscallParams(DebugOpts& debug_opts) {
 	AMD64Register& regObj = reinterpret_cast<AMD64Register&>(debug_opts.m_register);
-
+	
 	debug_opts.m_register.fetch();
-	m_cached_args.syscall_id.setValue(
-		static_cast<int16_t>(regObj.getRegIdx(SYSCALL_ID_INTEL))
-	);
+
+	int16_t call_id = static_cast<int16_t>(regObj.getRegIdx(SYSCALL_ID_INTEL));
+	spdlog::warn("raw call id {}", call_id);
+	
+	SysCallId sys_id = amd64_canonicalize_syscall(static_cast<AMD64_SYSCALL>(call_id));
+	spdlog::warn("Syscall {}", sys_id.getString());
+	m_cached_args.syscall_id = sys_id;
 	
 	m_cached_args.v_arg[0] = regObj.getRegIdx(SYSCALL_ARG_0);
 	m_cached_args.v_arg[1] = regObj.getRegIdx(SYSCALL_ARG_1);
@@ -95,7 +99,7 @@ int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts)
 
 int SyscallManager::onEnter(DebugOpts& debug_opts) {
 	readSyscallParams(debug_opts);
-	
+	spdlog::warn("ID {}", m_cached_args.getSyscallNo());
 	// File operation handler
 	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
 		m_log->trace("FILE OPT DETECED");
