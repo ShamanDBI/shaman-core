@@ -84,3 +84,4 @@ The problem arises when a thread A hits a breakpoint to step-over is we have to 
 ## Ref
 1. [ARM and MIPS Ptrace Impl](https://github.com/aleden/ptracetricks/blob/main/ptracetricks.cpp)
 1. [Writing Debugger in CPP](https://blog.tartanllama.xyz/writing-a-linux-debugger-source-signal/)
+1. [Various Qemu Build Linux Machine to test the tool](https://people.debian.org/~aurel32/qemu/)

@@ -10,6 +10,30 @@
 #include "debug_opts.hpp"
 
 
+#define SYSCALL_AMD64_ID_INTEL 15 // INTEL_X64_REGS::ORIG_RAX
+#define SYSCALL_AMD64_ARG_0 14    // INTEL_X64_REGS::RDI
+#define SYSCALL_AMD64_ARG_1 13    // INTEL_X64_REGS::RSI
+#define SYSCALL_AMD64_ARG_2 12    // INTEL_X64_REGS::RDX
+#define SYSCALL_AMD64_ARG_3  7    // INTEL_X64_REGS::R10
+#define SYSCALL_AMD64_ARG_4  9    // INTEL_X64_REGS::R8
+#define SYSCALL_AMD64_ARG_5  8    // INTEL_X64_REGS::R9
+#define SYSCALL_AMD64_RET   10    // INTEL_X64_REGS::RAX
+
+
+#define SYSCALL_ARM32_ID_INTEL 17 // INTEL_X64_REGS::ORIG_RAX
+#define SYSCALL_ARM32_ARG_0 0    // INTEL_X64_REGS::RDI
+#define SYSCALL_ARM32_ARG_1 1    // INTEL_X64_REGS::RSI
+#define SYSCALL_ARM32_ARG_2 2    // INTEL_X64_REGS::RDX
+#define SYSCALL_ARM32_ARG_3 3    // INTEL_X64_REGS::R10
+#define SYSCALL_ARM32_ARG_4 4    // INTEL_X64_REGS::R8
+#define SYSCALL_ARM32_ARG_5 5    // INTEL_X64_REGS::R9
+#define SYSCALL_ARM32_ARG_6 6    // INTEL_X64_REGS::R9
+#define SYSCALL_ARM32_RET   0    // INTEL_X64_REGS::RAX
+
+
+class TraceeProgram;
+
+
 struct SyscallTraceData {
 	pid_t m_pid;						/* If 0, this syscall trace data is free */
 	SysCallId syscall_id;				/* System call number */
@@ -23,7 +47,7 @@ struct SyscallTraceData {
 
 	int16_t getSyscallNo() {
 		return syscall_id.getIntValue();
-	}
+	};
 
 	~SyscallTraceData() {
 		syscall_id = SysCallId::NO_SYSCALL;
@@ -90,6 +114,7 @@ public:
 	virtual void onWrite() = 0;
 	virtual void onIoctl() = 0;
 	virtual void onBind() = 0;
+	virtual void onListen() = 0;
 };
 
 
@@ -103,7 +128,6 @@ struct SyscallHandler {
 	~SyscallHandler() {};
 
 	virtual int onEnter(SyscallTraceData& sc_trace) { return 0; };
-
 	virtual int onExit(SyscallTraceData& sc_trace) { return 0; };
 
 };
@@ -135,9 +159,8 @@ class SyscallManager {
 
 public:
 
-	void readSyscallParams(DebugOpts& debug_opts);
-
-	void readRetValue(DebugOpts& debug_opts);
+	void readSyscallParams(TraceeProgram& traceeProg);
+	void readRetValue(TraceeProgram& traceeProg);
 
 	int handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts);
 
@@ -147,12 +170,19 @@ public:
 	virtual int addSyscallHandler(SyscallHandler* syscall_hdlr);
 	virtual int removeSyscallHandler(SyscallHandler* syscall_hdlr);
 
-	virtual int onEnter(DebugOpts& debug_opts);
+	virtual int onEnter(TraceeProgram& traceeProg);
+	virtual int onExit(TraceeProgram& traceeProg);
 
-	virtual int onExit(DebugOpts& debug_opts);
+	// inject syscall
 
 };
 
 SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number);
+SysCallId arm64_canonicalize_syscall(ARM64_SYSCALL syscall_number);
+
+// this is because standard mapping is done on this syscall ID
+SysCallId arm32_canonicalize_syscall(int16_t syscall_number);
+
+SysCallId i386_canonicalize_syscall(int16_t syscall_number);
 
 #endif

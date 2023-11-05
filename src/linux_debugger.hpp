@@ -83,7 +83,7 @@ struct TraceeEvent {
 	}
 
 	TraceeEvent& operator=(const TraceeEvent& eventObj) {
-		spdlog::debug("assing value to TraceeEvent");
+		// spdlog::debug("assing value to TraceeEvent");
 		pid = eventObj.pid;
 		type = eventObj.type;
 		switch (type)

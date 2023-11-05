@@ -15,6 +15,7 @@ class BreakpointInjector {
 protected:
 
     uint8_t m_brk_size = 0;
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 public:
 
@@ -24,7 +25,8 @@ public:
     virtual void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
 };
 
-#define INTEL_BREAKPOINT_INST_SIZE 1
+// its 1 but I need to fix it
+#define INTEL_BREAKPOINT_INST_SIZE 8
 
 class X86BreakpointInjector : public BreakpointInjector {
 
@@ -108,6 +110,11 @@ public:
         m_log->warn("Breakpoint : going out out scope!");
         delete m_backupData;
         // delete m_label;
+    }
+
+    Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector) {
+        m_bkpt_injector = brk_pnt_injector;
+        return *this;
     }
 
     Breakpoint& makeSingleShot() {

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/types.h>
 
 
 void* do_loop(void* data) {
@@ -29,21 +30,21 @@ void* do_loop(void* data) {
     /* terminate the thread */
     pthread_exit(NULL);
 }
-#include <sys/types.h>
 
 void do_infinite_loop(void * data) {
-    size_t counter = 0;
+    size_t counter = 50;
     // pid_t tid = syscall(SYS_gettid);
     pid_t tid = gettid();
 
-    while(1) {
-        printf("[%d] Thead %lu\n", tid, counter++);
-        sleep(10);
+    while(counter) {
+        printf("[%d] Thead %lu\n", tid, counter);
+        sleep(0.5);
+        counter--;
     }
 }
 
 void test_infinite_threads() {
-    #define NUM_OF_THREADS 100
+    #define NUM_OF_THREADS 50
     int        thr_id;         /* thread ID for the newly created thread */
     pthread_t  p_thread[NUM_OF_THREADS];       /* thread's structure                     */
     int        a         = 1;  /* thread 1 identifying number            */
@@ -197,7 +198,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 6;
+    test_case_idx = 8;
     switch(test_case_idx) {
         case 1:
             rec_fork();

@@ -56,8 +56,11 @@ Breakpoint* BreakpointReader::next() {
             }
             curr_brk_pnt = new BreakpointCoverage(m_trace_writer, *curr_mod_name_str, brk_pnt_offset);
             // curr_brk_pnt->printDebug();
-            if (is_single_shot)
+            if (is_single_shot) {
                 curr_brk_pnt->makeSingleShot();
+            } else {
+                curr_brk_pnt->setMaxHitCount(100);
+            }
             m_func_bb_count--;
         }
         if(m_func_bb_count == 0) {

@@ -49,6 +49,7 @@ add_executable(shaman)
 set(ARCH_SRC
   src/arch/intel/x86_breakpoint.cpp
   src/arch/intel/x86_registers.cpp
+  src/arch/intel/x86_syscall.cpp
 
   src/arch/intel/amd64_registers.cpp
   src/arch/intel/amd64_registers.cpp

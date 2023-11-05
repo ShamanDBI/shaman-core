@@ -31,7 +31,7 @@ void TraceeEvent::print() {
 }
 
 TraceeEvent::~TraceeEvent() {
-	spdlog::debug("~TraceeEvent : out of scope");
+	// spdlog::debug("~TraceeEvent : out of scope");
 	type = TraceeEvent::INVALID;
 	pid = 0;
 }
@@ -94,7 +94,7 @@ void TrapReason::print() {
 }
 
 TrapReason::~TrapReason() {
-	spdlog::debug("~TrapReason : out of scope");
+	// spdlog::debug("~TrapReason : out of scope");
 	status = INVALID;
 	pid = 0;
 }

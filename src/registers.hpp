@@ -189,7 +189,7 @@ public:
 
 #define ARCH_ARM_GP_REG_CNT 18
 
-class ARMRegister: public IRegisters<uint32_t> {
+class ARM32Register: public IRegisters<uint32_t> {
 
 public:
     enum REGISTER_IDX : uint8_t {
@@ -213,7 +213,7 @@ public:
         ORIG_R0
     };
 
-    ARMRegister(pid_t tracee_pid)
+    ARM32Register(pid_t tracee_pid)
         : IRegisters<uint32_t>(tracee_pid, ARCH_ARM_GP_REG_CNT) {
         
         program_register_idx = static_cast<uint8_t>(REGISTER_IDX::PC);

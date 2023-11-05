@@ -121,7 +121,7 @@ TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_typ
 			cpuRegister = new AMD64Register(tracee_pid);
 			break;
 		case CPU_ARCH::ARM32:
-			cpuRegister = new ARMRegister(tracee_pid);
+			cpuRegister = new ARM32Register(tracee_pid);
 			break;
 		case CPU_ARCH::ARM64:
 			cpuRegister = new ARM64Register(tracee_pid);
@@ -133,7 +133,7 @@ TraceeProgram* TraceeFactory::createTracee(pid_t tracee_pid, DebugType debug_typ
 
 	DebugOpts* db_opts = new DebugOpts(tracee_pid, *cpuRegister,
 		*new RemoteMemory(tracee_pid),*new ProcessMap(tracee_pid));
-	TraceeProgram* traceeProg = new TraceeProgram(tracee_pid, debug_type, *db_opts);
+	TraceeProgram* traceeProg = new TraceeProgram(tracee_pid, debug_type, *db_opts, target_desc);
 	
 	return traceeProg;
 }

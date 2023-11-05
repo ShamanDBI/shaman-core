@@ -18,7 +18,7 @@ void X86BreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) {
     m_backupData->print();
     tmp_backup_byte = m_backupData->m_data[0];
     if(tmp_backup_byte == BREAKPOINT_X86_INST) {
-        spdlog::critical("pid {} Breakpoint is already in place! {:x}",
+        m_log->critical("pid {} Breakpoint is already in place! {:x}",
             debug_opts.getPid(), m_backupData->r_addr);
     }
     m_backupData->m_data[0] = BREAKPOINT_X86_INST;

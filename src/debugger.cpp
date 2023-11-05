@@ -198,16 +198,16 @@ TrapReason Debugger::getTrapReason(TraceeEvent& event, TraceeProgram* tracee_inf
 		
 		switch (event.stopped.signal) {
 		case SIGSEGV:
-			m_log->warn("That's right! Segfault, Reason: {} !", sig_info.si_code);
+			m_log->error("That's right! Segfault, Reason: {} !", sig_info.si_code);
 			break;
 		case SIGILL:
-			m_log->warn("Illegal Instruction!");
+			m_log->error("Illegal Instruction!");
 			break;
 		case SIGKILL:
-			m_log->warn("Killed!");
+			m_log->error("Killed!");
 			break;
 		default:
-			m_log->warn("This STOP Signal not understood by us! Code : {}", sig_info.si_code);
+			m_log->error("This STOP Signal not understood by us! Code : {}", sig_info.si_code);
 			break;
 		}
 	} else {
@@ -525,7 +525,7 @@ bool Debugger::eventLoop() {
 					// distingish if the call is syscall enter or exit
 					// and its debugger responsibity to track it
 					m_log->debug("SYSCALL ENTER");
-					m_syscallMngr->onEnter(traceeProgram->getDebugOpts());
+					m_syscallMngr->onEnter(*traceeProgram);
 					traceeProgram->toStateSysCall();
 				} else if(trap_reason.status == TrapReason::BREAKPOINT) {
 					/**
@@ -621,7 +621,7 @@ bool Debugger::eventLoop() {
 				if(trap_reason.status == TrapReason::SYSCALL) {
 					m_log->info("SYSCALL EXIT");
 					// change the state once we have process the event
-					m_syscallMngr->onExit(traceeProgram->getDebugOpts());
+					m_syscallMngr->onExit(*traceeProgram);
 					traceeProgram->toStateRunning();
 				} else if (trap_reason.status == TrapReason::CLONE ||
 				// this function processes "PTRACE_EVENT stops" event

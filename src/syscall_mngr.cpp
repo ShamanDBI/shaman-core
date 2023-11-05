@@ -1,15 +1,6 @@
-#include "syscall_mngr.hpp"
 #include <spdlog/spdlog.h>
-
-
-#define SYSCALL_ID_INTEL 15 // INTEL_X64_REGS::ORIG_RAX
-#define SYSCALL_ARG_0 14 // INTEL_X64_REGS::RDI
-#define SYSCALL_ARG_1 13 // INTEL_X64_REGS::RSI
-#define SYSCALL_ARG_2 12 // INTEL_X64_REGS::RDX
-#define SYSCALL_ARG_3  7 // INTEL_X64_REGS::R10
-#define SYSCALL_ARG_4  9 // INTEL_X64_REGS::R8
-#define SYSCALL_ARG_5  8 // INTEL_X64_REGS::R9
-#define SYSCALL_RET 10 // INTEL_X64_REGS::RAX
+#include "syscall_mngr.hpp"
+#include "tracee.hpp"
 
 
 /**
@@ -20,30 +11,91 @@
  *	x86	    eax			eax		ebx		ecx		edx		esi		edi		ebp
  *	x86_64	rax			rax		rdi		rsi		rdx		r10		r8		r9
 */
-void SyscallManager::readSyscallParams(DebugOpts& debug_opts) {
-	AMD64Register& regObj = reinterpret_cast<AMD64Register&>(debug_opts.m_register);
-	
+void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
+	SysCallId sys_id = SysCallId::NO_SYSCALL;
+	int16_t call_id;
+	DebugOpts& debug_opts = traceeProg.m_debug_opts;
+	AMD64Register* amdRegObj;
+	ARM64Register* arm64RegObj;
+	X86Register* x86RegObj;
+	ARM32Register* armRegObj;
+
 	debug_opts.m_register.fetch();
 
-	int16_t call_id = static_cast<int16_t>(regObj.getRegIdx(SYSCALL_ID_INTEL));
-	spdlog::warn("raw call id {}", call_id);
-	
-	SysCallId sys_id = amd64_canonicalize_syscall(static_cast<AMD64_SYSCALL>(call_id));
-	spdlog::warn("Syscall {}", sys_id.getString());
-	m_cached_args.syscall_id = sys_id;
-	
-	m_cached_args.v_arg[0] = regObj.getRegIdx(SYSCALL_ARG_0);
-	m_cached_args.v_arg[1] = regObj.getRegIdx(SYSCALL_ARG_1);
-	m_cached_args.v_arg[2] = regObj.getRegIdx(SYSCALL_ARG_2);
-	m_cached_args.v_arg[3] = regObj.getRegIdx(SYSCALL_ARG_3);
-	m_cached_args.v_arg[4] = regObj.getRegIdx(SYSCALL_ARG_4);
-	m_cached_args.v_arg[5] = regObj.getRegIdx(SYSCALL_ARG_5);
+	switch(traceeProg.m_target_desc.m_cpu_arch) {
+	case CPU_ARCH::AMD64:
+		amdRegObj = dynamic_cast<AMD64Register*>(&debug_opts.m_register);
+		call_id = static_cast<int16_t>(amdRegObj->getRegIdx(SYSCALL_AMD64_ID_INTEL));
+		m_log->debug("raw call id {}", call_id);
+		sys_id = amd64_canonicalize_syscall(static_cast<AMD64_SYSCALL>(call_id));
+		m_log->debug("Syscall {}", sys_id.getString());
+		m_cached_args.syscall_id = sys_id;
+		
+		m_cached_args.v_arg[0] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_0);
+		m_cached_args.v_arg[1] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_1);
+		m_cached_args.v_arg[2] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_2);
+		m_cached_args.v_arg[3] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_3);
+		m_cached_args.v_arg[4] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_4);
+		m_cached_args.v_arg[5] = amdRegObj->getRegIdx(SYSCALL_AMD64_ARG_5);
+		break;
+	case CPU_ARCH::X86:
+		x86RegObj = dynamic_cast<X86Register*>(&debug_opts.m_register);
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		sys_id = i386_canonicalize_syscall(call_id);
+		m_cached_args.syscall_id = sys_id;
+	break;
+	case CPU_ARCH::ARM64:
+		arm64RegObj = dynamic_cast<ARM64Register*>(&debug_opts.m_register);
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		m_log->debug("raw call id {}", call_id);
+		sys_id = arm64_canonicalize_syscall(static_cast<ARM64_SYSCALL>(call_id));
+	break;
+	case CPU_ARCH::ARM32:
+		armRegObj = dynamic_cast<ARM32Register*>(&debug_opts.m_register);
+		
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		m_log->debug("raw call id {}", call_id);
+		
+		sys_id = arm32_canonicalize_syscall(call_id);
+		m_log->debug("Syscall {}", sys_id.getString());
+		m_cached_args.syscall_id = sys_id;
+		
+		m_cached_args.v_arg[0] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_0);
+		m_cached_args.v_arg[1] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_1);
+		m_cached_args.v_arg[2] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_2);
+		m_cached_args.v_arg[3] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_3);
+		m_cached_args.v_arg[4] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_4);
+		m_cached_args.v_arg[5] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_5);
+		break;
+	default:
+		m_log->error("Invalid Archictecture");
+		break;
+	};
 }
 
-void SyscallManager::readRetValue(DebugOpts& debug_opts) {
-	AMD64Register& regObj = reinterpret_cast<AMD64Register&>(debug_opts.m_register);
-	regObj.fetch();
-	m_cached_args.v_rval = regObj.getRegIdx(SYSCALL_RET);
+void SyscallManager::readRetValue(TraceeProgram& traceeProg) {
+
+	DebugOpts& debug_opts = traceeProg.m_debug_opts;
+	SysCallId sys_id = SysCallId::NO_SYSCALL;
+	AMD64Register* regObj = nullptr;
+	ARM32Register* armRegObj = nullptr;
+
+	switch(traceeProg.m_target_desc.m_cpu_arch) {
+	case CPU_ARCH::AMD64:
+		regObj = dynamic_cast<AMD64Register *>(&debug_opts.m_register);
+		regObj->fetch();
+		m_cached_args.v_rval = regObj->getRegIdx(SYSCALL_AMD64_RET);
+		break;
+
+	case CPU_ARCH::ARM32:
+		armRegObj = dynamic_cast<ARM32Register *>(&debug_opts.m_register);
+		armRegObj->fetch();
+		m_cached_args.v_rval = armRegObj->getRegIdx(SYSCALL_AMD64_RET);
+		break;
+	default:
+		m_log->error("Invalid Archictecture");
+	break;
+	}
 }
 
 int SyscallManager::addFileOperationHandler(FileOperationTracer* file_opt_handler) {
@@ -97,9 +149,10 @@ int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts)
 	return 0;
 }
 
-int SyscallManager::onEnter(DebugOpts& debug_opts) {
-	readSyscallParams(debug_opts);
-	spdlog::warn("ID {}", m_cached_args.getSyscallNo());
+int SyscallManager::onEnter(TraceeProgram& traceeProg) {
+	DebugOpts& debug_opts = traceeProg.m_debug_opts;
+	readSyscallParams(traceeProg);
+	m_log->debug("ID {}", m_cached_args.getSyscallNo());
 	// File operation handler
 	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
 		m_log->trace("FILE OPT DETECED");
@@ -125,9 +178,10 @@ int SyscallManager::onEnter(DebugOpts& debug_opts) {
 	return 0;
 }
 
-int SyscallManager::onExit(DebugOpts& debug_opts) {
-	m_log->debug("NAME : <- {} ()", m_cached_args.syscall_id.getString(), m_cached_args.v_rval);
-	readRetValue(debug_opts);
+int SyscallManager::onExit(TraceeProgram& traceeProg) {
+	DebugOpts& debug_opts = traceeProg.m_debug_opts;
+	m_log->debug("NAME : <- {} {}", m_cached_args.syscall_id.getString(), m_cached_args.v_rval);
+	readRetValue(traceeProg);
 	FileOperationTracer* f_opts = nullptr;
 	int fd = 0;
 	if(m_cached_args.syscall_id == SysCallId::OPENAT) {

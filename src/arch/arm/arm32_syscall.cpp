@@ -1,6 +1,8 @@
 #include "syscall.hpp"
+#include "syscall_mngr.hpp"
 
-SysCallId arm_canonicalize_syscall (int syscall) {
+
+SysCallId arm32_canonicalize_syscall (int16_t syscall) {
   
   switch (syscall) {
     case 0: return SysCallId::RESTART_SYSCALL;
