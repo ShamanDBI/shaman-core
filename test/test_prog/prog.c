@@ -32,7 +32,7 @@ void* do_loop(void* data) {
 }
 
 void do_infinite_loop(void * data) {
-    size_t counter = 50;
+    size_t counter = 5000;
     // pid_t tid = syscall(SYS_gettid);
     pid_t tid = gettid();
 
@@ -50,12 +50,12 @@ void test_infinite_threads() {
     int        a         = 1;  /* thread 1 identifying number            */
     int        b         = 1;  /* thread 2 identifying number            */
 
-    for(int i=0; i<NUM_OF_THREADS; i++) {
+    for(int i=0; i < NUM_OF_THREADS; i++) {
         thr_id = pthread_create(&p_thread[i], NULL, do_infinite_loop, (void*)&a);
         printf("New Thread created with id : %d\n", thr_id);
     }
     
-    for(int i=0;i<100;i++) {
+    for(int i=0;i<NUM_OF_THREADS;i++) {
         pthread_join(p_thread[i], NULL);
     }
     return 0;

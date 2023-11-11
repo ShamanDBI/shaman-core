@@ -72,9 +72,10 @@ public:
 		m_module_id = m_trace_writer->get_module_id(modname);
 	}
 
-	virtual bool handle(DebugOpts *debug_opts) {
-		// spdlog::warn("here were are");
-		m_trace_writer->add_cov(debug_opts->getPid(), m_module_id, m_addr);
+	virtual bool handle(DebugOpts& debug_opts) {
+		Breakpoint::handle(debug_opts);
+		// spdlog::warn("We are writing coverag data to file!");
+		m_trace_writer->add_cov(debug_opts.getPid(), m_module_id, m_addr);
 		return true;
 	}
 

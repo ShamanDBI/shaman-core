@@ -162,7 +162,7 @@ public:
 	std::string* m_prog = nullptr;
 
 	std::vector<std::string>* m_argv = nullptr;
-	uintptr_t prev_brk_addr = 0;
+	
 	pid_t prev_pid = 0;
 	// std::vector<std::string>* brk_pnt_str; // remove
 
@@ -203,7 +203,7 @@ public:
 
 	void printAllTraceesInfo();
 
-	TrapReason getTrapReason(TraceeEvent& event, TraceeProgram* tracee_info);
+	void getTrapReason(DebugEventPtr& debug_event, TraceeProgram* tracee_info);
 
 	bool eventLoop();
 

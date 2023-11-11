@@ -6,7 +6,7 @@
 
 
 void TraceeEvent::print() {
-	spdlog::debug("[{}] TraceeStatus", pid);
+	// spdlog::debug("[{}] TraceeStatus", pid);
 	switch (type) {
 		case TraceeEvent::EXITED :
 			spdlog::debug("EXITED : {}",exited.status);
@@ -33,43 +33,42 @@ void TraceeEvent::print() {
 TraceeEvent::~TraceeEvent() {
 	// spdlog::debug("~TraceeEvent : out of scope");
 	type = TraceeEvent::INVALID;
-	pid = 0;
 }
 
-TraceeEvent get_wait_event(pid_t pid) {
-	TraceeEvent t_status;
+int get_wait_event(pid_t pid, DebugEventPtr& debug_event) {
     int child_status;
     int wait_ret = waitpid(pid, &child_status, WNOHANG | WCONTINUED);
     if (wait_ret == -1) {
         spdlog::error("waitpid failed !");
     }
-	t_status.type = TraceeEvent::INVALID;
 	if (wait_ret == 0) {
 		// this is no event for the child, exit no futher detail needed
-		return t_status;
+		spdlog::warn("There is no event for the child, exit no futher detail needed!");
+		return -1;
 	}
 	if (WIFSIGNALED(child_status)) {
 		// cout << "WIFSIGNALED" << endl;
-		t_status.type = TraceeEvent::SIGNALED;
-		t_status.signaled.signal = WTERMSIG(child_status);
-		t_status.signaled.dumped =  WCOREDUMP(child_status);
+		debug_event->event.type = TraceeEvent::SIGNALED;
+		debug_event->event.signaled.signal = WTERMSIG(child_status);
+		debug_event->event.signaled.dumped =  WCOREDUMP(child_status);
 	} else if (WIFEXITED(child_status)) {
 		// cout << "WIFEXITED" << endl;
-		t_status.type = TraceeEvent::EXITED;
-		t_status.exited.status = WEXITSTATUS(child_status);
+		debug_event->event.type = TraceeEvent::EXITED;
+		debug_event->event.exited.status = WEXITSTATUS(child_status);
 	} else if (WIFSTOPPED(child_status)) {
 		// cout << "WIFSTOPPED" << endl;
-		t_status.type = TraceeEvent::STOPPED;
-		t_status.stopped.signal = WSTOPSIG(child_status);
-		t_status.stopped.status = child_status;
+		debug_event->event.type = TraceeEvent::STOPPED;
+		debug_event->event.stopped.signal = WSTOPSIG(child_status);
+		debug_event->event.stopped.status = child_status;
 	} else if (WIFCONTINUED(child_status)) {
 		// cout << "WIFCONTINUED" << endl;
-		t_status.type = TraceeEvent::CONTINUED;
+		debug_event->event.type = TraceeEvent::CONTINUED;
 	} else {
 		spdlog::error("Unreachable Tracee state please handle it!");
 		exit(-1);
+		return -1;
 	}
-	return t_status;
+	return 0;
 }
 
 void TrapReason::print() {

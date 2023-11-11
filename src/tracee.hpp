@@ -70,6 +70,7 @@ public:
   	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 	DebugType debugType;
+	uintptr_t m_brkpnt_addr;
 
 	TargetDescription &m_target_desc;
 	// BreakpointMngr* m_breakpointMngr;

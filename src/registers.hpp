@@ -77,7 +77,7 @@ template <class T> class IRegisters : public Registers {
 public:
 
     IRegisters(pid_t tracee_pid, uint8_t _gp_reg_cnt) 
-    : Registers::Registers(tracee_pid, _gp_reg_cnt, sizeof(T) * _gp_reg_cnt) {};
+     : Registers::Registers(tracee_pid, _gp_reg_cnt, sizeof(T) * _gp_reg_cnt) {};
     
     virtual T getRegIdx(uint8_t reg_idx) {
         return reinterpret_cast<T *>(m_gp_reg_data)[reg_idx];
@@ -136,6 +136,10 @@ public:
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::EBP);
     }
 
+    uint64_t getBreakpointAddr() {
+        return getProgramCounter() - 1;
+    }
+
     void print();
 };
 
@@ -181,6 +185,10 @@ public:
         program_register_idx = static_cast<uint8_t>(REGISTER_IDX::RIP);
         stack_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::RSP);
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::RBP);
+    }
+
+    uint64_t getBreakpointAddr() {
+        return getProgramCounter() - 1;
     }
 
     void print();

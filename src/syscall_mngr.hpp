@@ -147,6 +147,8 @@ class SyscallManager {
 	// arguments should be filled on entry and cleared on exit, Ideal!
 	SyscallTraceData m_cached_args;
 
+	// maps syscall id to corresponding handler
+	// this data structure map multiple systemcall handler to same syscall id
 	std::multimap<int16_t, SyscallHandler*> m_syscall_handler_map;
 
 	// maps file descriptor to File operation class

@@ -50,9 +50,8 @@ public:
 };
 
 
-class Breakpoint {
+struct Breakpoint {
 
-public:
     enum BreakpointType {
         // single shot breakpoint used for collecting code coverage
         // Delete the breakpoint after it has been hit once
@@ -81,7 +80,7 @@ public:
     std::string& m_modname;
 
     // number of time this breakpoint was hit
-    uint32_t m_count = 0;
+    uint32_t m_hit_count = 0;
 
     // max hit count after which you want remove the breakpoint
     uint32_t m_max_hit_count = UINT32_MAX;
@@ -142,23 +141,25 @@ public:
     }
 
     void printDebug() {
-        m_log->debug("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_count);
+        m_log->debug("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_hit_count);
     }
 
     uint32_t getHitCount() {
-        return m_count;
+        return m_hit_count;
     }
 
     bool shouldEnable() {
         if (m_type == BreakpointType::SINGLE_SHOT) {
             return false;
-        } else {
-            return true;
+        } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
+            return false;
         }
+
+        return true;
     }
 
     virtual bool handle(DebugOpts& debug_opts) {
-        m_count++;
+        m_hit_count++;
         return true;
     }
 

@@ -1,6 +1,7 @@
 #include "breakpoint.hpp"
 #include "amd64_breakpoint_inject.hpp"
 
+
 Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
     std::string* _label, BreakpointType brk_type) :
     m_modname(modname), m_offset(offset), m_type(brk_type) {

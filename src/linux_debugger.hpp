@@ -37,13 +37,9 @@ struct TraceeEvent {
 		} stopped;
 	};
 
-	// pid of the process which is causing this event
-	pid_t pid = 0;
-
 	TraceeEvent(EventType et): type(et) {}
 
 	TraceeEvent(TraceeEvent &eventObj):TraceeEvent() {
-		pid = eventObj.pid;
 		type = eventObj.type;
 
 		switch (type)
@@ -63,7 +59,6 @@ struct TraceeEvent {
 	}
 
 	TraceeEvent(const TraceeEvent &eventObj) {
-		pid = eventObj.pid;
 		type = eventObj.type;
 		spdlog::debug("copy onst TraceeEvent");
 		switch (type)
@@ -84,7 +79,6 @@ struct TraceeEvent {
 
 	TraceeEvent& operator=(const TraceeEvent& eventObj) {
 		// spdlog::debug("assing value to TraceeEvent");
-		pid = eventObj.pid;
 		type = eventObj.type;
 		switch (type)
 		{
@@ -137,11 +131,45 @@ struct TrapReason {
 	} status;
 
 	pid_t pid; // this holds value of new pid in case of clone/vfork/frok
+	
 	void print();
+	
 	~TrapReason();
+
 };
 
-TraceeEvent get_wait_event(pid_t pid);
 
-typedef std::pair<TraceeEvent, TrapReason> PendingEvent;
+struct DebugEvent {
+	// pid of the process causing this event
+	pid_t m_pid = 0;
+	TraceeEvent event;
+	TrapReason reason;
+
+	DebugEvent() {
+		event.type = TraceeEvent::INVALID;
+		reason.status = TrapReason::INVALID;
+	};
+
+	~DebugEvent() {
+		event.type = TraceeEvent::INVALID;
+		reason.status = TrapReason::INVALID;
+	};
+
+	void makeInvalid() {
+		event.type = TraceeEvent::INVALID;
+		reason.status = TrapReason::INVALID;
+	};
+
+	void print() {
+		event.print();
+		reason.print();
+	}
+
+};
+
+typedef std::unique_ptr<DebugEvent> DebugEventPtr;
+
+
+int get_wait_event(pid_t pid, DebugEventPtr& debug_event);
+
 #endif
