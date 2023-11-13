@@ -74,7 +74,7 @@ public:
 
 	virtual bool handle(DebugOpts& debug_opts) {
 		Breakpoint::handle(debug_opts);
-		// spdlog::warn("We are writing coverag data to file!");
+		m_log->warn("We are writing coverag data to file!");
 		m_trace_writer->add_cov(debug_opts.getPid(), m_module_id, m_addr);
 		return true;
 	}

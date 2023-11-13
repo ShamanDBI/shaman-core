@@ -206,9 +206,9 @@ int main(int argc, char **argv) {
 
 	debug.eventLoop();
 
-	// if (basic_block_path.length() > 0) {
-	// 	cov_trace_writer->
-	// }
+	if (basic_block_path.length() > 0) {
+		cov_trace_writer->close();
+	}
 	
 	log->debug("Good Bye!");
 }

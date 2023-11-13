@@ -8,23 +8,25 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 
 void* do_loop(void* data) {
 
     int i;
     int j;
+    uint64_t global_cnt = 0;
     int me = *((int*)data);
 
     if (me == 1) {
         for (i=0; i<100; i++) {
-            sleep(1);
+            for (uint64_t j=0; j<0xffffffff; j++) { global_cnt++; };
             printf("Thread id : %d - Got %d\n", me, i);
         }
     } else {
         for (i=0; i<100; i++) {
-            sleep(1);
-            printf("Other Thread id : %d - Got %d\n", me, i);
+            for (uint64_t j=0; j<0xffffffff; j++) { global_cnt++; };
+                printf("Other Thread id : %d - Got %d\n", me, i);
         }
     }
     /* terminate the thread */
@@ -198,7 +200,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 8;
+    test_case_idx = 7;
     switch(test_case_idx) {
         case 1:
             rec_fork();

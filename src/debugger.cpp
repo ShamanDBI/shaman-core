@@ -312,7 +312,7 @@ bool Debugger::eventLoop() {
 			signalled_pid = debug_event->m_pid;
 			debug_event->event.print();
 			debug_event->reason.print();
-			spdlog::debug("Pending Signaled Pid {}", signalled_pid);
+			m_log->debug("Pending Signaled Pid {}", signalled_pid);
 		} else {
 			processing_pending_event = false;
 			ret_wait = waitid(

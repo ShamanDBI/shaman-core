@@ -40,7 +40,43 @@ public:
 #define BREAKINST_ARM	0xe7f001f0
 #define BREAKINST_THUMB	0xde01
 
+/* Under ARM GNU/Linux the traditional way of performing a breakpoint
+   is to execute a particular software interrupt, rather than use a
+   particular undefined instruction to provoke a trap.  Upon exection
+   of the software interrupt the kernel stops the inferior with a
+   SIGTRAP, and wakes the debugger.  */
+
+static const uint8_t arm_linux_arm_le_breakpoint[] = { 0x01, 0x00, 0x9f, 0xef };
+
+static const uint8_t arm_linux_arm_be_breakpoint[] = { 0xef, 0x9f, 0x00, 0x01 };
+
+/* However, the EABI syscall interface (new in Nov. 2005) does not look at
+   the operand of the swi if old-ABI compatibility is disabled.  Therefore,
+   use an undefined instruction instead.  This is supported as of kernel
+   version 2.5.70 (May 2003), so should be a safe assumption for EABI
+   binaries.  */
+
+static const uint8_t eabi_linux_arm_le_breakpoint[] = { 0xf0, 0x01, 0xf0, 0xe7 };
+
+static const uint8_t eabi_linux_arm_be_breakpoint[] = { 0xe7, 0xf0, 0x01, 0xf0 };
+
+/* All the kernels which support Thumb support using a specific undefined
+   instruction for the Thumb breakpoint.  */
+
+static const uint8_t arm_linux_thumb_be_breakpoint[] = {0xde, 0x01};
+
+static const uint8_t arm_linux_thumb_le_breakpoint[] = {0x01, 0xde};
+
+/* Because the 16-bit Thumb breakpoint is affected by Thumb-2 IT blocks,
+   we must use a length-appropriate breakpoint for 32-bit Thumb
+   instructions.  See also thumb_get_next_pc.  */
+
+static const uint8_t arm_linux_thumb2_be_breakpoint[] = { 0xf7, 0xf0, 0xa0, 0x00 };
+
+static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0 };
+
 class ARMBreakpointInjector : public BreakpointInjector {
+    uint8_t breakpoint_thumb = {};
 
 public:
     ARMBreakpointInjector(): BreakpointInjector(4) {}

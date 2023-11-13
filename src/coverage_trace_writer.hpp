@@ -31,7 +31,7 @@ class CoverageTraceWriter {
 
 public:
     CoverageTraceWriter(std::string output_path) {
-        m_trace_file = std::ofstream(output_path, std::ios::binary | std::ios::out);
+        m_trace_file = std::ofstream(output_path, std::ios::binary | std::ios::out | std::ios::trunc);
     }
 
     void write_module_info();
@@ -49,10 +49,11 @@ public:
 
     void add_cov(pid_t tracee_pid, uint8_t module_id, uint64_t execution_addr);
 
-    ~CoverageTraceWriter() {
+    void close() {
         spdlog::warn("closing coverage file");
         m_trace_file.close();
     }
+
 };
 
 // typedef std::shared_ptr<CoverageTraceWriter> CoverageTraceWriterPtr;
