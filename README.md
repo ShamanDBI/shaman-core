@@ -88,3 +88,4 @@ The problem arises when a thread A hits a breakpoint to step-over is we have to 
 2. [TinyInst - lightweight DBI Framework by googleprojectzero](https://github.com/googleprojectzero/TinyInst/)
 3. [Implementing GDB Stub Protocol](https://medium.com/swlh/implement-gdb-remote-debug-protocol-stub-from-scratch-1-a6ab2015bfc5)
 1. [Python3 with ghidra - Mandiant Project](https://github.com/mandiant/Ghidrathon)
+2. [bcov produces coverage information without recompiling a program by instrumenting it with breakpoints](https://bcov.sourceforge.net/)
