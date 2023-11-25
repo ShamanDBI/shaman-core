@@ -42,7 +42,7 @@ public:
 
 /* Under ARM GNU/Linux the traditional way of performing a breakpoint
    is to execute a particular software interrupt, rather than use a
-   particular undefined instruction to provoke a trap.  Upon exection
+   particular undefined instruction to provoke a trap. Upon exection
    of the software interrupt the kernel stops the inferior with a
    SIGTRAP, and wakes the debugger.  */
 
@@ -76,13 +76,11 @@ static const uint8_t arm_linux_thumb2_be_breakpoint[] = { 0xf7, 0xf0, 0xa0, 0x00
 static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0 };
 
 class ARMBreakpointInjector : public BreakpointInjector {
-    uint8_t breakpoint_thumb = {};
-
 public:
     ARMBreakpointInjector(): BreakpointInjector(4) {}
 
-    void inject(DebugOpts& debug_opts, Addr *m_backupData) {};
-    void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
+    void inject(DebugOpts& debug_opts, Addr *m_backupData);
+    void restore(DebugOpts& debug_opts, Addr *m_backupData);
 };
 
 

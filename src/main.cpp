@@ -168,9 +168,15 @@ int main(int argc, char **argv) {
 
 	auto log = spdlog::get("main_log");
     log->info("Welcome to Shaman!");
+	
 	TargetDescription targetDesc ;
 	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
 	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
+
+	targetDesc.m_cpu_arch = CPU_ARCH::ARM32;
+	targetDesc.m_cpu_mode = CPU_MODE::ARM;
+
+
 	Debugger debug(targetDesc);
 	std::shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
 

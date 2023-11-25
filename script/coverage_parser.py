@@ -12,6 +12,7 @@ class ParseCoverage:
         self.mod_base_addr = dict()
         self.mod_map = dict()
         self.exec_info = defaultdict(lambda: defaultdict(lambda : 0))
+        self.total_brk_pt = 0
 
     def _read_u64(self):
         return int.from_bytes(self.cov_file.read(8), byteorder='little')
@@ -49,6 +50,7 @@ class ParseCoverage:
                 mod_id = self._read_u8()
                 exec_offset = self._read_u32() + self.mod_base_addr[mod_name]
                 self.exec_info[pid][exec_offset] += 1
+                self.total_brk_pt += 1
                 # print('Exec {} {} {} {}'.format(pid, mod_id, hex(exec_offset), self.exec_info[pid][exec_offset]))
             # val = input('Enter : ')
             # if val == 'q':
@@ -56,6 +58,7 @@ class ParseCoverage:
             should_cont = self.cov_file.tell() != os.fstat(self.cov_file.fileno()).st_size
 
     def report(self):
+        print('Total Breakpoint Hit :', self.total_brk_pt)
         for key_pid, val in self.exec_info.items():
             for key_addr, val in self.exec_info[key_pid].items():
                 print('{} | {} - {}'.format(key_pid, hex(key_addr), self.exec_info[key_pid][key_addr]))

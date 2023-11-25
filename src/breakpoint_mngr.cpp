@@ -49,6 +49,9 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
 {
     debug_opts.m_procMap.print();
     m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
+    BreakpointInjector* brkPntInjector;
+
+    brkPntInjector = new ARMBreakpointInjector();
 
     for (auto pend_iter = m_pending.cbegin(); pend_iter != m_pending.cend();)
     {
@@ -63,6 +66,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
         while (!brk_pending_objs.empty())
         {
             Breakpoint *brkpnt_obj = brk_pending_objs.back();
+            brkpnt_obj->setInjector(brkPntInjector);
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
             m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);

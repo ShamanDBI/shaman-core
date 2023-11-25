@@ -291,7 +291,6 @@ bool Debugger::eventLoop() {
 	std::set<uintptr_t> active_breakpoint;
 	std::queue<DebugEventPtr> pending_debug_events;
 	bool processing_pending_event = false;
-
 	
 	while(!m_Tracees.empty()) {
 		m_log->debug("------------------------------");
@@ -434,11 +433,10 @@ bool Debugger::eventLoop() {
 			} else {
 				m_log->info("Thread hasn't stopped yet!");
 			}
-			// don't put the break statement here, its 
-			// intentionally left behind.
+			// don't put the break statement here, its intentionally
+			// left behind.
 		case TraceeState::INITIAL_STOP:
 			m_log->info("Initial Stop, prepaing the tracee!");
-			
 
 			if (m_followFork) {
 				tracee_flags |= PTRACE_O_TRACEFORK |
@@ -501,7 +499,7 @@ bool Debugger::eventLoop() {
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::SIGNALED:
-				m_log->critical("SIGNALLED : process {} terminated by a signal!!", signalled_pid);
+				m_log->critical("SIGNALLED : process {} terminated by a signal {} !!", signalled_pid, debug_event->event.signaled.signal);
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::STOPPED:

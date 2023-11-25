@@ -20,12 +20,12 @@ void* do_loop(void* data) {
 
     if (me == 1) {
         for (i=0; i<100; i++) {
-            for (uint64_t j=0; j<0xffffffff; j++) { global_cnt++; };
+            for (uint64_t j=0; j<0xffff; j++) { global_cnt++; };
             printf("Thread id : %d - Got %d\n", me, i);
         }
     } else {
         for (i=0; i<100; i++) {
-            for (uint64_t j=0; j<0xffffffff; j++) { global_cnt++; };
+            for (uint64_t j=0; j<0xffff; j++) { global_cnt++; };
                 printf("Other Thread id : %d - Got %d\n", me, i);
         }
     }
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 7;
+    test_case_idx = 6;
     switch(test_case_idx) {
         case 1:
             rec_fork();
