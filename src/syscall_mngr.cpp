@@ -25,7 +25,7 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 	switch(traceeProg.m_target_desc.m_cpu_arch) {
 	case CPU_ARCH::AMD64:
 		amdRegObj = dynamic_cast<AMD64Register*>(&debug_opts.m_register);
-		call_id = static_cast<int16_t>(amdRegObj->getRegIdx(SYSCALL_AMD64_ID_INTEL));
+		call_id = static_cast<int16_t>(amdRegObj->getRegIdx(SYSCALL_ID_AMD64));
 		m_log->debug("raw call id {}", call_id);
 		sys_id = amd64_canonicalize_syscall(static_cast<AMD64_SYSCALL>(call_id));
 		m_log->debug("Syscall {}", sys_id.getString());
@@ -40,20 +40,20 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 		break;
 	case CPU_ARCH::X86:
 		x86RegObj = dynamic_cast<X86Register*>(&debug_opts.m_register);
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
 		sys_id = i386_canonicalize_syscall(call_id);
 		m_cached_args.syscall_id = sys_id;
 	break;
 	case CPU_ARCH::ARM64:
 		arm64RegObj = dynamic_cast<ARM64Register*>(&debug_opts.m_register);
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
 		m_log->debug("raw call id {}", call_id);
 		sys_id = arm64_canonicalize_syscall(static_cast<ARM64_SYSCALL>(call_id));
 	break;
 	case CPU_ARCH::ARM32:
 		armRegObj = dynamic_cast<ARM32Register*>(&debug_opts.m_register);
 		
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ARM32_ID_INTEL));
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
 		m_log->debug("raw call id {}", call_id);
 		
 		sys_id = arm32_canonicalize_syscall(call_id);
