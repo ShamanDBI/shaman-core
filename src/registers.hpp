@@ -100,6 +100,10 @@ public:
         return getRegIdx(stack_pointer_register_idx);
     }
 
+    virtual T getBreakpointAddr() {
+        return getProgramCounter() - 1;
+    }
+
     virtual void print() = 0;
 
 };
@@ -136,7 +140,7 @@ public:
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::EBP);
     }
 
-    uint64_t getBreakpointAddr() {
+    uint32_t getBreakpointAddr() {
         return getProgramCounter() - 1;
     }
 
@@ -196,6 +200,7 @@ public:
 };
 
 #define ARCH_ARM_GP_REG_CNT 18
+#define CPSR_THUMB 0x20
 
 class ARM32Register: public IRegisters<uint32_t> {
 
@@ -228,6 +233,15 @@ public:
         stack_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::SP);
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::FP);
     }
+
+    uint32_t getBreakpointAddr() {
+        return getProgramCounter();
+    }
+
+    bool isThumbMode() {
+        return getRegIdx(REGISTER_IDX::CPSR) & CPSR_THUMB;
+    }
+
     void print() {};
 };
 

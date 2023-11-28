@@ -6,5 +6,8 @@ Makefile
 _deps
 *.cmake
 build
+build_*
+tmp*
+*.cov
 ref_code
 .vscode

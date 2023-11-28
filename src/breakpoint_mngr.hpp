@@ -50,6 +50,8 @@
  * 
 */
 
+class TargetDescription;
+
 class BreakpointMngr {
 
 public:
@@ -60,6 +62,8 @@ public:
 
     std::map<uintptr_t, Breakpoint*> m_active_brkpnt;
 
+    TargetDescription& m_target_desc;
+
     // this is brk point is saved to restore the breakpoint
     // once it has executed, if there is no breakpoint has 
     // hit then this value should be null
@@ -69,6 +73,7 @@ public:
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
+    BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {};
 
     // add breakpoint in format module@addr1,addr2,add3
     void parseModuleBrkPnt(std::string& brk_mod_addr);
@@ -76,7 +81,6 @@ public:
     void addModBreakpoint(std::string& brk_mod_addr, uintptr_t mod_offset, std::string* label = nullptr);
     
     void addBrkPnt(Breakpoint* brkPtr);
-
     // put all the pending breakpoint in the tracee    
     void inject(DebugOpts& debug_opts);
 

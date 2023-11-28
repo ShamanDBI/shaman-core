@@ -22,7 +22,8 @@ struct SyscallEntry
   // SYSCALL_ID args[SYSCALL_MAXARGS];
 };
 
-
+// All the System Call defination can be found in syscall.tbl
+// file
 extern SyscallEntry syscalls[MAX_SYSCALL_NUM];
 
 enum class AMD64_SYSCALL : int16_t {
@@ -1208,7 +1209,8 @@ public:
     // this is an architecture specific system call using 
     // to set and get architecture specific registers like
     // FS , GS and CPUID etc.
-    ARCH_PRCTL = 541 
+    RSEQ = 541,
+    ARCH_PRCTL = 542
   };
 
   SysCallId() : m_syscall_value(NO_SYSCALL) {};

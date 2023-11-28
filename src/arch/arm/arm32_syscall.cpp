@@ -362,11 +362,13 @@ SysCallId arm32_canonicalize_syscall (int16_t syscall) {
     case 379: return SysCallId::FINIT_MODULE;
       */
     case 384: return SysCallId::GETRANDOM;
+    case 397: return SysCallId::STATX;
+    case 398: return SysCallId::RSEQ;
     case 983041: /* ARM_breakpoint */ return SysCallId::NO_SYSCALL;
     case 983042: /* ARM_cacheflush */ return SysCallId::NO_SYSCALL;
     case 983043: /* ARM_usr26 */ return SysCallId::NO_SYSCALL;
     case 983044: /* ARM_usr32 */ return SysCallId::NO_SYSCALL;
     case 983045: /* ARM_set_tls */ return SysCallId::NO_SYSCALL;
     default: return SysCallId::NO_SYSCALL;
-    }
+  }
 }

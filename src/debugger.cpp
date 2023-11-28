@@ -9,7 +9,7 @@ Debugger::Debugger(TargetDescription& _target_desc): m_target_desc(_target_desc)
 	
 	m_tracee_factory = new TraceeFactory();
 	m_syscallMngr = new SyscallManager();
-	m_breakpointMngr = new BreakpointMngr();
+	m_breakpointMngr = new BreakpointMngr(m_target_desc);
 
 }
 
@@ -288,8 +288,11 @@ bool Debugger::eventLoop() {
 	*/
 
 	std::map<uintptr_t, std::queue<DebugEventPtr>> pending_thread_debug_event;
+	// we have temporairly removed breakpoint at this location
+	// which should be restored after stepping through the original instruction
 	std::set<uintptr_t> active_breakpoint;
 	std::queue<DebugEventPtr> pending_debug_events;
+	
 	bool processing_pending_event = false;
 	
 	while(!m_Tracees.empty()) {
@@ -465,17 +468,26 @@ bool Debugger::eventLoop() {
 			traceeProgram->contExecution();
 			break;
 		case TraceeState::BREAKPOINT_HIT:
-			// this state is the final state of breakpoint handling
-			// we either restore the breakpoint or continue without
-			// restoring it.
+			// This state is triggered because of the single step after breakpoint hit.
+			// its the state is the final state of breakpoint handling we either restore
+			// the breakpoint or continue without restoring it.
+			
 			if(debug_event->event.type == TraceeEvent::STOPPED 
 				&& debug_event->reason.status == TrapReason::BREAKPOINT) {
+
+				// ARM32 doesn't have ptrace single stepping, so we have to emulate one
+				// by placing breakpoint on the next instruction. We will be here on the single
+				// step, at this stage we will restore the original breakpoint and remove the
+				// single-step breakpoint 
 				
 				m_breakpointMngr->restoreSuspendedBreakpoint(traceeProgram->getDebugOpts());
 				active_breakpoint.erase(traceeProgram->m_brkpnt_addr);
 				m_log->info("Breakpoint handled 0x{:x}", traceeProgram->m_brkpnt_addr);
 				
 				if(!pending_thread_debug_event[traceeProgram->m_brkpnt_addr].empty()) {
+					// Once we have handled this breakpoint we want to see if there
+					// is another thread which has been block because of same breakpoint
+					// in that case de-queue the event and put it in the active process queue
 					// move the event from per-thread pending queue to the queue 
 					// which will start processing the event
 					pending_debug_events.push(std::move(pending_thread_debug_event[traceeProgram->m_brkpnt_addr].front()));
@@ -556,9 +568,16 @@ bool Debugger::eventLoop() {
 					// traceeProgram->toStateBreakpoint();
 					debug_opts = &traceeProgram->getDebugOpts();				
 					debug_opts->m_register.fetch();
-					AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
+					
+					uintptr_t brk_addr = 0;
 
-					uintptr_t brk_addr = amdReg.getBreakpointAddr();
+					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+						AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
+						brk_addr = amdReg.getBreakpointAddr();
+					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+						brk_addr = armReg.getBreakpointAddr();
+					}
 
 					if(active_breakpoint.count(brk_addr) > 0) {
 					//  prev_brk_addr == brk_addr && prev_pid != debug_opts->getPid()) {}
@@ -585,13 +604,22 @@ bool Debugger::eventLoop() {
 					// debug_opts->m_register->print();
 					m_breakpointMngr->handleBreakpointHit(*debug_opts, brk_addr);
 
-					amdReg.setProgramCounter(brk_addr);
-					amdReg.update();
-
-					traceeProgram->toStateBreakpoint();
+					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+						AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
+						amdReg.setProgramCounter(brk_addr);
+						amdReg.update();
+						traceeProgram->toStateBreakpoint();
+						traceeProgram->singleStep();
+					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+						m_log->trace("Thumb {}", armReg.isThumbMode());
+						armReg.setProgramCounter(brk_addr);
+						armReg.update();
+						traceeProgram->toStateRunning();
+						traceeProgram->contExecution();
+					}
+					
 					// debug_opts->m_register->print();
-					traceeProgram->singleStep();
-					// traceeProgram->contExecution();
 					break;
 				} else {
 					m_log->warn("Not sure why we have stopped!");
