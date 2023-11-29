@@ -127,6 +127,7 @@ struct TrapReason {
 		VFORK, 		// Process invoked `vfork()`
 		SYSCALL,
 		BREAKPOINT,
+		ERROR,
 		INVALID
 	} status;
 

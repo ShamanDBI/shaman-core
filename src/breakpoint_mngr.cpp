@@ -85,7 +85,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
     }
 }
 
-Breakpoint *BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)
+Breakpoint* BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)
 {
     auto brk_pnt_iter = m_active_brkpnt.find(bk_addr);
     if (brk_pnt_iter != m_active_brkpnt.end())
@@ -143,6 +143,7 @@ void BreakpointMngr::handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_ad
     // m_log->debug("Brkpnt obj found!");
     // restore the value of original breakpoint instruction
     brk_obj->disable(debug_opts);
+    // return brk_obj;
 }
 
 void BreakpointMngr::printStats()
@@ -162,4 +163,16 @@ void BreakpointMngr::printStats()
     m_log->info("Number Of Breakpoint Hits : {}/{}", bkpt_count, bkpt_total);
     m_log->info("Total Breakpoint Hits     : {}", brk_pt_exec_cnt);
     m_log->info("[------------------------------");
-}
+};
+
+std::unique_ptr<Breakpoint> BreakpointMngr::placeSingleStepBreakpoint(DebugOpts& debug_opts, uintptr_t brk_addr) {
+    m_log->debug("Placing Single Step breakpoint at 0x{:x}", brk_addr);
+    std::unique_ptr<Breakpoint> singleShotBpkt(new Breakpoint(*new std::string("single-stop"), 0));
+    singleShotBpkt->makeSingleStep(brk_addr);
+    singleShotBpkt->enable(debug_opts);
+    singleShotBpkt->setInjector(new ARMBreakpointInjector());
+    // TODO : not sure if this object should be recorded somewhere?
+    // currently it stored and restored by Debugger class
+    // m_active_brkpnt[brk_addr] = singleShotBpkt;
+    return singleShotBpkt;
+};

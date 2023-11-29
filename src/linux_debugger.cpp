@@ -86,6 +86,9 @@ void TrapReason::print() {
 		case TrapReason::SYSCALL:
 			spdlog::debug("SYSCALL");
 			break;
+		case TrapReason::ERROR:
+			spdlog::debug("ERROR");
+			break;
 		case TrapReason::INVALID:
 			spdlog::debug("INVALID");
 			break;

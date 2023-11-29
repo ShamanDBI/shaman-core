@@ -70,7 +70,19 @@ public:
   	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
 	DebugType debugType;
+
+	// Breakpoint which is currently handling
 	uintptr_t m_brkpnt_addr;
+
+	// when the breakpoint is hit it has to be single-stepped
+	// and restored. This is handled by state transition 
+	// This variable stores the active breakpoint in the 
+	// state-transition
+	Breakpoint* m_active_brkpnt = nullptr;
+
+	// this is a temprory breapoint to handle single-step during
+	// breakpoint handling
+	std::unique_ptr<Breakpoint> m_single_step_brkpnt = nullptr;
 
 	TargetDescription &m_target_desc;
 	// BreakpointMngr* m_breakpointMngr;

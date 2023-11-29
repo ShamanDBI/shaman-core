@@ -103,6 +103,8 @@ public:
     void printStats();
 
     void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, std::string* label);
+
+    std::unique_ptr<Breakpoint> placeSingleStepBreakpoint(DebugOpts& debug_opts, uintptr_t brk_addr);
 };
 
 #endif

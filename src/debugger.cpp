@@ -195,7 +195,8 @@ void Debugger::getTrapReason(DebugEventPtr& debug_event, TraceeProgram* tracee_i
 		 * 
 		 * si_code - is a value indicating why this signal was sent.
 		*/
-		
+		trap_reason.status = TrapReason::ERROR;
+
 		ptrace(PTRACE_GETSIGINFO, signalled_pid, nullptr, &sig_info);
 		
 		switch (event.stopped.signal) {
@@ -294,7 +295,7 @@ bool Debugger::eventLoop() {
 	std::queue<DebugEventPtr> pending_debug_events;
 	
 	bool processing_pending_event = false;
-	
+	uintptr_t brk_addr = 0;
 	while(!m_Tracees.empty()) {
 		m_log->debug("------------------------------");
 		pt_sig_info.si_pid = 0;	
@@ -420,6 +421,8 @@ bool Debugger::eventLoop() {
 		if (!processing_pending_event) {
 			getTrapReason(debug_event, traceeProgram);
 		}
+
+		debug_event->print();
 		
 		auto tracee_flags = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
 		int ret = -1;
@@ -472,6 +475,24 @@ bool Debugger::eventLoop() {
 			// its the state is the final state of breakpoint handling we either restore
 			// the breakpoint or continue without restoring it.
 			
+			debug_opts = &traceeProgram->getDebugOpts();
+			debug_opts->m_register.fetch();
+
+			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+				AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
+				brk_addr = amdReg.getBreakpointAddr();
+			} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+				ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+				brk_addr = armReg.getBreakpointAddr();
+			}
+			m_log->debug("Breakpoint restore : 0x{:x} {:x}", traceeProgram->m_brkpnt_addr, brk_addr);
+			
+			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+				std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
+				ss_brkpt->disable(traceeProgram->getDebugOpts());
+				ss_brkpt.reset();
+			}
+			// debug_event->print();
 			if(debug_event->event.type == TraceeEvent::STOPPED 
 				&& debug_event->reason.status == TrapReason::BREAKPOINT) {
 
@@ -490,13 +511,15 @@ bool Debugger::eventLoop() {
 					// in that case de-queue the event and put it in the active process queue
 					// move the event from per-thread pending queue to the queue 
 					// which will start processing the event
+					m_log->debug("We have pending breakpoint to process!");
 					pending_debug_events.push(std::move(pending_thread_debug_event[traceeProgram->m_brkpnt_addr].front()));
 					pending_thread_debug_event[traceeProgram->m_brkpnt_addr].pop();
 				}
 				traceeProgram->m_brkpnt_addr = 0;
+				traceeProgram->m_active_brkpnt = nullptr;
 				// continue the execution
 				traceeProgram->toStateRunning();
-				traceeProgram->contExecution();
+				traceeProgram->contExecution(0);
 			} else {
 				m_log->error("Processing and Invalid Event! State transistion is invalid!");
 			}
@@ -566,7 +589,7 @@ bool Debugger::eventLoop() {
 					 * Not sure why!
 					 */
 					// traceeProgram->toStateBreakpoint();
-					debug_opts = &traceeProgram->getDebugOpts();				
+					debug_opts = &traceeProgram->getDebugOpts();
 					debug_opts->m_register.fetch();
 					
 					uintptr_t brk_addr = 0;
@@ -590,6 +613,7 @@ bool Debugger::eventLoop() {
 						break;
 					}
 
+					traceeProgram->m_active_brkpnt = m_breakpointMngr->getBreakpointObj(brk_addr);
 					traceeProgram->m_brkpnt_addr = brk_addr;
 
 					active_breakpoint.insert(brk_addr);
@@ -612,11 +636,21 @@ bool Debugger::eventLoop() {
 						traceeProgram->singleStep();
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
-						m_log->trace("Thumb {}", armReg.isThumbMode());
-						armReg.setProgramCounter(brk_addr);
-						armReg.update();
-						traceeProgram->toStateRunning();
-						traceeProgram->contExecution();
+						
+						uintptr_t next_inst_addr = 0;
+						if(armReg.isThumbMode()) {
+							next_inst_addr = brk_addr + 2;
+						} else {
+							next_inst_addr = brk_addr + 7*4;
+						}
+
+						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
+						traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
+						// armReg.setProgramCounter(brk_addr);
+						// armReg.update();
+						traceeProgram->toStateBreakpoint();
+						// single stepping is not supported in ARM32 Linux Kernel
+						traceeProgram->contExecution(0);
 					}
 					
 					// debug_opts->m_register->print();

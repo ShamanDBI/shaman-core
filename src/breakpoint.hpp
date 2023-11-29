@@ -91,8 +91,12 @@ struct Breakpoint {
         // Delete the breakpoint after it has been hit once
         SINGLE_SHOT = 1,
 
-        //
-        NORMAL
+        // this breakpoint will be restored after handling it.
+        NORMAL = 2,
+
+        // this kind of breakpoint are used to single step the 
+        // breakpoint handling, and they are not restored after execution
+        SINGLE_STEP = 3
     } m_type;
 
     BreakpointInjector* m_bkpt_injector;
@@ -140,13 +144,19 @@ struct Breakpoint {
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
 
     ~Breakpoint() { 
-        m_log->warn("Breakpoint : going out out scope!");
+        m_log->warn("Breakpoint at {:x} going out scope!", m_addr);
         delete m_backupData;
         // delete m_label;
     }
 
     Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector) {
         m_bkpt_injector = brk_pnt_injector;
+        return *this;
+    }
+
+    Breakpoint& makeSingleStep(uintptr_t _brkpnt_addr) {
+        m_type = BreakpointType::SINGLE_STEP;
+        setAddress(_brkpnt_addr);
         return *this;
     }
 

@@ -8,6 +8,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
+SET(CMAKE_EXE_LINKER_FLAGS "-static")
 
 # ------------- Download all the needed Dependencies ---------------
 include(FetchContent) # once in the project to include the module
@@ -80,10 +81,10 @@ set(SRC
   src/syscall.cpp
 )
 
-
 target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC} src/main.cpp)
 target_include_directories(shaman PRIVATE src/arch/intel)
 target_include_directories(shaman PRIVATE src)
+# target_link_libraries(shaman -static)
 
 target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
 
