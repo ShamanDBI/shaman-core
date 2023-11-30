@@ -635,20 +635,22 @@ bool Debugger::eventLoop() {
 						traceeProgram->toStateBreakpoint();
 						traceeProgram->singleStep();
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+						// TODO : Breakpoint support for ARM32 is work in progress
 						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 						
-						uintptr_t next_inst_addr = 0;
-						if(armReg.isThumbMode()) {
-							next_inst_addr = brk_addr + 2;
-						} else {
-							next_inst_addr = brk_addr + 7*4;
-						}
-
-						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
-						traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
+						// uintptr_t next_inst_addr = 0;
+						// if(armReg.isThumbMode()) {
+						// 	next_inst_addr = brk_addr + 2;
+						// } else {
+						// 	next_inst_addr = brk_addr + 4;
+						// }
+						// __builtin___clear_cache((char *)brk_addr, (char *)brk_addr + 1024);
+						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
+						// auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
+						// traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
 						// armReg.setProgramCounter(brk_addr);
 						// armReg.update();
-						traceeProgram->toStateBreakpoint();
+						traceeProgram->toStateRunning();
 						// single stepping is not supported in ARM32 Linux Kernel
 						traceeProgram->contExecution(0);
 					}

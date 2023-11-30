@@ -9,6 +9,7 @@
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
+// #include <sys/cachectl.h>
 
 
 #include "syscall_mngr.hpp"
@@ -169,7 +170,7 @@ public:
 	TraceeFactory* m_tracee_factory = nullptr; //remove
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
-
+ 
 	bool m_traceSyscall = false;
 	bool m_followFork = false;
 

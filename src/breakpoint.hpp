@@ -75,6 +75,7 @@ static const uint8_t arm_linux_thumb2_be_breakpoint[] = { 0xf7, 0xf0, 0xa0, 0x00
 
 static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0 };
 
+
 class ARMBreakpointInjector : public BreakpointInjector {
 public:
     ARMBreakpointInjector(): BreakpointInjector(4) {}
@@ -181,7 +182,7 @@ struct Breakpoint {
     virtual void setAddress(uintptr_t brkpnt_addr) {
         // set concrete offset of breakpoint in process memory space
         m_addr = brkpnt_addr;
-        m_backupData = new Addr(m_addr, 1);
+        m_backupData = new Addr(m_addr, 8);
     }
 
     void printDebug() {
@@ -193,7 +194,8 @@ struct Breakpoint {
     }
 
     bool shouldEnable() {
-        if (m_type == BreakpointType::SINGLE_SHOT) {
+        if (m_type == BreakpointType::SINGLE_SHOT || 
+            m_type == BreakpointType::SINGLE_STEP ) {
             return false;
         } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
             return false;

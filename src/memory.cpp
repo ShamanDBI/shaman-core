@@ -7,12 +7,12 @@
 #include <fstream>
 
 
-Addr::Addr(uint64_t _r_addr, size_t _size): m_size(_size), r_addr(_r_addr) {
-    if(_size < 8) {
-        _size = 8;
-    }
-    m_data = (uint8_t *) malloc(_size);
-    // printf("mem alloc , %lu\n", size);
+Addr::Addr(uint64_t _r_addr, size_t _size)
+    : m_size(_size), r_addr(_r_addr) {
+        if(_size < 8) {
+            _size = 8;
+        }
+        m_data = (uint8_t *) malloc(_size);
 };
 
 Addr::Addr(Addr &addrObj) {

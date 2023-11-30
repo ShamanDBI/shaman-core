@@ -77,8 +77,9 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
             brkpnt_obj->addPid(debug_opts.getPid());
-
             m_active_brkpnt[brk_addr] = brkpnt_obj;
+            // auto bb_obj = placeSingleStepBreakpoint(debug_opts, brk_addr + 4);
+            // m_active_brkpnt[brk_addr + 4] = bb_obj.release(); 
             brk_pending_objs.pop_back();
         }
         pend_iter = m_pending.erase(pend_iter); // or "it = m.erase(it)" since C++11
