@@ -21,7 +21,6 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 	ARM32Register* armRegObj;
 
 	debug_opts.m_register.fetch();
-
 	switch(traceeProg.m_target_desc.m_cpu_arch) {
 	case CPU_ARCH::AMD64:
 		amdRegObj = dynamic_cast<AMD64Register*>(&debug_opts.m_register);
@@ -45,26 +44,35 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 		m_cached_args.syscall_id = sys_id;
 	break;
 	case CPU_ARCH::ARM64:
+	m_log->debug("reading prams");
 		arm64RegObj = dynamic_cast<ARM64Register*>(&debug_opts.m_register);
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
+		call_id = static_cast<int16_t>(arm64RegObj->getRegIdx(ARM64Register::X8));
 		// m_log->debug("raw call id {}", call_id);
 		sys_id = arm64_canonicalize_syscall(static_cast<ARM64_SYSCALL>(call_id));
+		m_cached_args.syscall_id = sys_id;
+		
+		m_cached_args.v_arg[0] = arm64RegObj->getRegIdx(ARM64Register::X0);
+		m_cached_args.v_arg[1] = arm64RegObj->getRegIdx(ARM64Register::X1);
+		m_cached_args.v_arg[2] = arm64RegObj->getRegIdx(ARM64Register::X2);
+		m_cached_args.v_arg[3] = arm64RegObj->getRegIdx(ARM64Register::X3);
+		m_cached_args.v_arg[4] = arm64RegObj->getRegIdx(ARM64Register::X4);
+		m_cached_args.v_arg[5] = arm64RegObj->getRegIdx(ARM64Register::X5);
 	break;
 	case CPU_ARCH::ARM32:
 		armRegObj = dynamic_cast<ARM32Register*>(&debug_opts.m_register);
 		
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(ARM32Register::R7));
 		// m_log->debug("raw call id {}", call_id);
 		sys_id = arm32_canonicalize_syscall(call_id);
 		// m_log->debug("Syscall {}", sys_id.getString());
 		m_cached_args.syscall_id = sys_id;
 		
-		m_cached_args.v_arg[0] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_0);
-		m_cached_args.v_arg[1] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_1);
-		m_cached_args.v_arg[2] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_2);
-		m_cached_args.v_arg[3] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_3);
-		m_cached_args.v_arg[4] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_4);
-		m_cached_args.v_arg[5] = armRegObj->getRegIdx(SYSCALL_ARM32_ARG_5);
+		m_cached_args.v_arg[0] = armRegObj->getRegIdx(ARM32Register::R0);
+		m_cached_args.v_arg[1] = armRegObj->getRegIdx(ARM32Register::R1);
+		m_cached_args.v_arg[2] = armRegObj->getRegIdx(ARM32Register::R2);
+		m_cached_args.v_arg[3] = armRegObj->getRegIdx(ARM32Register::R3);
+		m_cached_args.v_arg[4] = armRegObj->getRegIdx(ARM32Register::R4);
+		m_cached_args.v_arg[5] = armRegObj->getRegIdx(ARM32Register::R5);
 		break;
 	default:
 		m_log->error("Invalid Archictecture");
@@ -78,6 +86,7 @@ void SyscallManager::readRetValue(TraceeProgram& traceeProg) {
 	SysCallId sys_id = SysCallId::NO_SYSCALL;
 	AMD64Register* regObj = nullptr;
 	ARM32Register* armRegObj = nullptr;
+	ARM64Register* arm64RegObj = nullptr;
 
 	switch(traceeProg.m_target_desc.m_cpu_arch) {
 	case CPU_ARCH::AMD64:
@@ -85,11 +94,15 @@ void SyscallManager::readRetValue(TraceeProgram& traceeProg) {
 		regObj->fetch();
 		m_cached_args.v_rval = regObj->getRegIdx(SYSCALL_AMD64_RET);
 		break;
-
 	case CPU_ARCH::ARM32:
 		armRegObj = dynamic_cast<ARM32Register *>(&debug_opts.m_register);
 		armRegObj->fetch();
-		m_cached_args.v_rval = armRegObj->getRegIdx(SYSCALL_AMD64_RET);
+		m_cached_args.v_rval = armRegObj->getRegIdx(SYSCALL_ARM32_RET);
+		break;
+	case CPU_ARCH::ARM64:
+		arm64RegObj = dynamic_cast<ARM64Register *>(&debug_opts.m_register);
+		arm64RegObj->fetch();
+		m_cached_args.v_rval = arm64RegObj->getRegIdx(SYSCALL_ARM64_RET);
 		break;
 	default:
 		m_log->error("Invalid Archictecture");

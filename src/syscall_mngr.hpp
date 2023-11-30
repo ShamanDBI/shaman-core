@@ -31,8 +31,18 @@
 #define SYSCALL_ARM32_RET   0
 
 
-class TraceeProgram;
+#define SYSCALL_ID_ARM64    7
+#define SYSCALL_ARM64_ARG_0 0
+#define SYSCALL_ARM64_ARG_1 1
+#define SYSCALL_ARM64_ARG_2 2
+#define SYSCALL_ARM64_ARG_3 3
+#define SYSCALL_ARM64_ARG_4 4
+#define SYSCALL_ARM64_ARG_5 5
+#define SYSCALL_ARM64_ARG_6 6
+#define SYSCALL_ARM64_RET   0
 
+
+class TraceeProgram;
 
 struct SyscallTraceData {
 	pid_t m_pid;						/* If 0, this syscall trace data is free */

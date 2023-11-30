@@ -50,7 +50,9 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
 {
     debug_opts.m_procMap.print();
     m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
+    
     BreakpointInjector* brkPntInjector;
+    
     if (m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 || m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
         brkPntInjector = new X86BreakpointInjector();
     } else if(m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {

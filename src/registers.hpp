@@ -289,7 +289,7 @@ public:
     };
 
     ARM64Register(pid_t tracee_pid)
-        : IRegisters<uint64_t>(tracee_pid, ARCH_ARM_GP_REG_CNT) {
+        : IRegisters<uint64_t>(tracee_pid, ARCH_ARM64_GP_REG_CNT) {
         
         program_register_idx = static_cast<uint8_t>(REGISTER_IDX::PC);
         stack_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::SP);

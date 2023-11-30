@@ -66,6 +66,12 @@ The problem arises when a thread A hits a breakpoint to step-over is we have to 
 1. Case 1 - Two threads are operating on different section of the code. This is really not a problem out tool currently supports this feature.
 1. Case 2 - Two threads running the same section of the code. This is little challenging to solve currently we are working on this.
 
+## Adding New Architecture Support
+
+There are three places where archiecture specific support is needed
+1. Breakpoint Handling
+1. System Call Tracing
+1. Defining and using Register values
 
 ## Research Paper to Incorporate
 

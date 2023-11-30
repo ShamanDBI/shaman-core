@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
 	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
 
-	targetDesc.m_cpu_arch = CPU_ARCH::ARM32;
+	targetDesc.m_cpu_arch = CPU_ARCH::ARM64;
 	targetDesc.m_cpu_mode = CPU_MODE::ARM;
 
 
