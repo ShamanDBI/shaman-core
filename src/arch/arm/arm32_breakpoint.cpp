@@ -1,14 +1,5 @@
 #include "breakpoint.hpp"
-// #include 
-#define BREAKPOINT_X86_INST 0xcc
-#define NOP_INST 0x90
-#define BREAKPOINT_SIZE sizeof(uint64_t)
-// #define BREAKPOINT_SIZE 1
 
-
-// Breakpoint::Breakpoint(uintptr_t bk_addr, std::string* _label):
-//     m_addr(bk_addr), m_enabled(true), m_label(_label),
-//     m_backupData(new Addr(bk_addr, BREAKPOINT_SIZE)) {}
 
 void ARMBreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) {
     // TODO : save the data of the breakpoint location in the buffer this
@@ -21,7 +12,6 @@ void ARMBreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) {
         thumb_mode = true;
         brk_pnt_size = 2;
     }
-
     // Create shadow copy of the original instrucation
     void* tmp_backup_byte = malloc(brk_pnt_size);
     debug_opts.m_memory.read(m_backupData, brk_pnt_size);
@@ -43,7 +33,8 @@ void ARMBreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) {
     }
     m_backupData->print();
     // Shadow copy is commit to the process memory
-    debug_opts.m_memory.write(m_backupData, brk_pnt_size);
+    m_log->warn("All this point {}", brk_pnt_size);
+    debug_opts.m_memory.write(m_backupData, 8);
     // Restore the shadow copy with the original instruction
     memcpy(m_backupData->m_data, tmp_backup_byte, brk_pnt_size);
     free(tmp_backup_byte);

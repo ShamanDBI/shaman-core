@@ -422,7 +422,7 @@ bool Debugger::eventLoop() {
 			getTrapReason(debug_event, traceeProgram);
 		}
 
-		debug_event->print();
+		// debug_event->print();
 		
 		auto tracee_flags = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT;
 		int ret = -1;
@@ -484,7 +484,11 @@ bool Debugger::eventLoop() {
 			} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 				ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 				brk_addr = armReg.getBreakpointAddr();
+			} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+				ARM64Register& arm64Reg = reinterpret_cast<ARM64Register&>(debug_opts->m_register);
+				brk_addr = arm64Reg.getBreakpointAddr();
 			}
+
 			m_log->debug("Breakpoint restore : 0x{:x} {:x}", traceeProgram->m_brkpnt_addr, brk_addr);
 			
 			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
@@ -600,6 +604,9 @@ bool Debugger::eventLoop() {
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 						brk_addr = armReg.getBreakpointAddr();
+					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+						ARM64Register& armReg = reinterpret_cast<ARM64Register&>(debug_opts->m_register);
+						brk_addr = armReg.getBreakpointAddr();
 					}
 
 					if(active_breakpoint.count(brk_addr) > 0) {
@@ -643,7 +650,7 @@ bool Debugger::eventLoop() {
 						// 	next_inst_addr = brk_addr + 2;
 						// } else {
 						// 	next_inst_addr = brk_addr + 4;
-						// }
+						// }}
 						// __builtin___clear_cache((char *)brk_addr, (char *)brk_addr + 1024);
 						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
 						// auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
@@ -653,6 +660,9 @@ bool Debugger::eventLoop() {
 						traceeProgram->toStateRunning();
 						// single stepping is not supported in ARM32 Linux Kernel
 						traceeProgram->contExecution(0);
+					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+						traceeProgram->toStateBreakpoint();
+						traceeProgram->singleStep();
 					}
 					
 					// debug_opts->m_register->print();

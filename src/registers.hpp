@@ -283,8 +283,8 @@ public:
         FP,
         IP,
         SP,
-        LR,
         PC,
+        LR,
         CPSR
     };
 
@@ -295,6 +295,11 @@ public:
         stack_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::SP);
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::FP);
     }
+
+    uint64_t getBreakpointAddr() {
+        return getProgramCounter();
+    }
+
     void print() {};
 };
 

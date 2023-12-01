@@ -57,6 +57,8 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
         brkPntInjector = new X86BreakpointInjector();
     } else if(m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
         brkPntInjector = new ARMBreakpointInjector();
+    } else if(m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+        brkPntInjector = new ARM64BreakpointInjector();
     }
 
     
@@ -78,6 +80,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
             m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
+            m_log->trace("This is debug stop!");
             brkpnt_obj->addPid(debug_opts.getPid());
             m_active_brkpnt[brk_addr] = brkpnt_obj;
             // auto bb_obj = placeSingleStepBreakpoint(debug_opts, brk_addr + 4);
@@ -86,6 +89,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
         }
         pend_iter = m_pending.erase(pend_iter); // or "it = m.erase(it)" since C++11
     }
+    m_log->trace("All breakpoints injected!");
 }
 
 Breakpoint* BreakpointMngr::getBreakpointObj(uintptr_t bk_addr)

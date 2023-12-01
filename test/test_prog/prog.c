@@ -105,7 +105,7 @@ int test_multi_threading_different_section() {
 void test_file_operation() {
     printf("This is file test program\n");
     
-    int fd = open("/home/hussain/hi.txt", O_RDONLY);
+    int fd = open("/data/local/tmp/hi.txt", O_RDONLY);
     char buf[100];
     read(fd, buf, 10);
     write(fd, buf, 10);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     if(argc > 1) {
         test_case_idx = atoi(argv[1]);
     }
-    test_case_idx = 6;
+    // test_case_idx = 6;
     switch(test_case_idx) {
         case 1:
             rec_fork();

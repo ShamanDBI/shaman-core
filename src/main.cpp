@@ -11,48 +11,46 @@ class OverwriteFileData : public FileOperationTracer {
 
 public:
 
-	bool onFilter(SyscallTraceData *sc_trace) {
+	bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		
-		// spdlog::warn("onFilter!");
+		m_log->warn("onFilter!");
 
-		switch(sc_trace->getSyscallNo()) {
+		switch(sc_trace.getSyscallNo()) {
 		case SysCallId::OPENAT:
-		/**
-		 * 
-			Addr file_path_addr_t(sc_trace->v_arg[1], 100);
-			debug_opts.m_memory.read(&file_path_addr_t, 100);
-			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
-				spdlog::trace("We found the file we wanted to mess with!");
+			Addr file_path_addr_t(sc_trace.v_arg[1], 100);
+			debugOpts.m_memory.read(&file_path_addr_t, 100);
+			m_log->trace("File path : {}", (char *)file_path_addr_t.m_data);
+			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/data/local/tmp/hi.txt") == 0) {
+				m_log->trace("We found the file we wanted to mess with!");
 				return true;
 			}
-		*/
 			break;
 		}
 		return false;
 	}
 
-	void onRead(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData *sc_trace) {
+	void onRead(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
 		if(sys_state == SyscallState::ON_ENTER) {
-			spdlog::debug("onRead: onEnter");
-			int fd = static_cast<int>(sc_trace->v_arg[0]);
-			uint64_t buf_len = sc_trace->v_arg[2];
-			Addr buf(sc_trace->v_arg[1], buf_len);
-			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
+			m_log->debug("onRead: onEnter");
+			int fd = static_cast<int>(sc_trace.v_arg[0]);
+			uint64_t buf_len = sc_trace.v_arg[2];
+			Addr buf(sc_trace.v_arg[1], buf_len);
+			m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
 		} else {
-			spdlog::warn("onRead: onExit");
-			int fd = static_cast<int>(sc_trace->v_arg[0]);
-			uint64_t buf_len = sc_trace->v_arg[2];
-			Addr buf(sc_trace->v_arg[1], buf_len);
+			m_log->warn("onRead: onExit");
+			int fd = static_cast<int>(sc_trace.v_arg[0]);
+			uint64_t buf_len = sc_trace.v_arg[2];
+			Addr buf(sc_trace.v_arg[1], buf_len);
 			debug_opts.m_memory.read(&buf, buf_len);
 			printf("read %s\n", reinterpret_cast<char*>(buf.m_data));
-			spdlog::warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
+			m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
 			memcpy(buf.m_data, "Malicous\x00", 9);
 			debug_opts.m_memory.write(&buf, buf_len);
 		}
 	}
 
 	void onClose(SyscallState sys_state, SyscallTraceData *sc_trace) {
-		spdlog::trace("onClose");
+		m_log->trace("onClose");
 	}
 
 };
@@ -63,14 +61,14 @@ class OpenAt1Handler : public SyscallHandler {
 public:	
 	OpenAt1Handler(): SyscallHandler(SysCallId::OPEN) {}
 
-	int onEnter(SyscallTraceData* sc_trace) {
-		spdlog::trace("onEnter : System call handler test");
-		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+	int onEnter(SyscallTraceData& sc_trace) {
+		m_log->debug("onEnter : System call handler test");
+		m_log->debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace.v_arg[0], sc_trace.v_arg[1], sc_trace.v_arg[2],sc_trace.v_arg[3], sc_trace.v_rval);
 		return 0;
 	}
-	int onExit(SyscallTraceData* sc_trace) {
-		spdlog::trace("onExit : System call handler test");
-		spdlog::trace("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+	int onExit(SyscallTraceData& sc_trace) {
+		m_log->debug("onExit : System call handler test");
+		m_log->debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace.v_arg[0], sc_trace.v_arg[1], sc_trace.v_arg[2],sc_trace.v_arg[3], sc_trace.v_rval);
 		return 0;
 	}
 };
@@ -81,15 +79,15 @@ class OpenAt2Handler : public SyscallHandler {
 public:	
 	OpenAt2Handler(): SyscallHandler(SysCallId::OPENAT) {}
 
-	int onEnter(SyscallTraceData* sc_trace) {
-		spdlog::debug("onEnter : System call handler test again!");
-		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+	int onEnter(SyscallTraceData& sc_trace) {
+		m_log->debug("onEnter : System call handler test again!");
+		m_log->debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace.v_arg[0], sc_trace.v_arg[1], sc_trace.v_arg[2],sc_trace.v_arg[3], sc_trace.v_rval);
 		return 0;
 	}
 
-	int onExit(SyscallTraceData* sc_trace) {
-		spdlog::debug("onExit : System call handler test again!");
-		spdlog::debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace->v_arg[0], sc_trace->v_arg[1], sc_trace->v_arg[2],sc_trace->v_arg[3], sc_trace->v_rval);
+	int onExit(SyscallTraceData& sc_trace) {
+		m_log->debug("onExit : System call handler test again!");
+		m_log->debug("openat({:x}, {:x}, {}, {}) [{}]", sc_trace.v_arg[0], sc_trace.v_arg[1], sc_trace.v_arg[2],sc_trace.v_arg[3], sc_trace.v_rval);
 		return 0;
 	}
 };
@@ -135,7 +133,7 @@ int main(int argc, char **argv) {
 	bool trace_syscalls = false;
 	bool single_shot {false};
 	bool follow_fork = false;
-	int debug_log_level = 5;
+	int debug_log_level = 2;
     
     app.add_option("-l,--log", app_log_path, "application debug logs");
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
@@ -144,17 +142,20 @@ int main(int argc, char **argv) {
 	app.add_option("-m,--cpu-mode", target_cpu_mode, "Target architecture CPU mode");
 
 	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
+	
 	app.add_option("-c,--cov-basic-block", basic_block_path, "Basic Block addresses which will be used for coverage collection");
 	app.add_option("--cov-out", coverage_output, "Output of the coverage data");	
 	app.add_flag("--single-shot", single_shot, "Coverage collection should be single shot");
 	
-	app.add_option("-e,--exec", exec_prog, "program to execute");//->expected(-1)->required();
 	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
 	
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
 	
 	app.add_option("--debug", debug_log_level, "set debug level, for eg 0 for trace and 6 for critical");
+	app.add_option("-e,--exec", exec_prog, "program to execute") \
+		->expected(-1) \
+		->required();
 
     CLI11_PARSE(app, argc, argv);
 	
@@ -193,7 +194,7 @@ int main(int argc, char **argv) {
 	
 	// debug.addSyscallHandler(new OpenAt1Handler());
 	// debug.addSyscallHandler(new OpenAt2Handler());
-	// debug.addFileOperationHandler(new OverwriteFileData());
+	debug.addFileOperationHandler(new OverwriteFileData());
 
 	if(trace_syscalls) {
 		debug.traceSyscall();

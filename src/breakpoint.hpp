@@ -77,8 +77,19 @@ static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0
 
 
 class ARMBreakpointInjector : public BreakpointInjector {
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 public:
     ARMBreakpointInjector(): BreakpointInjector(4) {}
+
+    void inject(DebugOpts& debug_opts, Addr *m_backupData);
+    void restore(DebugOpts& debug_opts, Addr *m_backupData);
+};
+
+
+class ARM64BreakpointInjector : public BreakpointInjector {
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+public:
+    ARM64BreakpointInjector(): BreakpointInjector(4) {}
 
     void inject(DebugOpts& debug_opts, Addr *m_backupData);
     void restore(DebugOpts& debug_opts, Addr *m_backupData);

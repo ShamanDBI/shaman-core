@@ -47,7 +47,7 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 	m_log->debug("reading prams");
 		arm64RegObj = dynamic_cast<ARM64Register*>(&debug_opts.m_register);
 		call_id = static_cast<int16_t>(arm64RegObj->getRegIdx(ARM64Register::X8));
-		// m_log->debug("raw call id {}", call_id);
+		m_log->debug("raw call id {}", call_id);
 		sys_id = arm64_canonicalize_syscall(static_cast<ARM64_SYSCALL>(call_id));
 		m_cached_args.syscall_id = sys_id;
 		

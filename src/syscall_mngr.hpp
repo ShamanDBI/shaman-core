@@ -131,6 +131,7 @@ public:
 struct SyscallHandler {
 
 	SysCallId m_syscall_id;
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
 	SyscallHandler(SysCallId _syscall_id): 
 		m_syscall_id(_syscall_id) {}
