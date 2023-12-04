@@ -3,6 +3,132 @@
 #include "tracee.hpp"
 
 
+// this system call which are related to filer operations
+	// https://linasm.sourceforge.net/docs/syscalls/filesystem.php
+static const std::unordered_set<int16_t> FILE_OPTS_SYSCALL_ID {
+	SysCallId::OPEN,
+	SysCallId::CREAT,
+	SysCallId::OPENAT,
+	
+	
+	SysCallId::READ,
+	SysCallId::READV,
+	SysCallId::PREAD,
+	SysCallId::PREADV,
+
+	SysCallId::WRITE,
+	SysCallId::WRITEV,
+	SysCallId::PWRITE,
+	SysCallId::PWRITEV,
+	
+	SysCallId::LSEEK,
+	SysCallId::SENDFILE,
+
+	SysCallId::CLOSE,
+
+	SysCallId::IOCTL,
+	SysCallId::STAT
+};
+
+// https://linasm.sourceforge.net/docs/syscalls/network.php
+static const std::unordered_set<int16_t> NETWORK_OPTS_SYSCALL_ID {
+	SysCallId::SOCKET,
+	SysCallId::SOCKETPAIR,
+	SysCallId::SETSOCKOPT,
+	SysCallId::GETSOCKOPT,
+	SysCallId::SHUTDOWN,
+	SysCallId::GETPEERNAME,
+	SysCallId::GETSOCKNAME,
+	
+	SysCallId::CONNECT,
+	SysCallId::ACCEPT,
+	SysCallId::LISTEN,
+	SysCallId::BIND,
+
+	SysCallId::READ,
+	SysCallId::RECV,
+	SysCallId::RECVFROM,
+	SysCallId::RECVMSG,
+	
+	SysCallId::WRITE,
+	SysCallId::SENDTO,
+	SysCallId::SENDMSG,
+	SysCallId::SENDFILE,
+	
+	SysCallId::SETHOSTNAME,
+	SysCallId::SETDOMAINNAME,
+};
+
+static const std::unordered_set<int16_t> SHARED_MEMORY_OPTS_SYSCALL_ID {
+	SysCallId::SHMGET,
+	SysCallId::SHMCTL,
+	SysCallId::SHMAT,
+	SysCallId::SHMDT
+};
+
+static const std::unordered_set<int16_t> PIPE_OPTS_SYSCALL_ID {
+	SysCallId::PIPE,
+	SysCallId::PIPE2,
+	SysCallId::TEE,
+	SysCallId::SPLICE,
+	SysCallId::VMSPLICE,
+};
+
+static const std::unordered_set<int16_t> SEMAPHONES_OPTS_SYSCALL_ID {
+	SysCallId::SEMGET,
+	SysCallId::SEMCTL,
+	SysCallId::SEMOP,
+	SysCallId::SEMTIMEDOP
+};
+
+static const std::unordered_set<int16_t> MSG_QUEUE_OPTS_SYSCALL_ID {
+	SysCallId::MSGGET,
+	SysCallId::MSGCTL,
+	SysCallId::MSGSND,
+	SysCallId::MSGRCV,
+	SysCallId::MQ_OPEN,
+	SysCallId::MQ_UNLINK,
+	SysCallId::MQ_GETSETATTR,
+	SysCallId::MQ_TIMEDSEND,
+	SysCallId::MQ_TIMEDRECEIVE,
+	SysCallId::MQ_NOTIFY
+};
+
+static const std::unordered_set<int16_t> FUTEX_OPTS_SYSCALL_ID {
+	SysCallId::FUTEX,
+	SysCallId::SET_ROBUST_LIST,
+	SysCallId::GET_ROBUST_LIST
+};
+
+static const std::unordered_set<int16_t> PROCESS_OPTS_SYSCALL_ID {};
+
+static const std::unordered_set<int16_t> SIGNALS_OPTS_SYSCALL_ID {
+	SysCallId::KILL,
+	SysCallId::TKILL,
+	SysCallId::TGKILL,
+	SysCallId::PAUSE,
+	SysCallId::RT_SIGACTION,
+	SysCallId::RT_SIGPROCMASK,
+	SysCallId::RT_SIGPENDING,
+	SysCallId::RT_SIGQUEUEINFO,
+	// SysCallId::RT_TGSIGQUEUEINFO,
+	SysCallId::RT_SIGTIMEDWAIT,
+	SysCallId::RT_SIGSUSPEND,
+	SysCallId::RT_SIGRETURN,
+	SysCallId::SIGALTSTACK,
+	// SysCallId::SIGNALFD,
+	// SysCallId::SIGNALFD4,
+	// SysCallId::EVENTFD,
+	SysCallId::EVENTFD2,
+	SysCallId::RESTART_SYSCALL,
+
+};
+
+static const std::unordered_set<int16_t> TIME_OPTS_SYSCALL_ID {
+
+};
+
+
 /**
  *  src : https://chromium.googlesource.com/chromiumos/docs/+/HEAD/constants/syscalls.md
  *	arch	syscall NR	return	arg0	arg1	arg2	arg3	arg4	arg5
@@ -39,7 +165,7 @@ void SyscallManager::readSyscallParams(TraceeProgram& traceeProg) {
 		break;
 	case CPU_ARCH::X86:
 		x86RegObj = dynamic_cast<X86Register*>(&debug_opts.m_register);
-		call_id = static_cast<int16_t>(armRegObj->getRegIdx(SYSCALL_ID_ARM32));
+		call_id = static_cast<int16_t>(armRegObj->getRegIdx(X86Register::EAX));
 		sys_id = i386_canonicalize_syscall(call_id);
 		m_cached_args.syscall_id = sys_id;
 	break;
@@ -84,25 +210,31 @@ void SyscallManager::readRetValue(TraceeProgram& traceeProg) {
 
 	DebugOpts& debug_opts = traceeProg.m_debug_opts;
 	SysCallId sys_id = SysCallId::NO_SYSCALL;
+	X86Register* x86RegObj = nullptr;
 	AMD64Register* regObj = nullptr;
 	ARM32Register* armRegObj = nullptr;
 	ARM64Register* arm64RegObj = nullptr;
 
 	switch(traceeProg.m_target_desc.m_cpu_arch) {
+	case CPU_ARCH::X86:
+		x86RegObj = dynamic_cast<X86Register *>(&debug_opts.m_register);
+		x86RegObj->fetch();
+		m_cached_args.v_rval = x86RegObj->getRegIdx(X86Register::EAX);
+		break;
 	case CPU_ARCH::AMD64:
 		regObj = dynamic_cast<AMD64Register *>(&debug_opts.m_register);
 		regObj->fetch();
-		m_cached_args.v_rval = regObj->getRegIdx(SYSCALL_AMD64_RET);
+		m_cached_args.v_rval = regObj->getRegIdx(AMD64Register::RAX);
 		break;
 	case CPU_ARCH::ARM32:
 		armRegObj = dynamic_cast<ARM32Register *>(&debug_opts.m_register);
 		armRegObj->fetch();
-		m_cached_args.v_rval = armRegObj->getRegIdx(SYSCALL_ARM32_RET);
+		m_cached_args.v_rval = armRegObj->getRegIdx(ARM32Register::R0);
 		break;
 	case CPU_ARCH::ARM64:
 		arm64RegObj = dynamic_cast<ARM64Register *>(&debug_opts.m_register);
 		arm64RegObj->fetch();
-		m_cached_args.v_rval = arm64RegObj->getRegIdx(SYSCALL_ARM64_RET);
+		m_cached_args.v_rval = arm64RegObj->getRegIdx(ARM64Register::X0);
 		break;
 	default:
 		m_log->error("Invalid Archictecture");
@@ -111,7 +243,12 @@ void SyscallManager::readRetValue(TraceeProgram& traceeProg) {
 }
 
 int SyscallManager::addFileOperationHandler(FileOperationTracer* file_opt_handler) {
-	m_file_ops_pending.push_front(file_opt_handler);
+	m_pending_file_opts_handler.push_front(file_opt_handler);
+	return 0;
+}
+
+int SyscallManager::addNetworkOperationHandler(NetworkOperationTracer* network_opt_handler) {
+	m_pending_network_opts_handler.push_front(network_opt_handler);
 	return 0;
 }
 
@@ -129,34 +266,105 @@ int SyscallManager::removeSyscallHandler(SyscallHandler* syscall_hdlr) {
 	return 0;
 }
 
-int SyscallManager::handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts) {
-	int fd = static_cast<int>(m_cached_args.v_arg[0]);
+int SyscallManager::handleFileOperation(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& syscall_args) {
+	int fd = static_cast<int>(syscall_args.v_arg[0]);
 
-	auto file_ops_iter = m_file_ops_handler.find(fd);  
+	auto file_ops_iter = m_active_file_opts_handler.find(fd);  
 	
-	if ( file_ops_iter == m_file_ops_handler.end() ) {  
+	if ( file_ops_iter == m_active_file_opts_handler.end() ) {  
 		// Not found!
-		m_log->trace("No FileOperation is registered for this fd");
+		m_log->trace("No FileOperation is registered for fd {}", fd);
+		return 0;
+	}
+	// File operation handler which has matched the file descriptor
+	FileOperationTracer* file_ops_obj = file_ops_iter->second;
+
+	switch(syscall_args.syscall_id.getValue()) {
+	case SysCallId::OPEN:
+	case SysCallId::OPENAT:
+	case SysCallId::CREAT:
+		file_ops_obj->onOpen(sys_state, debug_opts, syscall_args);
+		break;
+	
+	case SysCallId::READ:
+	case SysCallId::READV:
+	case SysCallId::PREAD:
+	case SysCallId::PREADV:
+		file_ops_obj->onRead(sys_state, debug_opts, syscall_args);
+		break;
+
+	case SysCallId::WRITE:
+	case SysCallId::WRITEV:
+	case SysCallId::PWRITE:
+	case SysCallId::PWRITEV:
+		file_ops_obj->onWrite(sys_state, debug_opts, syscall_args);
+		break;
+	
+	case SysCallId::CLOSE:
+		file_ops_obj->onClose(sys_state, debug_opts, syscall_args);
+		break;
+	case SysCallId::IOCTL:
+		file_ops_obj->onIoctl(sys_state, debug_opts, syscall_args);
+		break;
+	default:
+		file_ops_obj->onMisc(sys_state, debug_opts, syscall_args);
+		break;
+	}
+	return 0;
+}
+
+int SyscallManager::handleNetworkOperation(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& syscall_args) {
+	int fd = static_cast<int>(syscall_args.v_arg[0]);
+
+	auto socket_opts_iter = m_active_network_opts_handler.find(fd);  
+	
+	if ( socket_opts_iter == m_active_network_opts_handler.end() ) {  
+		// Not found!
+		m_log->trace("No NetworkOperationTracer is registered for fd {}", fd);
 		return 0;
 	}
 	// Found
-	FileOperationTracer* file_ops_obj = file_ops_iter->second;
+	NetworkOperationTracer* network_opts_obj = socket_opts_iter->second;
 
-	switch(m_cached_args.syscall_id.getValue()) {
-	case SysCallId::READ :
-		file_ops_obj->onRead(sys_state, debug_opts, m_cached_args);
-		break;
-	case SysCallId::WRITE :
-		file_ops_obj->onWrite(sys_state, debug_opts, m_cached_args);
-		break;
-	case SysCallId::CLOSE :
-		file_ops_obj->onClose(sys_state, debug_opts, m_cached_args);
-		break;
-	case SysCallId::IOCTL :
-		file_ops_obj->onIoctl(sys_state, debug_opts, m_cached_args);
-		break;
-	default:
-		m_log->error("This FileOperation is not implemented!");
+	switch(syscall_args.syscall_id.getValue()) {
+		case SysCallId::SOCKET:
+		case SysCallId::SOCKETPAIR:
+			network_opts_obj->onOpen(sys_state, debug_opts, syscall_args);
+			break;
+		
+		case SysCallId::CONNECT:
+			network_opts_obj->onConnect(sys_state, debug_opts, syscall_args);
+			break;
+		case SysCallId::ACCEPT:
+			network_opts_obj->onAccept(sys_state, debug_opts, syscall_args);
+			break;
+		case SysCallId::LISTEN:
+			network_opts_obj->onListen(sys_state, debug_opts, syscall_args);
+			break;
+		case SysCallId::BIND:
+			network_opts_obj->onBind(sys_state, debug_opts, syscall_args);
+			break;
+
+		case SysCallId::IOCTL:
+			network_opts_obj->onIoctl(sys_state, debug_opts, syscall_args);
+			break;
+
+		case SysCallId::READ:
+		case SysCallId::RECV:
+		case SysCallId::RECVFROM:
+		case SysCallId::RECVMSG:
+			network_opts_obj->onRecv(sys_state, debug_opts, syscall_args);
+			break;
+
+		case SysCallId::WRITE:
+		case SysCallId::SENDTO:
+		case SysCallId::SENDMSG:
+		case SysCallId::SENDFILE:
+			network_opts_obj->onSend(sys_state, debug_opts, syscall_args);
+			break;
+		default:
+			network_opts_obj->onMisc(sys_state, debug_opts, syscall_args);
+			break;
 	}
 	return 0;
 }
@@ -165,10 +373,15 @@ int SyscallManager::onEnter(TraceeProgram& traceeProg) {
 	DebugOpts& debug_opts = traceeProg.m_debug_opts;
 	readSyscallParams(traceeProg);
 	m_log->debug("ID {}", m_cached_args.getSyscallNo());
+	
 	// File operation handler
-	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
+	if (FILE_OPTS_SYSCALL_ID.count(m_cached_args.getSyscallNo())) {
 		m_log->trace("FILE OPT DETECED");
-		handleFileOpt(SyscallState::ON_ENTER, debug_opts);
+		handleFileOperation(SyscallState::ON_ENTER, debug_opts, m_cached_args);
+	}
+
+	if (NETWORK_OPTS_SYSCALL_ID.count(m_cached_args.getSyscallNo())) {
+		handleNetworkOperation(SyscallState::ON_ENTER, debug_opts, m_cached_args);
 	}
 
 	// Find and invoke system call handler
@@ -192,36 +405,87 @@ int SyscallManager::onEnter(TraceeProgram& traceeProg) {
 
 int SyscallManager::onExit(TraceeProgram& traceeProg) {
 	DebugOpts& debug_opts = traceeProg.m_debug_opts;
-	m_log->debug("NAME : <- {} 0x{:x}", m_cached_args.syscall_id.getString(), m_cached_args.v_rval);
 	readRetValue(traceeProg);
+	m_log->debug("NAME : <- {} 0x{:x}", m_cached_args.syscall_id.getString(), m_cached_args.v_rval);
+
+	// Resource Tracing check has to be done on exit because if there is a
+	// match you need resource identifier for futher tracing operation
+	NetworkOperationTracer* network_opt = nullptr;
+
+	// Check if any of the File Operation Tracer is getting created
+	// if so then check the criteria and if 'onFilter' method returns
+	// true then move the tracer from pending state to active state
 	FileOperationTracer* f_opts = nullptr;
-	int fd = 0;
-	if(m_cached_args.syscall_id == SysCallId::OPENAT) {
+	
+	int resource_fd = -1;
+
+	// This is checking if new resource is getting created, if so
+	// try to attach tracer to the file descriptor
+	if(m_cached_args.syscall_id == SysCallId::OPENAT || 
+	   m_cached_args.syscall_id == SysCallId::OPEN   || 
+	   m_cached_args.syscall_id == SysCallId::CREAT) {
 		// File operation detector
-		for (auto file_opt_iter = m_file_ops_pending.begin();
-			file_opt_iter != m_file_ops_pending.end();)
+		for (auto file_opt_iter = m_pending_file_opts_handler.begin();
+			file_opt_iter != m_pending_file_opts_handler.end();)
 	    {
+			m_log->critical("This is here!");
 	    	f_opts = *file_opt_iter;
 	        if (f_opts->onFilter(debug_opts, m_cached_args)) {
 	        	f_opts->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
 	        	// found the match, removing it from the list
-	            file_opt_iter = m_file_ops_pending.erase(file_opt_iter);
-	            fd = m_cached_args.v_rval;
-	            m_file_ops_handler[fd] = f_opts;
+	            file_opt_iter = m_pending_file_opts_handler.erase(file_opt_iter);
+	            resource_fd = m_cached_args.v_rval;
+	            m_active_file_opts_handler[resource_fd] = f_opts;
 	        } else {
 	            ++file_opt_iter;
 	        }
 	    }
 	}
 
-	if (file_ops_syscall_id.count(m_cached_args.getSyscallNo())) {
+	// This is calling the active Resource Tracer
+	if (FILE_OPTS_SYSCALL_ID.count(m_cached_args.getSyscallNo())) {
 		m_log->debug("FILE OPT DETECED");
-		handleFileOpt(SyscallState::ON_EXIT, debug_opts);
+		handleFileOperation(SyscallState::ON_EXIT, debug_opts, m_cached_args);
+	}
+
+	// reset the value to use the same variable for network resource matching
+	resource_fd = -1;
+
+	if(m_cached_args.syscall_id == SysCallId::SOCKET  || 
+	   m_cached_args.syscall_id == SysCallId::CONNECT ||
+	   m_cached_args.syscall_id == SysCallId::ACCEPT  ||
+	   m_cached_args.syscall_id == SysCallId::LISTEN  ||
+	   m_cached_args.syscall_id == SysCallId::BIND ) {
+		
+		for (auto network_opt_iter = m_pending_network_opts_handler.begin();
+			network_opt_iter != m_pending_network_opts_handler.end();)
+		{
+			network_opt = *network_opt_iter;
+			if (network_opt->onFilter(debug_opts, m_cached_args)) {
+				network_opt->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
+				// found the match, removing it from the list
+				network_opt_iter = m_pending_network_opts_handler.erase(network_opt_iter);
+				if(m_cached_args.syscall_id == SysCallId::SOCKET) {
+					resource_fd = m_cached_args.v_rval;
+				} else {
+					resource_fd = m_cached_args.v_arg[0];
+				}
+				m_log->info("Network Tracer match found for resource_fd {}", resource_fd);
+				m_active_network_opts_handler[resource_fd] = network_opt;
+			} else {
+				++network_opt_iter;
+			}
+		}
 	}
 	
+	if (NETWORK_OPTS_SYSCALL_ID.count(m_cached_args.getSyscallNo())) {
+		m_log->debug("NETWORK OPT DETECED");
+		handleNetworkOperation(SyscallState::ON_EXIT, debug_opts, m_cached_args);
+	}
+
 	// Find and invoke system call handler
-	auto map_key = m_cached_args.getSyscallNo();
-	auto sys_hd_iter = m_syscall_handler_map.equal_range(map_key);
+	auto syscall_map_key = m_cached_args.getSyscallNo();
+	auto sys_hd_iter = m_syscall_handler_map.equal_range(syscall_map_key);
 	bool sys_hdl_not_fnd = true;
 
 	for (auto it=sys_hd_iter.first; it!=sys_hd_iter.second; ++it) {

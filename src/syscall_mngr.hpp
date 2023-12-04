@@ -20,28 +20,6 @@
 #define SYSCALL_AMD64_RET   10    // INTEL_X64_REGS::RAX
 
 
-#define SYSCALL_ID_ARM32    7
-#define SYSCALL_ARM32_ARG_0 0
-#define SYSCALL_ARM32_ARG_1 1
-#define SYSCALL_ARM32_ARG_2 2
-#define SYSCALL_ARM32_ARG_3 3
-#define SYSCALL_ARM32_ARG_4 4
-#define SYSCALL_ARM32_ARG_5 5
-#define SYSCALL_ARM32_ARG_6 6
-#define SYSCALL_ARM32_RET   0
-
-
-#define SYSCALL_ID_ARM64    7
-#define SYSCALL_ARM64_ARG_0 0
-#define SYSCALL_ARM64_ARG_1 1
-#define SYSCALL_ARM64_ARG_2 2
-#define SYSCALL_ARM64_ARG_3 3
-#define SYSCALL_ARM64_ARG_4 4
-#define SYSCALL_ARM64_ARG_5 5
-#define SYSCALL_ARM64_ARG_6 6
-#define SYSCALL_ARM64_RET   0
-
-
 class TraceeProgram;
 
 struct SyscallTraceData {
@@ -71,60 +49,130 @@ enum SyscallState {
 };
 
 
-/**
- * @brief Get callback for all file related system call 
- *        the tracking id will be file descriptor
- * 
- */
-struct FileOperationTracer {
+struct ResourceTracer {
+	enum State {
+		PENDING = 0,
+		ACTIVE,
+		CLOSED
+	} m_state;
+	
+	uint64_t file_desc = 0;
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 	
-	/**
-	 * @brief this function will let you filter the file
-	 *        you want to trace, if you want to trace
-	 *        all files the return true;
-	 * @param debug_opts debugging related API access
-	 * @param sc_trace system call parameter
-	 * @return true if you want to track the file descriptor
-	 * @return false if you want dont want to track the file descriptor
-	 */
 	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		return true;
+		m_log->warn("ResourceTracer - onFilter : Not Implemented!");
+		return false;
 	};
 
-	/**
-	 * @brief callback on open file event
-	 * 
-	 */
+	void setFileDescriptor(uint64_t fd) {
+		file_desc = fd;
+	}
+	
+	ResourceTracer& toActive() {
+		m_state = ACTIVE;
+		return *this;
+	}
+
+	ResourceTracer& toClosed() {
+		m_state = CLOSED;
+		return *this;
+	}
+
+	ResourceTracer& toPending() {
+		m_state = PENDING;
+		return *this;
+	}
+
+};
+
+struct FileOperationTracer {
+
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+
+	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("FileOperationTracer - onFilter : Not Implemented!");
+		return false;
+	};
+
 	virtual void onOpen(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		m_log->error("FT : onOpen");
+		m_log->warn("FileOperationTracer - onOpen : Not Implemented!");
 	};
 	virtual void onClose(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		m_log->error("FT : onClose");
+		m_log->warn("FileOperationTracer - onClose : Not Implemented!");
 	};
 	virtual void onRead(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		m_log->error("FT : onRead");
+		m_log->warn("FileOperationTracer - onRead : Not Implemented!");
 	};
 	virtual void onWrite(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		m_log->error("FT : onWrite");
+		m_log->warn("FileOperationTracer - onWrite : Not Implemented!");
 	};
 	virtual void onIoctl(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
-		m_log->error("FT : onIoctl");
+		m_log->warn("FileOperationTracer - onIoctl : Not Implemented!");
+	};
+	virtual void onMisc(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("FileOperationTracer onMisc : Not Implemented!");
 	};
 };
 
 
-class SocketOperationTracer {
+struct NetworkOperationTracer {
 
-public:
-	virtual void onOpen() = 0;
-	virtual void onClose() = 0;
-	virtual void onRead() = 0;
-	virtual void onWrite() = 0;
-	virtual void onIoctl() = 0;
-	virtual void onBind() = 0;
-	virtual void onListen() = 0;
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+
+	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer - onFilter : Not Implemented!");
+		return false;
+	};
+	
+	virtual void onClientOpen(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onClientOpen : Not Implemented!");
+	};
+
+	virtual void onClientClosed(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onClientClosed : Not Implemented!");
+	};
+
+	virtual void onOpen(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onOpen : Not Implemented!");
+	};
+
+	virtual void onClose(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onClose : Not Implemented!");
+	};
+
+	virtual void onRecv(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onRead : Not Implemented!");
+	};
+
+	virtual void onSend(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onWrite : Not Implemented!");
+	};
+
+	virtual void onIoctl(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onIoctl : Not Implemented!");
+	};
+
+	virtual void onConnect(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onConnect : Not Implemented!");
+	};
+	
+	virtual void onBind(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onBind : Not Implemented!");
+	};
+
+	virtual void onAccept(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onAccept : Not Implemented!");
+	};
+
+	virtual void onListen(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onListen : Not Implemented!");
+	};
+
+	virtual void onMisc(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("NetworkOperationTracer onMisc : Not Implemented!");
+	};
+
 };
 
 
@@ -143,17 +191,9 @@ struct SyscallHandler {
 
 };
 
+
 class SyscallManager {
 	
-	// this system call which are related to filer operations
-	std::unordered_set<int16_t> file_ops_syscall_id{
-		SysCallId::READ,
-		SysCallId::WRITE,
-		SysCallId::CLOSE,
-		SysCallId::IOCTL,
-		SysCallId::STAT
-	};
-
 	// this arguments are preserved between syscall enter and syscall exit
 	// arguments should be filled on entry and cleared on exit, Ideal!
 	SyscallTraceData m_cached_args;
@@ -163,22 +203,31 @@ class SyscallManager {
 	std::multimap<int16_t, SyscallHandler*> m_syscall_handler_map;
 
 	// maps file descriptor to File operation class
-	std::map<int, FileOperationTracer*> m_file_ops_handler;
+	std::map<int, FileOperationTracer*> m_active_file_opts_handler;
+	std::map<int, NetworkOperationTracer*> m_active_network_opts_handler;
 
 	// file operations which are waiting to find its file descriptor
-	std::list<FileOperationTracer*> m_file_ops_pending;
+	std::list<FileOperationTracer*> m_pending_file_opts_handler;
+	std::list<NetworkOperationTracer*> m_pending_network_opts_handler;
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
 
-public:
 
 	void readSyscallParams(TraceeProgram& traceeProg);
 	void readRetValue(TraceeProgram& traceeProg);
 
-	int handleFileOpt(SyscallState sys_state, DebugOpts& debug_opts);
+	int handleFileOperation(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& m_cached_args);
+	int handleNetworkOperation(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& m_cached_args);
+	int handleIPCOperation(SyscallState sys_state, DebugOpts& debug_opts);
+	int handleProessOperation(SyscallState sys_state, DebugOpts& debug_opts);
+	int handleTimeOperation(SyscallState sys_state, DebugOpts& debug_opts);
+
+public:
 
 	virtual int addFileOperationHandler(FileOperationTracer* file_opt_handler);
 	virtual int removeFileOperationHandler(FileOperationTracer* file_opt_handler);
+
+	virtual int addNetworkOperationHandler(NetworkOperationTracer* network_opt_handler);
 
 	virtual int addSyscallHandler(SyscallHandler* syscall_hdlr);
 	virtual int removeSyscallHandler(SyscallHandler* syscall_hdlr);

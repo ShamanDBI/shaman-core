@@ -94,6 +94,11 @@ target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
 add_executable(test_prog test/test_prog/prog.c)
 target_link_libraries(test_prog pthread)
 
+# Client Server
+add_executable(client test/network/client.c)
+add_executable(server test/network/server.c)
+
+
 set(TEST_SRC
   test/unittest/test.cpp
 )

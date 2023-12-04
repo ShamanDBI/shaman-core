@@ -241,8 +241,11 @@ public:
 		m_syscallMngr->addFileOperationHandler(file_opts);
 	};
 
-	// void setBreakpoint(Breakpoint* breakpoint) {
+	void addNetworkOperationHandler(NetworkOperationTracer* network_opts) {
+		m_syscallMngr->addNetworkOperationHandler(network_opts);
+	};
 
+	// void setBreakpoint(Breakpoint* breakpoint) {
 	// };
 
 };

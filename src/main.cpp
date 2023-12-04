@@ -6,6 +6,50 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "breakpoint_reader.hpp"
 #include "syscall.hpp"
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include "memory.hpp"
+
+
+class DataSocket : public NetworkOperationTracer {
+
+	bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("Lets filter some stuff !");
+		struct sockaddr_in *sock;
+
+		Addr socket_data(0, sizeof(struct sockaddr_in));
+
+		switch (sc_trace.getSyscallNo()) {
+		case SysCallId::SOCKET :
+			m_log->warn("New socket object is getting created!");
+			break;
+		case SysCallId::BIND :
+			m_log->warn("Binding calls");
+			socket_data.setRemoteAddress(sc_trace.v_arg[1]);
+			debugOpts.m_memory.read(&socket_data, sc_trace.v_arg[2]);
+			sock = (struct sockaddr_in*)socket_data.m_data;
+			m_log->critical("Socket {} {} port {}", sock->sin_family, sock->sin_addr.s_addr, ntohs(sock->sin_port));
+			return true;
+			break;
+		case SysCallId::CONNECT :
+			m_log->warn("Client connecting to the server");
+			return true;
+		break;
+		case SysCallId::ACCEPT:
+			m_log->warn("New client connected to server");
+			break;
+		case SysCallId::LISTEN :
+			m_log->warn("Server started listening");
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+};
+
 
 class OverwriteFileData : public FileOperationTracer {
 
@@ -49,7 +93,7 @@ public:
 		}
 	}
 
-	void onClose(SyscallState sys_state, SyscallTraceData *sc_trace) {
+	void onClose(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
 		m_log->trace("onClose");
 	}
 
@@ -171,11 +215,11 @@ int main(int argc, char **argv) {
     log->info("Welcome to Shaman!");
 	
 	TargetDescription targetDesc ;
-	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
 	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
 
 	targetDesc.m_cpu_arch = CPU_ARCH::ARM64;
 	targetDesc.m_cpu_mode = CPU_MODE::ARM;
+	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
 
 
 	Debugger debug(targetDesc);
@@ -195,6 +239,7 @@ int main(int argc, char **argv) {
 	// debug.addSyscallHandler(new OpenAt1Handler());
 	// debug.addSyscallHandler(new OpenAt2Handler());
 	debug.addFileOperationHandler(new OverwriteFileData());
+	debug.addNetworkOperationHandler(new DataSocket());
 
 	if(trace_syscalls) {
 		debug.traceSyscall();

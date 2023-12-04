@@ -22,8 +22,8 @@ struct SyscallEntry
   // SYSCALL_ID args[SYSCALL_MAXARGS];
 };
 
-// All the System Call defination can be found in syscall.tbl
-// file
+// Link : https://gpages.juszkiewicz.com.pl/syscalls-table/syscalls.html
+// All the System Call defination can be found in syscall.tbl file of the linux kernel
 extern SyscallEntry syscalls[MAX_SYSCALL_NUM];
 
 enum class AMD64_SYSCALL : int16_t {
@@ -837,7 +837,8 @@ enum class ARM64_SYSCALL : int16_t {
     SCHED_SETATTR = 274,
     SCHED_GETATTR = 275,
     GETRANDOM = 278,
-    MAX_CALL = 279
+    MAX_CALL = 279,
+    RSEQ = 293
 };
 
 /* An unknown GDB syscall, not a real syscall.  */
@@ -1177,6 +1178,7 @@ public:
     INOTIFY_INIT1 = 332,
     GETRANDOM = 355,
     STATX = 383,
+    PRLIMIT64 = 384,
     SOCKET = 500,
     CONNECT = 501,
     ACCEPT = 502,
@@ -1210,7 +1212,12 @@ public:
     // to set and get architecture specific registers like
     // FS , GS and CPUID etc.
     RSEQ = 541,
-    ARCH_PRCTL = 542
+    ARCH_PRCTL = 542,
+    PREAD = 543,
+    PREADV = 544,
+    PWRITE = 545,
+    PWRITEV = 546
+    // LSEEK = 544
   };
 
   SysCallId() : m_syscall_value(NO_SYSCALL) {};

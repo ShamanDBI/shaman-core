@@ -6,6 +6,6 @@ SysCallId i386_canonicalize_syscall(int16_t syscall_id) {
     if (syscall_id <= X86_SYSCALL_MAX) {
         return SysCallId(syscall_id);
     } else {
-        SysCallId::NO_SYSCALL;
+        return SysCallId::NO_SYSCALL;
     }
 }

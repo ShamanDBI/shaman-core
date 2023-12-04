@@ -94,6 +94,8 @@ SysCallId arm64_canonicalize_syscall(ARM64_SYSCALL syscall_number)
         return SysCallId::NFSSERVCTL;
       case ARM64_SYSCALL::STATFS:
         return SysCallId::STATFS;
+      case ARM64_SYSCALL::FSTATFS:
+        return SysCallId::FSTATFS;
       case ARM64_SYSCALL::TRUNCATE:
         return SysCallId::TRUNCATE;
       case ARM64_SYSCALL::FTRUNCATE:
@@ -491,7 +493,7 @@ SysCallId arm64_canonicalize_syscall(ARM64_SYSCALL syscall_number)
       case ARM64_SYSCALL::WAIT4:
         return SysCallId::WAIT4;
       case ARM64_SYSCALL::PRLIMIT64:
-        return SysCallId::NO_SYSCALL;
+        return SysCallId::PRLIMIT64;
       case ARM64_SYSCALL::FANOTIFY_INIT:
         return SysCallId::NO_SYSCALL;
       case ARM64_SYSCALL::FANOTIFY_MARK:
@@ -522,6 +524,8 @@ SysCallId arm64_canonicalize_syscall(ARM64_SYSCALL syscall_number)
         return SysCallId::NO_SYSCALL;
       case ARM64_SYSCALL::GETRANDOM:
         return SysCallId::GETRANDOM;
+      case ARM64_SYSCALL::RSEQ:
+        return SysCallId::RSEQ;
     default:
       return SysCallId::NO_SYSCALL;
     }

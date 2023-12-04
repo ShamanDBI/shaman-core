@@ -491,11 +491,11 @@ bool Debugger::eventLoop() {
 
 			m_log->debug("Breakpoint restore : 0x{:x} {:x}", traceeProgram->m_brkpnt_addr, brk_addr);
 			
-			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
-				std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
-				ss_brkpt->disable(traceeProgram->getDebugOpts());
-				ss_brkpt.reset();
-			}
+			// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+			// 	std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
+			// 	ss_brkpt->disable(traceeProgram->getDebugOpts());
+			// 	ss_brkpt.reset();
+			// }
 			// debug_event->print();
 			if(debug_event->event.type == TraceeEvent::STOPPED 
 				&& debug_event->reason.status == TrapReason::BREAKPOINT) {
@@ -635,7 +635,8 @@ bool Debugger::eventLoop() {
 					// debug_opts->m_register->print();
 					m_breakpointMngr->handleBreakpointHit(*debug_opts, brk_addr);
 
-					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 ||
+						traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
 						AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
 						amdReg.setProgramCounter(brk_addr);
 						amdReg.update();
@@ -643,7 +644,7 @@ bool Debugger::eventLoop() {
 						traceeProgram->singleStep();
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						// TODO : Breakpoint support for ARM32 is work in progress
-						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+						// ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 						
 						// uintptr_t next_inst_addr = 0;
 						// if(armReg.isThumbMode()) {
