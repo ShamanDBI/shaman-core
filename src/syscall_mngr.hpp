@@ -113,6 +113,13 @@ struct FileOperationTracer {
 	virtual void onMisc(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->warn("FileOperationTracer onMisc : Not Implemented!");
 	};
+	virtual void onMmap(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("FileOperationTracer onMmap : Not Implemented!");
+	};
+	virtual void onMunmap(SyscallState sys_state, DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
+		m_log->warn("FileOperationTracer onMunmap : Not Implemented!");
+	};
+	
 };
 
 

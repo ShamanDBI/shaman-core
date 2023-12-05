@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include "memory.hpp"
+#include "config.hpp"
+#include "spdlog/fmt/bin_to_hex.h"
 
 
 class DataSocket : public NetworkOperationTracer {
@@ -16,36 +18,82 @@ class DataSocket : public NetworkOperationTracer {
 	bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->warn("Lets filter some stuff !");
 		struct sockaddr_in *sock;
-
+		struct sockaddr *client_sock_addr;
+		int new_client_fd = -1;
 		Addr socket_data(0, sizeof(struct sockaddr_in));
+		Addr client_socket(0, sizeof(struct sockaddr));
 
 		switch (sc_trace.getSyscallNo()) {
 		case SysCallId::SOCKET :
-			m_log->warn("New socket object is getting created!");
+			m_log->warn("New Socket descriptor is created");
 			break;
 		case SysCallId::BIND :
-			m_log->warn("Binding calls");
+			m_log->warn("Server : Binding calls");
 			socket_data.setRemoteAddress(sc_trace.v_arg[1]);
 			debugOpts.m_memory.read(&socket_data, sc_trace.v_arg[2]);
 			sock = (struct sockaddr_in*)socket_data.m_data;
-			m_log->critical("Socket {} {} port {}", sock->sin_family, sock->sin_addr.s_addr, ntohs(sock->sin_port));
+			m_log->warn("Socket IP {} port {}",sock->sin_addr.s_addr, ntohs(sock->sin_port));
 			return true;
 			break;
 		case SysCallId::CONNECT :
-			m_log->warn("Client connecting to the server");
+			m_log->warn("Client : connecting to the server");
 			return true;
 		break;
 		case SysCallId::ACCEPT:
-			m_log->warn("New client connected to server");
+			new_client_fd = sc_trace.v_rval;
+			client_socket.setRemoteAddress(sc_trace.v_arg[1]);
+			m_log->warn("Sock addr {:x} {}", sc_trace.v_arg[1], sc_trace.v_arg[2]);
+
+			debugOpts.m_memory.read(&client_socket, sizeof(struct sockaddr));
+			m_log->warn("Server : New Client connection with fd {}", new_client_fd);
+			client_sock_addr = (struct sockaddr*) socket_data.m_data;
+			m_log->warn("{}", spdlog::to_hex(
+				std::begin(client_sock_addr->sa_data),
+				std::begin(client_sock_addr->sa_data) + 14));
+			return true;
 			break;
 		case SysCallId::LISTEN :
-			m_log->warn("Server started listening");
+			m_log->warn("Server : Started listening...");
 			break;
 		default:
 			break;
 		}
 
 		return false;
+	}
+
+	void onRecv(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
+		char malicious_text[] = "This is malicious data which is been intercepted and fille with!";
+		if(sys_state == SyscallState::ON_EXIT) {
+			int fd = static_cast<int>(sc_trace.v_arg[0]);
+			uint64_t buf_ptr = sc_trace.v_arg[1];
+			uint64_t buf_len = sc_trace.v_arg[2];
+			uint64_t actual_read = sc_trace.v_rval;
+
+			m_log->debug("onRead: {:x} {} -> {}", buf_ptr, buf_len, actual_read);
+			Addr buf(buf_ptr, buf_len);
+			debug_opts.m_memory.read(&buf, buf_len);
+			buf.print();
+			memcpy(buf.m_data, malicious_text, buf_len);
+			debug_opts.m_memory.write(&buf, buf_len);
+		}
+	}
+
+	void onSend(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
+		char malicious_text[] = "This is malicious data which is been intercepted and fille with!";
+		if(sys_state == SyscallState::ON_ENTER) {
+			int fd = static_cast<int>(sc_trace.v_arg[0]);
+			uint64_t buf_ptr = sc_trace.v_arg[1];
+			uint64_t buf_len = sc_trace.v_arg[2];
+			uint64_t actual_write = sc_trace.v_rval;
+			
+			m_log->debug("onWrite: {:x} {} -> {}", buf_ptr, buf_len, actual_write);
+			Addr buf(buf_ptr, buf_len);
+			debug_opts.m_memory.read(&buf, buf_len);
+			buf.print();
+			memcpy(buf.m_data, malicious_text, buf_len);
+			debug_opts.m_memory.write(&buf, buf_len);
+		}
 	}
 
 };
@@ -64,7 +112,7 @@ public:
 			Addr file_path_addr_t(sc_trace.v_arg[1], 100);
 			debugOpts.m_memory.read(&file_path_addr_t, 100);
 			m_log->trace("File path : {}", (char *)file_path_addr_t.m_data);
-			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/data/local/tmp/hi.txt") == 0) {
+			if (strcmp(reinterpret_cast<char*>(file_path_addr_t.m_data), "/home/hussain/hi.txt") == 0) {
 				m_log->trace("We found the file we wanted to mess with!");
 				return true;
 			}
@@ -73,29 +121,29 @@ public:
 		return false;
 	}
 
-	void onRead(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
-		if(sys_state == SyscallState::ON_ENTER) {
-			m_log->debug("onRead: onEnter");
-			int fd = static_cast<int>(sc_trace.v_arg[0]);
-			uint64_t buf_len = sc_trace.v_arg[2];
-			Addr buf(sc_trace.v_arg[1], buf_len);
-			m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
-		} else {
-			m_log->warn("onRead: onExit");
-			int fd = static_cast<int>(sc_trace.v_arg[0]);
-			uint64_t buf_len = sc_trace.v_arg[2];
-			Addr buf(sc_trace.v_arg[1], buf_len);
-			debug_opts.m_memory.read(&buf, buf_len);
-			printf("read %s\n", reinterpret_cast<char*>(buf.m_data));
-			m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
-			memcpy(buf.m_data, "Malicous\x00", 9);
-			debug_opts.m_memory.write(&buf, buf_len);
-		}
-	}
+	// void onRead(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
+	// 	if(sys_state == SyscallState::ON_ENTER) {
+	// 		m_log->debug("onRead: onEnter");
+	// 		int fd = static_cast<int>(sc_trace.v_arg[0]);
+	// 		uint64_t buf_len = sc_trace.v_arg[2];
+	// 		Addr buf(sc_trace.v_arg[1], buf_len);
+	// 		m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
+	// 	} else {
+	// 		m_log->warn("onRead: onExit");
+	// 		int fd = static_cast<int>(sc_trace.v_arg[0]);
+	// 		uint64_t buf_len = sc_trace.v_arg[2];
+	// 		Addr buf(sc_trace.v_arg[1], buf_len);
+	// 		debug_opts.m_memory.read(&buf, buf_len);
+	// 		printf("read %s\n", reinterpret_cast<char*>(buf.m_data));
+	// 		m_log->warn("{} {} {}", fd, reinterpret_cast<char*>(buf.m_data), buf_len);
+	// 		memcpy(buf.m_data, "Malicous\x00", 9);
+	// 		debug_opts.m_memory.write(&buf, buf_len);
+	// 	}
+	// }
 
-	void onClose(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
-		m_log->trace("onClose");
-	}
+	// void onClose(SyscallState sys_state, DebugOpts& debug_opts, SyscallTraceData& sc_trace) {
+	// 	m_log->trace("onClose");
+	// }
 
 };
 
@@ -198,8 +246,7 @@ int main(int argc, char **argv) {
 	
 	app.add_option("--debug", debug_log_level, "set debug level, for eg 0 for trace and 6 for critical");
 	app.add_option("-e,--exec", exec_prog, "program to execute") \
-		->expected(-1) \
-		->required();
+		->expected(-1);// 		->required();
 
     CLI11_PARSE(app, argc, argv);
 	
@@ -215,12 +262,18 @@ int main(int argc, char **argv) {
     log->info("Welcome to Shaman!");
 	
 	TargetDescription targetDesc ;
-	targetDesc.m_cpu_mode = CPU_MODE::x86_64;
 
-	targetDesc.m_cpu_arch = CPU_ARCH::ARM64;
-	targetDesc.m_cpu_mode = CPU_MODE::ARM;
+#if SUPPORT_ARCH_X86
+	targetDesc.m_cpu_arch = CPU_ARCH::X86;
+#elif defined SUPPORT_ARCH_AMD64
 	targetDesc.m_cpu_arch = CPU_ARCH::AMD64;
-
+#elif defined SUPPORT_ARCH_ARM
+	targetDesc.m_cpu_arch = CPU_ARCH::ARM32;
+#elif defined SUPPORT_ARCH_ARM64
+	targetDesc.m_cpu_arch = CPU_ARCH::ARM64;
+#else
+	log->error("No Architecture is specified")
+#endif
 
 	Debugger debug(targetDesc);
 	std::shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);

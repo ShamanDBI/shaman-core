@@ -26,6 +26,8 @@ static const std::unordered_set<int16_t> FILE_OPTS_SYSCALL_ID {
 
 	SysCallId::CLOSE,
 
+	SysCallId::MMAP2,
+	SysCallId::MUNMAP,
 	SysCallId::IOCTL,
 	SysCallId::STAT
 };
@@ -300,8 +302,20 @@ int SyscallManager::handleFileOperation(SyscallState sys_state, DebugOpts& debug
 		file_ops_obj->onWrite(sys_state, debug_opts, syscall_args);
 		break;
 	
+	case SysCallId::MMAP2:
+		file_ops_obj->onMmap(sys_state, debug_opts, syscall_args);
+		break;
+
+	case SysCallId::MUNMAP:
+		file_ops_obj->onMunmap(sys_state, debug_opts, syscall_args);
+		break;
+
 	case SysCallId::CLOSE:
+		// Tracing this descriptor has to be release form here as the
+		// resource is essentially destoryed
 		file_ops_obj->onClose(sys_state, debug_opts, syscall_args);
+		m_pending_file_opts_handler.push_front(file_ops_obj);
+		m_active_file_opts_handler.erase(fd);
 		break;
 	case SysCallId::IOCTL:
 		file_ops_obj->onIoctl(sys_state, debug_opts, syscall_args);
@@ -428,7 +442,6 @@ int SyscallManager::onExit(TraceeProgram& traceeProg) {
 		for (auto file_opt_iter = m_pending_file_opts_handler.begin();
 			file_opt_iter != m_pending_file_opts_handler.end();)
 	    {
-			m_log->critical("This is here!");
 	    	f_opts = *file_opt_iter;
 	        if (f_opts->onFilter(debug_opts, m_cached_args)) {
 	        	f_opts->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
@@ -452,8 +465,8 @@ int SyscallManager::onExit(TraceeProgram& traceeProg) {
 	resource_fd = -1;
 
 	if(m_cached_args.syscall_id == SysCallId::SOCKET  || 
-	   m_cached_args.syscall_id == SysCallId::CONNECT ||
 	   m_cached_args.syscall_id == SysCallId::ACCEPT  ||
+	   m_cached_args.syscall_id == SysCallId::CONNECT ||
 	   m_cached_args.syscall_id == SysCallId::LISTEN  ||
 	   m_cached_args.syscall_id == SysCallId::BIND ) {
 		
@@ -463,18 +476,22 @@ int SyscallManager::onExit(TraceeProgram& traceeProg) {
 			network_opt = *network_opt_iter;
 			if (network_opt->onFilter(debug_opts, m_cached_args)) {
 				network_opt->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
-				// found the match, removing it from the list
-				network_opt_iter = m_pending_network_opts_handler.erase(network_opt_iter);
-				if(m_cached_args.syscall_id == SysCallId::SOCKET) {
+				// Once you we have found the resource we want to trace, we are not
+				// removing it in case of network is becasue there will be a different
+				// file descriptor used by the each client in case of server
+				
+				if(m_cached_args.syscall_id == SysCallId::SOCKET ||
+	   				m_cached_args.syscall_id == SysCallId::ACCEPT) {
+					// in-case of both of this syscall new fd are return
+					// value
 					resource_fd = m_cached_args.v_rval;
 				} else {
 					resource_fd = m_cached_args.v_arg[0];
 				}
 				m_log->info("Network Tracer match found for resource_fd {}", resource_fd);
 				m_active_network_opts_handler[resource_fd] = network_opt;
-			} else {
-				++network_opt_iter;
 			}
+			++network_opt_iter;
 		}
 	}
 	

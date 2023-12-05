@@ -21,9 +21,10 @@ void func(int connfd)
         bzero(buff, MAX);
 
         // read the message from client and copy it in buffer
-        read(connfd, buff, sizeof(buff));
+        int read_count = read(connfd, buff, sizeof(buff));
         // print buffer which contains the client contents
         printf("From client: %s\t To client : ", buff);
+        printf("Read count : %d\n", read_count);
         bzero(buff, MAX);
         n = 0;
         // copy server message in the buffer
@@ -91,7 +92,7 @@ int main()
         exit(0);
     }
     else
-        printf("server accept the client...\n");
+        printf("server accept the client... %d\n", connfd);
 
     // Function for chatting between client and server
     func(connfd);

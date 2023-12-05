@@ -2,6 +2,7 @@
 #include <sys/ptrace.h>
 
 #include "spdlog/spdlog.h"
+#include "spdlog/fmt/bin_to_hex.h"
 #include "memory.hpp"
 
 #include <fstream>
@@ -24,10 +25,14 @@ Addr::Addr(Addr &addrObj) {
 
 void Addr::print() {
     auto log = spdlog::get("main_log");
+
     log->trace("BKP {:x} VAL {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x} {:#04x}",
         r_addr,
         m_data[0], m_data[1], m_data[2], m_data[3], m_data[4]
         , m_data[5], m_data[6], m_data[7] );
+    std::vector<uint8_t> xx(m_size);
+    memcpy(xx.data(), m_data, m_size);
+    log->warn("{}", spdlog::to_hex(xx));
 };
 
 Addr::~Addr() {

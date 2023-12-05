@@ -101,6 +101,38 @@ int test_multi_threading_different_section() {
     return 0;
 }
 
+void dump_file_content(char* file_path) {
+    char buf[4096];
+    ssize_t n;
+    char *str = NULL;
+    size_t len = 0;
+    int fd = open(file_path, O_RDONLY);
+    if(fd<0) {
+        printf("Cannot Open file : %s\n", file_path);
+    }
+    printf("File opened %d\n", fd);
+    while (n = read(fd, buf, sizeof buf)) {
+        if (n < 0) {
+            // if (errno == EAGAIN)
+            //     continue;
+            perror("read");
+            break;
+        }
+        str = realloc(str, len + n + 1);
+        memcpy(str + len, buf, n);
+        len += n;
+        str[len] = '\0';
+    }
+    printf("%.*s\n", len, str);
+    close(fd);
+    return 0;
+}
+
+void test_file_dumping(char* file_path) {
+    dump_file_content(file_path);
+    dump_file_content("/home/hussain/.bashrc");
+    dump_file_content(file_path);
+}
 
 void test_file_operation() {
     printf("This is file test program\n");
@@ -225,6 +257,9 @@ int main(int argc, char *argv[])
             break;
         case 8:
             test_infinite_threads();
+            break;
+        case 9:
+            test_file_dumping(argv[2]);
             break;
         default:
             printf("Unknown test case ID\n");
