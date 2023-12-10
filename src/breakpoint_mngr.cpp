@@ -175,9 +175,9 @@ void BreakpointMngr::printStats()
 std::unique_ptr<Breakpoint> BreakpointMngr::placeSingleStepBreakpoint(DebugOpts& debug_opts, uintptr_t brk_addr) {
     m_log->debug("Placing Single Step breakpoint at 0x{:x}", brk_addr);
     std::unique_ptr<Breakpoint> singleShotBpkt(new Breakpoint(*new std::string("single-stop"), 0));
+    singleShotBpkt->setInjector(new ARMBreakpointInjector());
     singleShotBpkt->makeSingleStep(brk_addr);
     singleShotBpkt->enable(debug_opts);
-    singleShotBpkt->setInjector(new ARMBreakpointInjector());
     // TODO : not sure if this object should be recorded somewhere?
     // currently it stored and restored by Debugger class
     // m_active_brkpnt[brk_addr] = singleShotBpkt;

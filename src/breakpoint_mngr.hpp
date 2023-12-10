@@ -71,7 +71,7 @@ public:
     // and value is the breakpoint which was hit.
     std::map<pid_t, Breakpoint*> m_suspendedBrkPnt;
 
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
 
     BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {};
 

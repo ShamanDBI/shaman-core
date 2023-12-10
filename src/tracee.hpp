@@ -67,7 +67,7 @@ public:
 
   	bool m_followFork = false;
 
-  	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+  	std::shared_ptr<spdlog::logger> m_log = spdlog::get("tracee");
 
 	DebugType debugType;
 

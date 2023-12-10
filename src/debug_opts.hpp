@@ -5,6 +5,7 @@
 #include "registers.hpp"
 #include "modules.hpp"
 
+
 class DebugOpts {
 public:
 	pid_t m_pid;

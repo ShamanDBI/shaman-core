@@ -11,6 +11,26 @@ Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr
         m_bkpt_injector = new X86BreakpointInjector();
     };
 
+Breakpoint::~Breakpoint() { 
+    m_log->warn("Breakpoint at {:x} going out scope!", m_addr);
+    m_addr = 0;
+    m_offset = 0;
+    m_hit_count = 0;
+    m_pids.clear();
+    m_enabled = false;
+    m_backupData.reset();
+}
+
+bool Breakpoint::shouldEnable() {
+        if (m_type == BreakpointType::SINGLE_SHOT || 
+            m_type == BreakpointType::SINGLE_STEP ) {
+            return false;
+        } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
+            return false;
+        }
+
+        return true;
+    }
 
 int Breakpoint::enable(DebugOpts& debug_opts) {
     m_bkpt_injector->inject(debug_opts, m_backupData);

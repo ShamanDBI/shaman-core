@@ -15,14 +15,14 @@ class BreakpointInjector {
 protected:
 
     uint8_t m_brk_size = 0;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
 
 public:
 
     BreakpointInjector(uint8_t _brk_size):  m_brk_size(_brk_size) {};
 
-    virtual void inject(DebugOpts& debug_opts, Addr *m_backupData) {};
-    virtual void restore(DebugOpts& debug_opts, Addr *m_backupData) {};
+    virtual void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {};
+    virtual void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {};
 };
 
 // its 1 but I need to fix it
@@ -33,8 +33,8 @@ class X86BreakpointInjector : public BreakpointInjector {
 public:
     X86BreakpointInjector() : BreakpointInjector(INTEL_BREAKPOINT_INST_SIZE) {};
 
-    void inject(DebugOpts& debug_opts, Addr *m_backupData);
-    void restore(DebugOpts& debug_opts, Addr *m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
 };
 
 #define BREAKINST_ARM	0xe7f001f0
@@ -76,28 +76,31 @@ static const uint8_t arm_linux_thumb2_be_breakpoint[] = { 0xf7, 0xf0, 0xa0, 0x00
 static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0 };
 
 
-class ARMBreakpointInjector : public BreakpointInjector {
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
-public:
+struct ARMBreakpointInjector : public BreakpointInjector {
+
     ARMBreakpointInjector(): BreakpointInjector(4) {}
 
-    void inject(DebugOpts& debug_opts, Addr *m_backupData);
-    void restore(DebugOpts& debug_opts, Addr *m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
 };
 
 
-class ARM64BreakpointInjector : public BreakpointInjector {
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
-public:
+struct ARM64BreakpointInjector : public BreakpointInjector {
+
     ARM64BreakpointInjector(): BreakpointInjector(4) {}
 
-    void inject(DebugOpts& debug_opts, Addr *m_backupData);
-    void restore(DebugOpts& debug_opts, Addr *m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
 };
 
 
-struct Breakpoint {
+class Breakpoint {
 
+protected:
+    bool m_enabled = false;
+
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
+public:
     enum BreakpointType {
         // single shot breakpoint used for collecting code coverage
         // Delete the breakpoint after it has been hit once
@@ -113,18 +116,15 @@ struct Breakpoint {
 
     BreakpointInjector* m_bkpt_injector;
 
-    bool m_enabled = false;
-    
     // this is the concrete address of the breakpoint
     // resolved address
     uintptr_t m_addr = 0;
     
     // breakpoint instruction data is stored to the memory
     // later restored when brk pnt is hit
-    Addr *m_backupData = nullptr;
+    std::unique_ptr<Addr> m_backupData = nullptr;
     
     // DebugOpts& m_debug_opts = nullptr;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
     
     // name of the module in which this breakpoint exist
     std::string& m_modname;
@@ -155,11 +155,7 @@ struct Breakpoint {
     Breakpoint(std::string& modname, uintptr_t offset) :
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
 
-    ~Breakpoint() { 
-        m_log->warn("Breakpoint at {:x} going out scope!", m_addr);
-        delete m_backupData;
-        // delete m_label;
-    }
+    ~Breakpoint();
 
     Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector) {
         m_bkpt_injector = brk_pnt_injector;
@@ -182,47 +178,28 @@ struct Breakpoint {
         return *this;
     }
 
-    void addPid(pid_t pid) {
-        m_pids.push_back(pid);
-    }
-
-    void addBackupData(Addr* backup_data) {
-        m_backupData = backup_data;
-    }
+    void addPid(pid_t pid) { m_pids.push_back(pid); }
 
     virtual void setAddress(uintptr_t brkpnt_addr) {
         // set concrete offset of breakpoint in process memory space
         m_addr = brkpnt_addr;
-        m_backupData = new Addr(m_addr, 8);
+        m_backupData = std::unique_ptr<Addr>(new Addr(m_addr, 8));
     }
 
     void printDebug() {
         m_log->debug("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_hit_count);
     }
 
-    uint32_t getHitCount() {
-        return m_hit_count;
-    }
+    uint32_t getHitCount() { return m_hit_count; }
 
-    bool shouldEnable() {
-        if (m_type == BreakpointType::SINGLE_SHOT || 
-            m_type == BreakpointType::SINGLE_STEP ) {
-            return false;
-        } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
-            return false;
-        }
-
-        return true;
-    }
+    bool shouldEnable();
 
     virtual bool handle(DebugOpts& debug_opts) {
         m_hit_count++;
         return true;
     }
 
-    bool isEnabled() {
-        return m_enabled;
-    }
+    bool isEnabled() { return m_enabled; }
 
     virtual int enable(DebugOpts& debug_opts);
 

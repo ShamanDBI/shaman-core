@@ -23,7 +23,7 @@ protected:
     uint8_t program_register_idx = 0;
     uint8_t stack_pointer_register_idx = 0;
     uint8_t frame_base_pointer_register_idx = 0;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
 
 public:
 

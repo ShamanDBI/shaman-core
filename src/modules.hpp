@@ -32,7 +32,7 @@ class ProcessMap {
 
     std::vector<ProcMap*> m_map;
     pid_t m_pid;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
 public:
     std::vector<pid_t> m_child_thread_pids;
     

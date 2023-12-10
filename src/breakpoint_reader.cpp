@@ -1,7 +1,7 @@
 #include "breakpoint_reader.hpp"
 
 Breakpoint* BreakpointReader::next() {
-    auto log = spdlog::get("main_log");
+    auto log = spdlog::get("bkpt");
     
     if (!m_is_data_available) {
         log->debug("No more data is avaliable");

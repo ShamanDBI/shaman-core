@@ -3,19 +3,19 @@
 static const uint8_t arm64_breakpoint[] = {0x00, 0x00, 0x20, 0xd4};
 
 
-void ARM64BreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) {
+void ARM64BreakpointInjector::inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {
     // TODO : save the data of the breakpoint location in the buffer this
     // should have you a system call in the next breakpoint handling
 
     // 
-    size_t brk_pnt_size = 8;
+    size_t buf_backup_size = 8;
     // Create shadow copy of the original instrucation
-    void* tmp_backup_byte = malloc(brk_pnt_size);
-    debug_opts.m_memory.read(m_backupData, brk_pnt_size);
+    const uint8_t* tmp_backup_byte = (uint8_t*)malloc(buf_backup_size);
+    debug_opts.m_memory.readRemoteAddrObj(*m_backupData.get(), buf_backup_size);
     
     m_backupData->print();
     // storing it in the temperory variable
-    memcpy(tmp_backup_byte, m_backupData->m_data, brk_pnt_size);
+    memcpy((void *)tmp_backup_byte, m_backupData->data(), buf_backup_size);
 
     // if(tmp_backup_byte == BREAKPOINT_X86_INST) {
     //     m_log->critical("pid {} Breakpoint is already in place! {:x}",
@@ -23,19 +23,18 @@ void ARM64BreakpointInjector::inject(DebugOpts& debug_opts, Addr *m_backupData) 
     // }
 
     // Write the breakpoint instruction into shadow copy 
-
-    memcpy(m_backupData->m_data, &arm64_breakpoint, sizeof(arm64_breakpoint));
+    m_backupData->copy_buffer(arm64_breakpoint, sizeof(arm64_breakpoint));
 
     m_backupData->print();
     // Shadow copy is commit to the process memory
     
-    debug_opts.m_memory.write(m_backupData, 8);
+    debug_opts.m_memory.writeRemoteAddrObj(*m_backupData.get(), 8);
     // Restore the shadow copy with the original instruction
-    memcpy(m_backupData->m_data, tmp_backup_byte, brk_pnt_size);
-    free(tmp_backup_byte);
+    m_backupData->copy_buffer(tmp_backup_byte, buf_backup_size);
+    free((void *)tmp_backup_byte);
 }
 
-void ARM64BreakpointInjector::restore(DebugOpts& debug_opts, Addr *m_backupData) {
+void ARM64BreakpointInjector::restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {
 
     size_t brk_pnt_size = 8;
 
@@ -45,6 +44,6 @@ void ARM64BreakpointInjector::restore(DebugOpts& debug_opts, Addr *m_backupData)
     // tmp_addr.print();
     // memcpy(tmp_addr.m_data, m_backupData->m_data, tmp_addr.m_size);
     // tmp_addr.m_data[0] = m_backupData->m_data[0];
-    debug_opts.m_memory.write(m_backupData, brk_pnt_size);
+    debug_opts.m_memory.writeRemoteAddrObj(*m_backupData.get(), brk_pnt_size);
     // tmp_addr.print();
 }

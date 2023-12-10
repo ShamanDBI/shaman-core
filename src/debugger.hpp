@@ -16,11 +16,12 @@
 #include "breakpoint_mngr.hpp"
 
 #include "linux_debugger.hpp"
-
+#include "inst_analyzer.hpp"
+#include "witch/witch.hpp"
 
 class TraceeProgram;
 class TraceeFactory;
-
+class ArmDisassembler;
 
 /**
  * 
@@ -156,6 +157,9 @@ public:
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
+	std::unique_ptr<ArmDisassembler> m_arm_disasm;
+	// ARMInstAnalyzer m_inst_analyzer;
+	
 	std::map<pid_t, TraceeProgram*> m_Tracees;
 
 	TraceeProgram* m_leader_tracee = nullptr;
@@ -169,7 +173,8 @@ public:
 
 	TraceeFactory* m_tracee_factory = nullptr; //remove
 
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
+
  
 	bool m_traceSyscall = false;
 	bool m_followFork = false;

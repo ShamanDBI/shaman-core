@@ -4,13 +4,13 @@
 #include "breakpoint.hpp"
 
 
-Debugger::Debugger(TargetDescription& _target_desc): m_target_desc(_target_desc) {
-	m_log = spdlog::get("main_log");
+Debugger::Debugger(TargetDescription& _target_desc)
+	: m_target_desc(_target_desc) {	
 	
+	m_arm_disasm = std::unique_ptr<ArmDisassembler>(new ArmDisassembler(_target_desc));
 	m_tracee_factory = new TraceeFactory();
 	m_syscallMngr = new SyscallManager();
 	m_breakpointMngr = new BreakpointMngr(m_target_desc);
-
 }
 
 void Debugger::addBreakpoint(std::vector<std::string>& _brk_pnt_str) {
@@ -295,7 +295,8 @@ bool Debugger::eventLoop() {
 	std::queue<DebugEventPtr> pending_debug_events;
 	
 	bool processing_pending_event = false;
-	uintptr_t brk_addr = 0;
+	uintptr_t brk_addr = 0; // breakpoint hit address
+
 	while(!m_Tracees.empty()) {
 		m_log->debug("------------------------------");
 		pt_sig_info.si_pid = 0;	
@@ -474,7 +475,8 @@ bool Debugger::eventLoop() {
 			// This state is triggered because of the single step after breakpoint hit.
 			// its the state is the final state of breakpoint handling we either restore
 			// the breakpoint or continue without restoring it.
-			
+
+			brk_addr = 0;
 			debug_opts = &traceeProgram->getDebugOpts();
 			debug_opts->m_register.fetch();
 
@@ -491,11 +493,11 @@ bool Debugger::eventLoop() {
 
 			m_log->debug("Breakpoint restore : 0x{:x} {:x}", traceeProgram->m_brkpnt_addr, brk_addr);
 			
-			// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
-			// 	std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
-			// 	ss_brkpt->disable(traceeProgram->getDebugOpts());
-			// 	ss_brkpt.reset();
-			// }
+			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+				std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
+				ss_brkpt->disable(traceeProgram->getDebugOpts());
+				ss_brkpt.reset();
+			}
 			// debug_event->print();
 			if(debug_event->event.type == TraceeEvent::STOPPED 
 				&& debug_event->reason.status == TrapReason::BREAKPOINT) {
@@ -644,21 +646,24 @@ bool Debugger::eventLoop() {
 						traceeProgram->singleStep();
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						// TODO : Breakpoint support for ARM32 is work in progress
-						// ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 						
-						// uintptr_t next_inst_addr = 0;
-						// if(armReg.isThumbMode()) {
-						// 	next_inst_addr = brk_addr + 2;
-						// } else {
-						// 	next_inst_addr = brk_addr + 4;
-						// }}
-						// __builtin___clear_cache((char *)brk_addr, (char *)brk_addr + 1024);
+						uintptr_t next_inst_addr = 0;
+						if(armReg.isThumbMode()) {
+							next_inst_addr = brk_addr + 2;
+						} else {
+							next_inst_addr = brk_addr + 4;
+						}
+						m_arm_disasm->disass_single_inst();
+						// m_inst_analyzer.getBranchDest();
 						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
-						// auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
-						// traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
+						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
+						BranchData* branch_info = new BranchData();
+						traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
 						// armReg.setProgramCounter(brk_addr);
 						// armReg.update();
-						traceeProgram->toStateRunning();
+						// traceeProgram->toStateRunning();
+						traceeProgram->toStateBreakpoint();
 						// single stepping is not supported in ARM32 Linux Kernel
 						traceeProgram->contExecution(0);
 					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {

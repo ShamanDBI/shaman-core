@@ -58,7 +58,7 @@ struct ResourceTracer {
 	
 	uint64_t file_desc = 0;
 
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 	
 	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->warn("ResourceTracer - onFilter : Not Implemented!");
@@ -88,7 +88,7 @@ struct ResourceTracer {
 
 struct FileOperationTracer {
 
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 
 	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->warn("FileOperationTracer - onFilter : Not Implemented!");
@@ -125,7 +125,7 @@ struct FileOperationTracer {
 
 struct NetworkOperationTracer {
 
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 
 	virtual bool onFilter(DebugOpts& debugOpts, SyscallTraceData& sc_trace) {
 		m_log->warn("NetworkOperationTracer - onFilter : Not Implemented!");
@@ -186,7 +186,7 @@ struct NetworkOperationTracer {
 struct SyscallHandler {
 
 	SysCallId m_syscall_id;
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("syscall");
 	
 	SyscallHandler(SysCallId _syscall_id): 
 		m_syscall_id(_syscall_id) {}
@@ -217,7 +217,7 @@ class SyscallManager {
 	std::list<FileOperationTracer*> m_pending_file_opts_handler;
 	std::list<NetworkOperationTracer*> m_pending_network_opts_handler;
 
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main_log");
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("syscall");
 
 
 	void readSyscallParams(TraceeProgram& traceeProg);

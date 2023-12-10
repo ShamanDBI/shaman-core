@@ -25,28 +25,43 @@ FetchContent_Declare(
   GIT_TAG v2.2.0
 )
 
-Include(FetchContent)
-
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG        v1.13.0 # or a later release
 )
 
-FetchContent_MakeAvailable(googletest)
+FetchContent_Declare(
+  capstone
+  GIT_REPOSITORY https://github.com/capstone-engine/capstone.git
+  GIT_TAG        5.0.1
+)
+
 
 # ------------------------------------------------------------------
 
-
-option(BUILD_FOR_ARM "Build for ARM architecture" NO)
-option(BUILD_FOR_INTEL "Build for INTEL architecture" YES)
-option(BUILD_FOR_32_BIT "Build for 32 bits architecture only" NO)
-
 FetchContent_MakeAvailable(spdlog)
 FetchContent_MakeAvailable(cli11)
+FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(capstone)
 
-add_executable(shaman)
+#-- Experimental Dissassembler Project
+  
+set(WITCH_SRC
+  src/witch/basic_block.cpp
+  src/witch/inst_analyzer.cpp
+  src/witch/branch_data.cpp
+)
 
+add_executable(witch)
+
+target_include_directories(witch PRIVATE src/witch)
+target_sources(witch PRIVATE ${WITCH_SRC} src/witch/witch.cpp)
+target_link_libraries(witch PRIVATE capstone)
+
+#-- END
+
+# Architecture specific files
 set(ARCH_SRC
   src/arch/intel/x86_breakpoint.cpp
   src/arch/intel/x86_registers.cpp
@@ -78,15 +93,24 @@ set(SRC
   src/tracee.cpp
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
+  src/witch/inst_analyzer.cpp
   src/syscall.cpp
 )
+
+# Main shaman Instrumentation project
+add_executable(shaman)
+
+target_sources(shaman PRIVATE ${WITCH_SRC})
+target_include_directories(shaman PRIVATE src/witch)
 
 target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC} src/main.cpp)
 target_include_directories(shaman PRIVATE src/arch/intel)
 target_include_directories(shaman PRIVATE src)
+
 # target_link_libraries(shaman -static)
 
-target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11)
+target_link_libraries(shaman PRIVATE spdlog CLI11::CLI11 capstone)
+
 
 
 # -- Testing configuration
