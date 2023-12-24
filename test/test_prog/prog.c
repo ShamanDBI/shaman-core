@@ -236,10 +236,10 @@ int main(int argc, char *argv[])
     switch(test_case_idx) {
         case 1:
             rec_fork();
-        break;
+            break;
         case 2:
             forkexample();
-        break;
+            break;
         case 3:
             fork_exec();
             break;

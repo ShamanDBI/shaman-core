@@ -16,12 +16,7 @@
 #include "breakpoint_mngr.hpp"
 
 #include "linux_debugger.hpp"
-#include "inst_analyzer.hpp"
-#include "witch/witch.hpp"
-
-class TraceeProgram;
-class TraceeFactory;
-class ArmDisassembler;
+#include "witch.hpp"
 
 /**
  * 
@@ -127,6 +122,10 @@ class ArmDisassembler;
  * https://stackoverflow.com/questions/4856255/the-difference-between-fork-vfork-exec-and-clone
 */
 
+class TraceeProgram;
+class TraceeFactory;
+
+
 // this is current state of the tracee
 enum CPU_ARCH : uint8_t {
 	X86 = 0x00,
@@ -157,8 +156,7 @@ public:
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
-	std::unique_ptr<ArmDisassembler> m_arm_disasm;
-	// ARMInstAnalyzer m_inst_analyzer;
+	ArmDisassembler* m_arm_disasm;
 	
 	std::map<pid_t, TraceeProgram*> m_Tracees;
 

@@ -1,4 +1,6 @@
 #include "inst_analyzer.hpp"
+#include "debug_opts.hpp"
+#include "debugger.hpp"
 
 
 bool ARMInstAnalyzer::isBranch(const cs_insn *inst) const noexcept {
@@ -36,7 +38,8 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
     cs_detail *detail;
     detail = inst->detail;
     int n = 0;
-
+    bool _found_dest = false;
+    
     ARM32Register& arm_reg = reinterpret_cast<ARM32Register&>(debug_opts.m_register);
 
     if (detail == NULL) {
@@ -52,15 +55,16 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
                 printf("PC idx %d = [SP - %d]\n", i + 1, i*4);
                 Addr* sp_addr = debug_opts.m_memory.readPointerObj(arm_reg.getStackPointer() + 4, 4);
                 branch_info.m_direct_branch = true;
-                branch_info.m_direct_branch = sp_addr->read_u32();
-                return true;
+                branch_info.m_target = sp_addr->read_u32();
+                _found_dest = true;
             }
         }
     }
 
     if ((detail->arm.operands[0].type == ARM_OP_REG)
         && (detail->arm.operands[0].reg == ARM_REG_PC)) {
-
+        
+        SPDLOG_LOGGER_TRACE(m_log, "we are in computation zone");
         if (inst->id == ARM_INS_STR) {
             return false;
         }
@@ -78,17 +82,15 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         default:
             break;
         }
-
-        return true;
     }
 
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
         if(detail->arm.op_count == 2 && detail->arm.operands[1].type == ARM_OP_IMM) {
             branch_info.m_direct_branch = true;
-            branch_info.m_direct_branch = detail->arm.operands[1].imm;
-            return true;
+            branch_info.m_target = detail->arm.operands[1].imm;
+            _found_dest = true;
         }
-        printf("Error while analyzing CBZ Instruction\n");
+        SPDLOG_LOGGER_DEBUG(m_log, "Error while analyzing CBZ Instruction\n");
     }
 
     if (detail->groups_count > 0) {
@@ -100,20 +102,24 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
                 case CS_GRP_BRANCH_RELATIVE:
                     if(detail->arm.op_count == 1 && detail->arm.operands[0].type == ARM_OP_IMM) {
                         branch_info.m_direct_branch = true;
-                        branch_info.m_direct_branch = detail->arm.operands[0].imm;
-                        return true;
+                        branch_info.m_target = detail->arm.operands[0].imm;
+                        _found_dest = true;
                     }
                 break;
             }
         }
     }
 
+    
     if(isConditional(inst)) {
        // this mean we need a fall-though breakpoint
         branch_info.m_conditional_branch = true;
         branch_info.m_fall_target = inst->address + inst->size;
     }
 
+    if(!_found_dest) {
+        branch_info.m_target = inst->address + inst->size;
+    }
     // printf("Not a branch Instruction\n");
     return false;
 }
@@ -122,7 +128,7 @@ void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, 
 
     cs_detail *detail;
     int n;
-    m_log->debug("0x{}  :\t{}\t\t{}", inst->address, inst->mnemonic, inst->op_str);
+    m_log->debug("0x{:x}  :\t{}\t\t{}", inst->address, inst->mnemonic, inst->op_str);
 
     if (!details_enabled) {
         return;
@@ -135,33 +141,33 @@ void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, 
     }
 
     for (n = 0; n < detail->arm.op_count; n++) {
-    cs_arm_op *op = &(detail->arm.operands[n]);
-    switch(op->type) {
-        case ARM_OP_REG:
-        m_log->debug("\t\toperands[{}].type: REG = {}", n, cs_reg_name(handle, op->reg));
-        break;
-        case ARM_OP_IMM:
-        m_log->debug("\t\toperands[{}].type: IMM = 0x{:x}", n, op->imm);
-        break;
-        case ARM_OP_FP:
-        m_log->debug("\t\toperands[{}].type: FP = {}", n, op->fp);
-        break;
-        case ARM_OP_MEM:
-        m_log->debug("\t\toperands[{}].type: MEM", n);
-        if (op->mem.base != ARM_REG_INVALID)
-            m_log->debug("\t\t\toperands[{}].mem.base: REG = {}", n, cs_reg_name(handle, op->mem.base));
-        if (op->mem.index != ARM_REG_INVALID)
-            m_log->debug("\t\t\toperands[{}].mem.index: REG = {}", n, cs_reg_name(handle, op->mem.index));
-        if (op->mem.disp != 0)
-            m_log->debug("\t\t\toperands[{}].mem.disp: 0x{:x}", n, op->mem.disp);
-        break;
-        case ARM_OP_CIMM:
-        m_log->debug("\t\toperands[{}].type: C-IMM = {}", n, op->imm);
-        break;
-    }
+        cs_arm_op *op = &(detail->arm.operands[n]);
+        switch(op->type) {
+            case ARM_OP_REG:
+                m_log->debug("\t\toperands[{}].type: REG = {}", n, cs_reg_name(handle, op->reg));
+                break;
+            case ARM_OP_IMM:
+                m_log->debug("\t\toperands[{}].type: IMM = 0x{:x}", n, op->imm);
+                break;
+            case ARM_OP_FP:
+                m_log->debug("\t\toperands[{}].type: FP = {}", n, op->fp);
+                break;
+            case ARM_OP_MEM:
+                m_log->debug("\t\toperands[{}].type: MEM", n);
+                if (op->mem.base != ARM_REG_INVALID)
+                    m_log->debug("\t\t\toperands[{}].mem.base: REG = {}", n, cs_reg_name(handle, op->mem.base));
+                if (op->mem.index != ARM_REG_INVALID)
+                    m_log->debug("\t\t\toperands[{}].mem.index: REG = {}", n, cs_reg_name(handle, op->mem.index));
+                if (op->mem.disp != 0)
+                    m_log->debug("\t\t\toperands[{}].mem.disp: 0x{:x}", n, op->mem.disp);
+                break;
+            case ARM_OP_CIMM:
+                m_log->debug("\t\toperands[{}].type: C-IMM = {}", n, op->imm);
+                break;
+        }
 
-    if (op->shift.type != ARM_SFT_INVALID && op->shift.value)
-        m_log->debug("\t\t\tShift: type = {}, value = {}", op->shift.type, op->shift.value);
+        if (op->shift.type != ARM_SFT_INVALID && op->shift.value)
+            m_log->debug("\t\t\tShift: type = {}, value = {}", op->shift.type, op->shift.value);
     }
 
     if (detail->regs_read_count > 0) {
@@ -194,7 +200,7 @@ void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, 
     if (detail->groups_count > 0) {
         m_log->debug("\tGROUPS: ");
         for (n = 0; n < detail->groups_count; n++) {
-            m_log->debug("{} ", cs_group_name(handle, detail->groups[n]));
+            m_log->debug("\t\t{} ", cs_group_name(handle, detail->groups[n]));
         }
     }
 }

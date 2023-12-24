@@ -3,28 +3,31 @@
 
 #include <capstone/capstone.h>
 #include "inst_analyzer.hpp"
+#include "branch_data.hpp"
 
-
-class TargetDescription;
+class DebugOpts;
 
 class ArmDisassembler {
 
     csh m_handle = {};
     bool m_is_thumb = false;
-    ARMInstAnalyzer m_inst_analyzer;
+    ARMInstAnalyzer* m_inst_analyzer;
+    cs_insn* _tmp_inst_info;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
 
 public:
 
-    ArmDisassembler(TargetDescription& m_target_desc);
+    ArmDisassembler(bool is_thumb_mode);
 
-    ~ArmDisassembler() { cs_close(&m_handle); }
+    ~ArmDisassembler();
 
     void iter_basic_block(cs_insn *insn);
 
-    cs_insn * disass_single_inst(const uint8_t *data, uint64_t len, uint64_t vaddr);
+    void disassSingleInst(const uint8_t *data, uint64_t vaddr, cs_insn* insn);
 
-    void disass(const uint8_t *data, uint64_t len, uint64_t vaddr);
+    void getBranchInfo(const uint8_t *data, BranchData& branchInfo, DebugOpts& debug_opts);
+
+    void disass(const uint8_t *data, size_t len, uint64_t vaddr);
 };
 
 #endif

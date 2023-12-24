@@ -227,7 +227,7 @@ void init_logger(std::string &log_file, int debug_log_level)
 {
 	spdlog::set_level(static_cast<spdlog::level::level_enum>(debug_log_level)); // Set global log level to debug
 
-	spdlog::set_pattern("%^[%6l] [%9n]%$ %v");
+	spdlog::set_pattern("%^[%7l] [%9n]%$ %v");
 	const char *log_names[] = {
 		"main",
 		"bkpt",

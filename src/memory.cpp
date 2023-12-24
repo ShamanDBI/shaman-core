@@ -22,9 +22,9 @@ Addr::Addr(Addr &addrObj) {
 
 void Addr::print() {
     auto log = spdlog::get("main");
-    std::vector<uint8_t> xx(m_size);
-    memcpy(xx.data(), m_data, m_size);
-    log->warn("{}", spdlog::to_hex(xx));
+    std::vector<uint8_t> hex_data_copy(m_size);
+    memcpy(hex_data_copy.data(), m_data, m_size);
+    log->warn("Addr | raddr 0x{:x}, size {}, data {}", r_addr, m_size , spdlog::to_hex(hex_data_copy));
 }
 
 Addr::~Addr() {
@@ -198,10 +198,10 @@ int RemoteMemory::readRemoteAddrObj(Addr& dest, size_t readSize) {
         readSize = 8;
     }
 
-    memset(dest.data(), '\0', readSize);
+    memset(dest.m_data, 0, readSize);
 
     long * read_addr = (long *) dest.raddr();
-    long * copy_addr = (long *) dest.data();
+    long * copy_addr = (long *) dest.m_data;
     unsigned long ret;
 
     do {
@@ -226,7 +226,7 @@ int RemoteMemory::writeRemoteAddrObj(Addr& dest, size_t writeSize) {
 #else
     uint32_t bytes_write = 0;
     long * write_addr = (long *) dest.raddr();
-    long * copy_addr = (long *) dest.data();
+    long * copy_addr = (long *) dest.m_data;
     long ret;
     
     do {

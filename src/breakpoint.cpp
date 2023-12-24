@@ -12,25 +12,57 @@ Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr
     };
 
 Breakpoint::~Breakpoint() { 
-    m_log->warn("Breakpoint at {:x} going out scope!", m_addr);
+    m_log->trace("Breakpoint at {:x} going out scope!", m_addr);
     m_addr = 0;
     m_offset = 0;
     m_hit_count = 0;
-    m_pids.clear();
     m_enabled = false;
     m_backupData.reset();
+    // m_pids.clear();
+}
+
+Breakpoint& Breakpoint::setInjector(BreakpointInjector* brk_pnt_injector) {
+    m_bkpt_injector = brk_pnt_injector;
+    return *this;
+}
+
+Breakpoint& Breakpoint::makeSingleStep(uintptr_t _brkpnt_addr) {
+    m_type = BreakpointType::SINGLE_STEP;
+    setAddress(_brkpnt_addr);
+    return *this;
+}
+
+Breakpoint& Breakpoint::makeSingleShot() {
+    m_type = BreakpointType::SINGLE_SHOT;
+    return *this;
+}
+
+Breakpoint& Breakpoint::setMaxHitCount(uint32_t max_hit_count) {
+    m_max_hit_count = max_hit_count;
+    return *this;
+}
+
+void Breakpoint::setAddress(uintptr_t brkpnt_addr) {
+    // set concrete offset of breakpoint in process memory space
+    m_addr = brkpnt_addr;
+    m_backupData = std::unique_ptr<Addr>(new Addr(m_addr, 8));
 }
 
 bool Breakpoint::shouldEnable() {
-        if (m_type == BreakpointType::SINGLE_SHOT || 
-            m_type == BreakpointType::SINGLE_STEP ) {
-            return false;
-        } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
-            return false;
-        }
-
-        return true;
+    if (m_type == BreakpointType::SINGLE_SHOT || 
+        m_type == BreakpointType::SINGLE_STEP ) {
+        return false;
+    } else if(m_type == BreakpointType::NORMAL && m_hit_count > m_max_hit_count ) {
+        return false;
     }
+
+    return true;
+}
+
+bool Breakpoint::handle(DebugOpts& debug_opts) {
+    m_hit_count++;
+    return true;
+}
 
 int Breakpoint::enable(DebugOpts& debug_opts) {
     m_bkpt_injector->inject(debug_opts, m_backupData);

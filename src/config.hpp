@@ -1,1 +1,1 @@
-#define SUPPORT_ARCH_AMD64
+#define SUPPORT_ARCH_ARM

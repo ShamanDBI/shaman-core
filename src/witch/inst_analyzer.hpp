@@ -2,9 +2,14 @@
 #define H_ARM_INST_ANALYZER_H
 
 #include <vector>
+#include <memory>
 #include <capstone/capstone.h>
+
+#include "spdlog/spdlog.h"
 #include "branch_data.hpp"
-#include "debug_opts.hpp"
+// #include "debug_opts.hpp"
+
+class DebugOpts;
 
 
 class ARMInstAnalyzer {
@@ -12,7 +17,6 @@ class ARMInstAnalyzer {
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
 
 public:
-
     /**
      * return true if instruction is a branch
      */

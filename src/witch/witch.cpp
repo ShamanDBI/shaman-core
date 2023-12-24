@@ -2,24 +2,33 @@
 #include "witch.hpp"
 #include "inst_analyzer.hpp"
 #include "basic_block.hpp"
-#include "debugger.hpp"
+#include "debug_opts.hpp"
 
 
-ArmDisassembler::ArmDisassembler(TargetDescription& m_target_desc) {
+ArmDisassembler::ArmDisassembler(bool is_thumb_mode) {
     cs_mode mode = CS_MODE_THUMB;
-    if (m_target_desc.m_cpu_arch == ARM32 
-        && m_target_desc.m_cpu_mode == CPU_MODE::ARM)
+    m_inst_analyzer = new ARMInstAnalyzer();
+    if (!is_thumb_mode)
     {
         mode = CS_MODE_ARM;
-        m_is_thumb = false;
+        m_is_thumb = is_thumb_mode;
     }
+
 
     if (cs_open(CS_ARCH_ARM, mode, &m_handle) != CS_ERR_OK)
     {
-        m_log->trace("Apparently no support for ARM in capstone.lib");
+        m_log->error("Apparently no support for ARM in capstone.lib");
     }
 
+    _tmp_inst_info = cs_malloc(m_handle);
+
     cs_option(m_handle, CS_OPT_DETAIL, CS_OPT_ON);
+}
+
+ArmDisassembler::~ArmDisassembler() {
+    cs_close(&m_handle);
+    cs_free(_tmp_inst_info, 1);
+    delete m_inst_analyzer;
 }
 
 void ArmDisassembler::iter_basic_block(cs_insn *insn) {
@@ -29,7 +38,7 @@ void ArmDisassembler::iter_basic_block(cs_insn *insn) {
     bool bb_start = true;
     uint16_t bb_size = 0;
     bb_size += insn->size;
-    BranchData* branch_info = new BranchData();
+    // BranchData* branch_info = new BranchData();
 
     if(bb_start) {
         m_log->trace("--------------------------------------------------\n");
@@ -39,36 +48,46 @@ void ArmDisassembler::iter_basic_block(cs_insn *insn) {
     }
 
     if(0) {
-    // if(m_inst_analyzer.getBranchDest(insn, *branch_info, nullptr)) {
-        m_inst_analyzer.prettyPrintCapstoneInst(m_handle, insn, true);
+    // if(m_inst_analyzer->getBranchDest(insn, *branch_info, nullptr)) {
+        m_inst_analyzer->prettyPrintCapstoneInst(m_handle, insn, true);
         m_log->trace("BB Size = %ld\n", curr_bb->size());
         all_ident_bb.push_back(curr_bb);
         bb_start = true;
     } else {
-        m_inst_analyzer.prettyPrintCapstoneInst(m_handle, insn, false);
+        m_inst_analyzer->prettyPrintCapstoneInst(m_handle, insn, false);
     }
     curr_bb->append(insn);
     m_log->trace("No of Basic Block : %ld\n", all_ident_bb.size());
 }
 
-cs_insn* ArmDisassembler::disass_single_inst(const uint8_t *data, uint64_t len, uint64_t vaddr) {
+void ArmDisassembler::disassSingleInst(const uint8_t *data, uint64_t vaddr, cs_insn* insn) {
 
-    cs_insn* insn = nullptr;
-    size_t inst_dis = cs_disasm(m_handle, data, len, vaddr, 1, &insn);
-    if (inst_dis != 1) {
-        m_log->error("Invalid disassembly of Instruction");
+    size_t inst_len = 4;
+
+    if(m_is_thumb) {
+        inst_len = 2;
     }
-    return insn;
+    _tmp_inst_info = cs_malloc(m_handle);
+    
+    bool should_cont = cs_disasm_iter(m_handle, &data, &inst_len, &vaddr, _tmp_inst_info);
+    // if (!should_cont) {
+    //     m_log->error("Invalid disassembly of Instruction");
+    // }
+    // return insn;
 }
 
-void ArmDisassembler::disass(const uint8_t *data, uint64_t len, uint64_t vaddr)
+void ArmDisassembler::getBranchInfo(const uint8_t* data, BranchData& branchInfo, DebugOpts& debug_opts) {
+    disassSingleInst(data, branchInfo.addr(), _tmp_inst_info);
+    m_inst_analyzer->prettyPrintCapstoneInst(m_handle, _tmp_inst_info, true);
+    m_inst_analyzer->getBranchDest(_tmp_inst_info, branchInfo, debug_opts);
+}
+
+void ArmDisassembler::disass(const uint8_t *data, size_t len, uint64_t vaddr)
 {
     cs_insn *insn = cs_malloc(m_handle);
     const uint8_t* tmp_data = data;
-    uint64_t tmp_len = len;
+    size_t tmp_len = len;
     bool cont_disasm = true;
-
-    auto dest_branch = new std::vector<intptr_t>();
 
     while(cont_disasm) {
         cont_disasm = cs_disasm_iter(m_handle, &tmp_data, &tmp_len, &vaddr, insn);

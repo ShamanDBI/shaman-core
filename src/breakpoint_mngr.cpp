@@ -81,7 +81,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
             brkpnt_obj->setAddress(brk_addr);
             brkpnt_obj->enable(debug_opts);
             m_log->trace("This is debug stop!");
-            brkpnt_obj->addPid(debug_opts.getPid());
+            // brkpnt_obj->addPid(debug_opts.getPid());
             m_active_brkpnt[brk_addr] = brkpnt_obj;
             // auto bb_obj = placeSingleStepBreakpoint(debug_opts, brk_addr + 4);
             // m_active_brkpnt[brk_addr + 4] = bb_obj.release(); 

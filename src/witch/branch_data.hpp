@@ -3,9 +3,9 @@
 
 #include <capstone/arm.h>
 #include <string>
+#include "spdlog/spdlog.h"
 
-
-using addr_t = size_t;
+using addr_t = uintptr_t;
 
 struct BranchData {
 
@@ -23,14 +23,24 @@ struct BranchData {
     addr_t m_branch_addr; // Address of the Branch Instruction 
     
     addr_t m_target; // branch taken when the true condition is meet
-    addr_t m_fall_target; // branch taken when the false condition is meet
     
-    BranchData();
-    bool isConditional() const noexcept { return m_conditional_branch; }
-    bool isDirect() const noexcept { return m_direct_branch; }
-    bool isCall() const noexcept { return m_is_call; }
-    bool isComputed() const noexcept {return m_is_computed ;}
-    addr_t target() const { return m_target; }
+    // branch taken when the false condition is meet, also called
+    // as fall-through branch
+    addr_t m_fall_target;
+
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
+    
+    BranchData(addr_t _branch_addr);
+
+    bool isConditional() { return m_conditional_branch; }
+    bool isDirect() { return m_direct_branch; }
+    bool isCall() { return m_is_call; }
+    bool isComputed() { return m_is_computed; }
+    void print();
+
+    addr_t addr() { return m_branch_addr; };
+    addr_t target() { return m_target; }
+    addr_t fall_addr() { return m_fall_target; }
 };
 
 #endif

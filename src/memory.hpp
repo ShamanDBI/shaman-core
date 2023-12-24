@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <fstream>
 
+
 class Addr {
 
     uint8_t* m_data; // local buffer holding the data of tracee memory location
@@ -61,9 +62,9 @@ public:
     uint64_t read_u64();
     int64_t read_i64();
 
+    friend class RemoteMemory;
 };
 
-// using namespace std;
 
 class RemoteMemory {
 

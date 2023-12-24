@@ -2,12 +2,13 @@
 #include "modules.hpp"
 #include "tracee.hpp"
 #include "breakpoint.hpp"
+#include "witch.hpp"
 
 
 Debugger::Debugger(TargetDescription& _target_desc)
 	: m_target_desc(_target_desc) {	
 	
-	m_arm_disasm = std::unique_ptr<ArmDisassembler>(new ArmDisassembler(_target_desc));
+	m_arm_disasm = new ArmDisassembler(false);
 	m_tracee_factory = new TraceeFactory();
 	m_syscallMngr = new SyscallManager();
 	m_breakpointMngr = new BreakpointMngr(m_target_desc);
@@ -491,7 +492,8 @@ bool Debugger::eventLoop() {
 				brk_addr = arm64Reg.getBreakpointAddr();
 			}
 
-			m_log->debug("Breakpoint restore : 0x{:x} {:x}", traceeProgram->m_brkpnt_addr, brk_addr);
+			m_log->debug("Breakpoint Restore Hit addr : 0x{:x} ", brk_addr);
+			m_log->debug("Restoring Breakpoint addr : 0x{:x}", traceeProgram->m_brkpnt_addr);
 			
 			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 				std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
@@ -654,11 +656,14 @@ bool Debugger::eventLoop() {
 						} else {
 							next_inst_addr = brk_addr + 4;
 						}
-						m_arm_disasm->disass_single_inst();
+
 						// m_inst_analyzer.getBranchDest();
 						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
-						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, next_inst_addr);
-						BranchData* branch_info = new BranchData();
+						BranchData* branch_info = new BranchData(brk_addr);
+						Addr* inst_data = debug_opts->m_memory.readPointerObj(brk_addr, 4);
+						m_arm_disasm->getBranchInfo(inst_data->data(), *branch_info, *debug_opts);
+						branch_info->print();
+						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, branch_info->m_target);
 						traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
 						// armReg.setProgramCounter(brk_addr);
 						// armReg.update();

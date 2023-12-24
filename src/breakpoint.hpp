@@ -10,6 +10,7 @@
 #include "debug_opts.hpp"
 #include "memory.hpp"
 
+
 class BreakpointInjector {
 
 protected:
@@ -37,8 +38,7 @@ public:
     void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
 };
 
-#define BREAKINST_ARM	0xe7f001f0
-#define BREAKINST_THUMB	0xde01
+// ------------------------------- ARM ISA ------------------------------------
 
 /* Under ARM GNU/Linux the traditional way of performing a breakpoint
    is to execute a particular software interrupt, rather than use a
@@ -94,12 +94,17 @@ struct ARM64BreakpointInjector : public BreakpointInjector {
 };
 
 
+// ------------------------------- [ ARM ISA END ] ---------------------------------
+
+
 class Breakpoint {
 
 protected:
+
     bool m_enabled = false;
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
+
 public:
     enum BreakpointType {
         // single shot breakpoint used for collecting code coverage
@@ -139,7 +144,7 @@ public:
     uintptr_t m_offset = 0;
 
     // process id's in which this breakpoint is active
-    std::vector<pid_t> m_pids; // pid of tracee
+    // std::vector<pid_t> m_pids; // pid of tracee
 
     std::string m_label;
 
@@ -157,47 +162,29 @@ public:
 
     ~Breakpoint();
 
-    Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector) {
-        m_bkpt_injector = brk_pnt_injector;
-        return *this;
-    }
+    Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector);
 
-    Breakpoint& makeSingleStep(uintptr_t _brkpnt_addr) {
-        m_type = BreakpointType::SINGLE_STEP;
-        setAddress(_brkpnt_addr);
-        return *this;
-    }
+    Breakpoint& makeSingleStep(uintptr_t _brkpnt_addr);
 
-    Breakpoint& makeSingleShot() {
-        m_type = BreakpointType::SINGLE_SHOT;
-        return *this;
-    }
+    Breakpoint& makeSingleShot();
 
-    Breakpoint& setMaxHitCount(uint32_t max_hit_count) {
-        m_max_hit_count = max_hit_count;
-        return *this;
-    }
+    Breakpoint& setMaxHitCount(uint32_t max_hit_count);
 
-    void addPid(pid_t pid) { m_pids.push_back(pid); }
+    // void addPid(pid_t pid);
 
-    virtual void setAddress(uintptr_t brkpnt_addr) {
-        // set concrete offset of breakpoint in process memory space
-        m_addr = brkpnt_addr;
-        m_backupData = std::unique_ptr<Addr>(new Addr(m_addr, 8));
-    }
+    // this is made virtual to capture the event in which the breakpoint
+    // is actually paced in the process memory
+    virtual void setAddress(uintptr_t brkpnt_addr);
 
     void printDebug() {
-        m_log->debug("BRK [0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_hit_count);
+        m_log->debug("[0x{:x}] [{}] count {} ", m_addr, m_label.c_str(), m_hit_count);
     }
 
     uint32_t getHitCount() { return m_hit_count; }
 
     bool shouldEnable();
 
-    virtual bool handle(DebugOpts& debug_opts) {
-        m_hit_count++;
-        return true;
-    }
+    virtual bool handle(DebugOpts& debug_opts);
 
     bool isEnabled() { return m_enabled; }
 

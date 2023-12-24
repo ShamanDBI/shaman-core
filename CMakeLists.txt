@@ -93,8 +93,11 @@ set(SRC
   src/tracee.cpp
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
-  src/witch/inst_analyzer.cpp
   src/syscall.cpp
+
+  src/witch/inst_analyzer.cpp
+  src/witch/branch_data.cpp
+  src/witch/witch.cpp
 )
 
 # Main shaman Instrumentation project
@@ -106,6 +109,7 @@ target_include_directories(shaman PRIVATE src/witch)
 target_sources(shaman PRIVATE ${SRC} ${ARCH_SRC} src/main.cpp)
 target_include_directories(shaman PRIVATE src/arch/intel)
 target_include_directories(shaman PRIVATE src)
+target_include_directories(shaman PRIVATE witch)
 
 # target_link_libraries(shaman -static)
 
