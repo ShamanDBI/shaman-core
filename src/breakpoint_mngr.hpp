@@ -6,6 +6,7 @@
 
 #include "debug_opts.hpp"
 #include "breakpoint.hpp"
+#include "branch_data.hpp"
 
 
 /**
@@ -71,7 +72,7 @@ public:
     // and value is the breakpoint which was hit.
     std::map<pid_t, Breakpoint*> m_suspendedBrkPnt;
 
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
 
     BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {};
 
@@ -104,7 +105,8 @@ public:
 
     void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, std::string* label);
 
-    std::unique_ptr<Breakpoint> placeSingleStepBreakpoint(DebugOpts& debug_opts, uintptr_t brk_addr);
+    // Currently only support ARM32 Architecture
+    void placeSingleStepBreakpoint(BranchData& brk_addr, DebugOpts& debug_opts);
 };
 
 #endif

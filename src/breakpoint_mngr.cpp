@@ -53,6 +53,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
     
     BreakpointInjector* brkPntInjector;
     
+    /*
     if (m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 || m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
         brkPntInjector = new X86BreakpointInjector();
     } else if(m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
@@ -60,6 +61,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
     } else if(m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
         brkPntInjector = new ARM64BreakpointInjector();
     }
+    */
 
     
     for (auto pend_iter = m_pending.cbegin(); pend_iter != m_pending.cend();)
@@ -75,7 +77,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
         while (!brk_pending_objs.empty())
         {
             Breakpoint *brkpnt_obj = brk_pending_objs.back();
-            brkpnt_obj->setInjector(brkPntInjector);
+            // brkpnt_obj->setInjector(brkPntInjector);
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
             m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
@@ -172,14 +174,24 @@ void BreakpointMngr::printStats()
     m_log->info("[------------------------------");
 };
 
-std::unique_ptr<Breakpoint> BreakpointMngr::placeSingleStepBreakpoint(DebugOpts& debug_opts, uintptr_t brk_addr) {
-    m_log->debug("Placing Single Step breakpoint at 0x{:x}", brk_addr);
-    std::unique_ptr<Breakpoint> singleShotBpkt(new Breakpoint(*new std::string("single-stop"), 0));
-    singleShotBpkt->setInjector(new ARMBreakpointInjector());
-    singleShotBpkt->makeSingleStep(brk_addr);
-    singleShotBpkt->enable(debug_opts);
+void BreakpointMngr::placeSingleStepBreakpoint(BranchData& branch_targets, DebugOpts& debug_opts) {
+    m_log->debug("Target breakpoint at 0x{:x}", branch_targets.m_target);
+    std::unique_ptr<Breakpoint> targetBranchBkpt(new Breakpoint(*new std::string("single-stop-target"), 0));
+    targetBranchBkpt->setInjector(new ARMBreakpointInjector());
+    targetBranchBkpt->makeSingleStep(branch_targets.m_target);
+    targetBranchBkpt->enable(debug_opts);
+    branch_targets.m_target_brkpt = std::move(targetBranchBkpt);
+
+    if(branch_targets.m_fall_target) {
+        m_log->debug("Fall through breakpoint at 0x{:x}", branch_targets.m_fall_target);
+        std::unique_ptr<Breakpoint> targetFallBranchBkpt(new Breakpoint(*new std::string("single-stop-fall-target"), 0));
+        targetFallBranchBkpt->setInjector(new ARMBreakpointInjector());
+        targetFallBranchBkpt->makeSingleStep(branch_targets.m_fall_target);
+        targetFallBranchBkpt->enable(debug_opts);
+        branch_targets.m_fall_target_brkpt = std::move(targetFallBranchBkpt);
+    }
     // TODO : not sure if this object should be recorded somewhere?
     // currently it stored and restored by Debugger class
-    // m_active_brkpnt[brk_addr] = singleShotBpkt;
-    return singleShotBpkt;
+    // m_active_brkpnt[brk_addr] = targetBranchBkpt;
+    // return targetBranchBkpt;
 };

@@ -82,7 +82,7 @@ public:
 
 	// this is a temprory breapoint to handle single-step during
 	// breakpoint handling
-	std::unique_ptr<Breakpoint> m_single_step_brkpnt = nullptr;
+	std::unique_ptr<BranchData> m_single_step_brkpnt = nullptr;
 
 	TargetDescription &m_target_desc;
 	// BreakpointMngr* m_breakpointMngr;

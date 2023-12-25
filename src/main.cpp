@@ -6,6 +6,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/fmt/bin_to_hex.h"
+#include "spdlog/cfg/argv.h" // for loading levels from argv
 
 #include "debugger.hpp"
 #include "breakpoint_reader.hpp"
@@ -258,8 +259,10 @@ int main(int argc, char **argv)
 
 	CLI::App app{"Shaman DBI Framework"};
 
+	
 	std::string trace_log_path, app_log_path, basic_block_path;
 	std::string coverage_output;
+	std::string tmp_log;
 	pid_t attach_pid{-1};
 	std::vector<std::string> exec_prog;
 	std::vector<std::string> brk_pnt_addrs;
@@ -289,12 +292,13 @@ int main(int argc, char **argv)
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
 
 	app.add_option("--debug", debug_log_level, "set debug level, for eg 0 for trace and 6 for critical");
+	app.add_option("SPDLOG_LEVEL", tmp_log, "SPDLOG configuration");
 	app.add_option("-e,--exec", exec_prog, "program to execute")
 		->expected(-1); // 		->required();
 
 	CLI11_PARSE(app, argc, argv);
-
 	init_logger(app_log_path, debug_log_level);
+	spdlog::cfg::load_argv_levels(argc, argv);
 
 	auto log = spdlog::get("main");
 	log->info("Welcome to Shaman!");

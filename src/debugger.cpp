@@ -496,9 +496,12 @@ bool Debugger::eventLoop() {
 			m_log->debug("Restoring Breakpoint addr : 0x{:x}", traceeProgram->m_brkpnt_addr);
 			
 			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
-				std::unique_ptr<Breakpoint> ss_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
-				ss_brkpt->disable(traceeProgram->getDebugOpts());
-				ss_brkpt.reset();
+				std::unique_ptr<BranchData> branch_info_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
+				branch_info_brkpt->m_target_brkpt->disable(traceeProgram->getDebugOpts());
+				if(branch_info_brkpt->m_fall_target)
+					branch_info_brkpt->m_fall_target_brkpt->disable(traceeProgram->getDebugOpts());
+				// branch_info_brkpt->disable(traceeProgram->getDebugOpts());
+				// branch_info_brkpt.reset();
 			}
 			// debug_event->print();
 			if(debug_event->event.type == TraceeEvent::STOPPED 
@@ -659,12 +662,12 @@ bool Debugger::eventLoop() {
 
 						// m_inst_analyzer.getBranchDest();
 						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
-						BranchData* branch_info = new BranchData(brk_addr);
+						std::unique_ptr<BranchData> branch_info = std::unique_ptr<BranchData>(new BranchData(brk_addr));
 						Addr* inst_data = debug_opts->m_memory.readPointerObj(brk_addr, 4);
 						m_arm_disasm->getBranchInfo(inst_data->data(), *branch_info, *debug_opts);
 						branch_info->print();
-						auto ss_bkpt = m_breakpointMngr->placeSingleStepBreakpoint(*debug_opts, branch_info->m_target);
-						traceeProgram->m_single_step_brkpnt = std::move(ss_bkpt);
+						m_breakpointMngr->placeSingleStepBreakpoint(*branch_info, *debug_opts);
+						traceeProgram->m_single_step_brkpnt = std::move(branch_info);
 						// armReg.setProgramCounter(brk_addr);
 						// armReg.update();
 						// traceeProgram->toStateRunning();

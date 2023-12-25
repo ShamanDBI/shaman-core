@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include "breakpoint.hpp"
 #include "amd64_breakpoint_inject.hpp"
 
@@ -8,7 +9,17 @@ Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr
         if(_label == nullptr) {
             m_label = spdlog::fmt_lib::format("{}@{:x}", m_modname.c_str(), offset);
         }
+    
+    #if defined(SUPPORT_ARCH_X86)
         m_bkpt_injector = new X86BreakpointInjector();
+    #elif defined(SUPPORT_ARCH_ARM)
+        m_bkpt_injector = new ARMBreakpointInjector();
+    #elif defined(SUPPORT_ARCH_ARM64)
+        m_bkpt_injector = new ARM64BreakpointInjector();
+    #else
+        log->error("No Architecture is specified")
+            exit(-1);
+    #endif
     };
 
 Breakpoint::~Breakpoint() { 

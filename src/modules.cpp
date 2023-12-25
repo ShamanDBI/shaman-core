@@ -39,7 +39,7 @@ uintptr_t ProcessMap::findModuleBaseAddr(std::string &module_path) {
         }
     );
     if (val != std::end(m_map)) {
-        m_log->debug("Find mod : {} base addr : 0x{:x}", (*val)->path->c_str(), (*val)->addr_begin);
+        m_log->debug("Module '{}' found at base addr : 0x{:x}", (*val)->path->c_str(), (*val)->addr_begin);
         return (*val)->addr_begin;
     }
     m_log->error("Module '{}' not found!", module_path.c_str());

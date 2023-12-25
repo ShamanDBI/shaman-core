@@ -3,7 +3,10 @@
 
 #include <capstone/arm.h>
 #include <string>
+#include <memory>
 #include "spdlog/spdlog.h"
+#include "breakpoint.hpp"
+
 
 using addr_t = uintptr_t;
 
@@ -27,7 +30,8 @@ struct BranchData {
     // branch taken when the false condition is meet, also called
     // as fall-through branch
     addr_t m_fall_target;
-
+    std::unique_ptr<Breakpoint> m_target_brkpt;
+    std::unique_ptr<Breakpoint> m_fall_target_brkpt;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
     
     BranchData(addr_t _branch_addr);

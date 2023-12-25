@@ -47,6 +47,8 @@ cmake --build build --target shaman
 1. This can be used to intercept socket operation and used to manipulate data to and from the target program, essentially use it as proxy program
 1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
 1. Function hook very similar to system call trace but for functions.
+1. Resource Tracing
+  1. Kernel usually operates on system resource like File, 
 
 ## Dependencies
 
