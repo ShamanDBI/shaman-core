@@ -24,7 +24,7 @@ void Addr::print() {
     auto log = spdlog::get("main");
     std::vector<uint8_t> hex_data_copy(m_size);
     memcpy(hex_data_copy.data(), m_data, m_size);
-    log->warn("Addr | raddr 0x{:x}, size {}, data {}", r_addr, m_size , spdlog::to_hex(hex_data_copy));
+    log->warn("Addr | raddr 0x{:x}, size {}, data {:Xpn}", r_addr, m_size , spdlog::to_hex(hex_data_copy));
 }
 
 Addr::~Addr() {

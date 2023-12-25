@@ -201,6 +201,7 @@ public:
 
 #define ARCH_ARM_GP_REG_CNT 18
 #define CPSR_THUMB 0x20
+#include <capstone/capstone.h>
 
 class ARM32Register: public IRegisters<uint32_t> {
 
@@ -217,14 +218,16 @@ public:
         R8,
         R9,
         R10,
-        FP,
-        IP,
+        FP, // Frame Pointer
+        IP, // 
         SP,
         LR,
         PC,
         CPSR,
         ORIG_R0
     };
+    int* arm_cap_reg_map;
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
 
     ARM32Register(pid_t tracee_pid)
         : IRegisters<uint32_t>(tracee_pid, ARCH_ARM_GP_REG_CNT) {
@@ -232,18 +235,72 @@ public:
         program_register_idx = static_cast<uint8_t>(REGISTER_IDX::PC);
         stack_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::SP);
         frame_base_pointer_register_idx = static_cast<uint8_t>(REGISTER_IDX::FP);
+        arm_cap_reg_map = new int[ARM_REG_ENDING];
+        arm_cap_reg_map[ARM_REG_R0] = ARM32Register::R0;
+        arm_cap_reg_map[ARM_REG_R1] = ARM32Register::R1;
+        arm_cap_reg_map[ARM_REG_R2] = ARM32Register::R2;
+        arm_cap_reg_map[ARM_REG_R3] = ARM32Register::R3;
+        arm_cap_reg_map[ARM_REG_R4] = ARM32Register::R4;
+        arm_cap_reg_map[ARM_REG_R5] = ARM32Register::R5;
+        arm_cap_reg_map[ARM_REG_R6] = ARM32Register::R6;
+        arm_cap_reg_map[ARM_REG_R7] = ARM32Register::R7;
+        arm_cap_reg_map[ARM_REG_R8] = ARM32Register::R8;
+        arm_cap_reg_map[ARM_REG_R9] = ARM32Register::R9;
+        arm_cap_reg_map[ARM_REG_R10] = ARM32Register::R10;
+        arm_cap_reg_map[ARM_REG_FP] = ARM32Register::FP;
+        arm_cap_reg_map[ARM_REG_IP] = ARM32Register::IP;
+        arm_cap_reg_map[ARM_REG_SP] = ARM32Register::SP;
+        arm_cap_reg_map[ARM_REG_LR] = ARM32Register::LR;
+        arm_cap_reg_map[ARM_REG_PC] = ARM32Register::PC;
     }
 
     uint32_t getBreakpointAddr() {
         return getProgramCounter();
     }
 
+    uint32_t getCapRegValue(int reg_id) {
+        // m_log->debug("CAP Reg ID : {} {}", reg_id, arm_cap_reg_map[reg_id]);
+        return getRegIdx(arm_cap_reg_map[reg_id]);
+    }
+
     bool isThumbMode() {
         return getRegIdx(REGISTER_IDX::CPSR) & CPSR_THUMB;
     }
 
-    void print() {};
+    void print() {
+        m_log->debug("--------------------[ ARM REGISTER ]--------------------");
+
+        for(int i=0; i < ARCH_ARM_GP_REG_CNT; i++) {
+            switch (i) {
+            case PC:
+                m_log->debug("\tPC   {:#04x}", getRegIdx(i));
+                break;
+            case SP:
+                m_log->debug("\tSP   {:#04x}", getRegIdx(i));
+                break;
+            case LR:
+                m_log->debug("\tLR   {:#04x}", getRegIdx(i));
+                break;
+            case FP:
+                m_log->debug("\tFP   {:#04x}", getRegIdx(i));
+                break;
+            case IP:
+                m_log->debug("\tIP   {:#04x}", getRegIdx(i));
+                break;
+            case CPSR:
+                m_log->debug("\tCPSR {:#04x}", getRegIdx(i));
+                break;
+            default:
+                m_log->debug("\tR{:<3} {:#04x}",i, getRegIdx(i));
+                break;
+            }
+        }
+        m_log->debug("--------------------[ ARM END REGISTER ]-----------------");
+    };
 };
+
+
+
 
 #define ARCH_ARM64_GP_REG_CNT 35
 
@@ -300,7 +357,11 @@ public:
         return getProgramCounter();
     }
 
-    void print() {};
+    void print() {
+        for(int i=0; i < ARCH_ARM64_GP_REG_CNT; i++) {
+            m_log->debug("X{:<3} {:#04x}",i, getRegIdx(i));
+        }
+    };
 };
 
 #endif

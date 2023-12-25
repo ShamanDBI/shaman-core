@@ -43,7 +43,7 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
     ARM32Register& arm_reg = reinterpret_cast<ARM32Register&>(debug_opts.m_register);
 
     if (detail == NULL) {
-        printf("Details not found!\n");
+        m_log->error("Details not found!\n");
         return false;
     }
 
@@ -52,7 +52,7 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         for (int i = 0; i < detail->arm.op_count; ++i) {
             if (detail->arm.operands[i].reg == ARM_REG_PC) {
                 // read the stack memory and figure out the branch destination
-                printf("PC idx %d = [SP - %d]\n", i + 1, i*4);
+                // printf("PC idx %d = [SP - %d]\n", i + 1, i*4);
                 Addr* sp_addr = debug_opts.m_memory.readPointerObj(arm_reg.getStackPointer() + 4, 4);
                 branch_info.m_direct_branch = true;
                 branch_info.m_target = sp_addr->read_u32();
@@ -61,27 +61,91 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         }
     }
 
+
+
     if ((detail->arm.operands[0].type == ARM_OP_REG)
         && (detail->arm.operands[0].reg == ARM_REG_PC)) {
-        
-        SPDLOG_LOGGER_TRACE(m_log, "we are in computation zone");
         if (inst->id == ARM_INS_STR) {
             return false;
         }
+        _found_dest = true;
 
+        // we have to emulate the instruction to calculate the destination branch
+        SPDLOG_LOGGER_TRACE(m_log, "Emulation Zone");
+        arm_reg.print();
+
+        branch_info.m_is_computed = true;
         branch_info.m_direct_branch = false;
 
-        // read see the type of instruction which is implemented and 
-        // emulate the operation
-        printf("ID : %d\n", inst->id);
+        uint32_t val_1 = 0, val_2 = 0;
         
+        // Get the first operand, this has to be only register value
+        if (detail->arm.operands[1].type == ARM_OP_REG) {
+            val_1 = arm_reg.getCapRegValue(detail->arm.operands[1].reg);
+        } else {
+            m_log->error("1st operand is not register");
+        }
+
+        
+        // Extraction the second operand
+        cs_arm_op *sec_op = &(detail->arm.operands[2]);
+        switch(sec_op->type) {
+            case ARM_OP_REG:
+                val_2 = arm_reg.getCapRegValue(sec_op->reg);
+                SPDLOG_LOGGER_DEBUG(m_log, "sec operands[{}].type: REG ID = {}", n, sec_op->reg);
+                break;
+            case ARM_OP_IMM:
+                val_2 = sec_op->imm;
+                SPDLOG_LOGGER_DEBUG(m_log, "sec operands[{}].type: IMM = 0x{:x}", n, sec_op->imm);
+                break;
+            case ARM_OP_MEM:
+                m_log->error("sec operands[{}].type: MEM", n);
+                if (sec_op->mem.base != ARM_REG_INVALID)
+                    m_log->error("\tsec operands[{}].mem.base: REG ID = {}", n, sec_op->mem.base);
+                if (sec_op->mem.index != ARM_REG_INVALID)
+                    m_log->error("\tsec operands[{}].mem.index: REG ID = {}", n, sec_op->mem.index);
+                if (sec_op->mem.disp != 0)
+                    m_log->error("\tsec operands[{}].mem.disp: 0x{:x}", n, sec_op->mem.disp);
+                break;
+            case ARM_OP_CIMM:
+                m_log->error("sec operands[{}].type: C-IMM = {}", n, sec_op->imm);
+                break;
+        }
+
+        if (sec_op->shift.type != ARM_SFT_INVALID && sec_op->shift.value) {
+            m_log->debug("\t\t\tShift: type = {}, value = {}", sec_op->shift.type, sec_op->shift.value);
+            
+            switch (sec_op->shift.type)
+            {
+            case ARM_SFT_LSL:
+                val_2 = val_2 << sec_op->shift.value;
+                break;
+            case ARM_SFT_LSR:
+                val_2 = val_2 >> sec_op->shift.value;
+            default:
+                m_log->error("Please handle this type of Shift computation! Shift ID : {}", sec_op->shift.type);
+                break;
+            }
+
+        }
+        SPDLOG_LOGGER_DEBUG(m_log, "Opt 1 : 0x{:x} Opt 2 : 0x{:x}", val_1, val_2);
+        // m_log->debug("Val 1 : 0x{:x} Val 2 : 0x{:x}", val_1, val_2);
         switch (inst->id) {
         case ARM_INS_ADD:
-            printf("ADD");
+            val_1 = val_1 + val_2;
+            break;
+        case ARM_INS_SUB:
+            val_1 = val_1 - val_2;
             break;
         default:
+            m_log->error("Please handle this type of JUMP computation! Inst ID : {}", inst->id);
+            return false;
             break;
         }
+        SPDLOG_LOGGER_DEBUG(m_log, "Res : 0x{:x}", val_1, val_2);
+
+        // Adjust the target to pointer two instruction ahead
+        branch_info.m_target = val_1 + (4*2);
     }
 
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
@@ -120,8 +184,8 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
     if(!_found_dest) {
         branch_info.m_target = inst->address + inst->size;
     }
-    // printf("Not a branch Instruction\n");
-    return false;
+
+    return true;
 }
 
 void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, bool details_enabled) {
@@ -173,7 +237,7 @@ void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, 
     if (detail->regs_read_count > 0) {
         m_log->debug("\tRegisters READ: ");
         for (n = 0; n < detail->regs_read_count; n++) {
-            m_log->debug("{} ", cs_reg_name(handle, detail->regs_read[n]));
+            m_log->debug("\t\t{} ", cs_reg_name(handle, detail->regs_read[n]));
         }
     }
 
@@ -181,7 +245,7 @@ void ARMInstAnalyzer::prettyPrintCapstoneInst(const csh &handle, cs_insn *inst, 
     if (detail->regs_write_count > 0) {
         m_log->debug("\tRegisters WRITE: ");
         for (n = 0; n < detail->regs_write_count; n++) {
-            m_log->debug("{} ", cs_reg_name(handle, detail->regs_write[n]));
+            m_log->debug("\t\t{}", cs_reg_name(handle, detail->regs_write[n]));
         }
     }
 

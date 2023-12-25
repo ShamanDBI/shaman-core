@@ -5,8 +5,11 @@
 #include <memory>
 #include <capstone/capstone.h>
 
+#include "config.hpp"
+
 #include "spdlog/spdlog.h"
 #include "branch_data.hpp"
+
 // #include "debug_opts.hpp"
 
 class DebugOpts;

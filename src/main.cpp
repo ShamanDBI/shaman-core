@@ -1,16 +1,17 @@
-#include <spdlog/spdlog.h>
-#include <CLI/CLI.hpp>
-
-#include "debugger.hpp"
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "breakpoint_reader.hpp"
-#include "syscall.hpp"
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "memory.hpp"
 #include "config.hpp"
+#include <CLI/CLI.hpp>
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/fmt/bin_to_hex.h"
+
+#include "debugger.hpp"
+#include "breakpoint_reader.hpp"
+#include "syscall.hpp"
+#include "memory.hpp"
+
 
 class DataSocket : public NetworkOperationTracer
 {
@@ -250,6 +251,8 @@ void init_logger(std::string &log_file, int debug_log_level)
 	}
 }
 
+
+
 int main(int argc, char **argv)
 {
 
@@ -266,7 +269,7 @@ int main(int argc, char **argv)
 	bool trace_syscalls = false;
 	bool single_shot{false};
 	bool follow_fork = false;
-	int debug_log_level = 2;
+	int debug_log_level = 1;
 
 	app.add_option("-l,--log", app_log_path, "application debug logs");
 	app.add_option("-o,--trace", trace_log_path, "output of the tracee logs");
