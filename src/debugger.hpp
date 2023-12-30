@@ -156,7 +156,6 @@ public:
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
-	ArmDisassembler* m_arm_disasm;
 	
 	std::map<pid_t, TraceeProgram*> m_Tracees;
 

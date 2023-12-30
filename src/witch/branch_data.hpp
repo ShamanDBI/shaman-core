@@ -36,6 +36,10 @@ struct BranchData {
     
     BranchData(addr_t _branch_addr);
 
+    BranchData(const BranchData&) = delete;
+    BranchData& operator=(const BranchData&) = delete;
+    ~BranchData() = default;
+
     bool isConditional() { return m_conditional_branch; }
     bool isDirect() { return m_direct_branch; }
     bool isCall() { return m_is_call; }

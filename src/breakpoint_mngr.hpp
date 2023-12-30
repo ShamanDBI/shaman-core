@@ -7,7 +7,7 @@
 #include "debug_opts.hpp"
 #include "breakpoint.hpp"
 #include "branch_data.hpp"
-
+#include "witch.hpp"
 
 /**
  * Problem
@@ -52,6 +52,8 @@
 */
 
 class TargetDescription;
+class TraceeProgram;
+
 
 class BreakpointMngr {
 
@@ -62,6 +64,8 @@ public:
     std::map<std::string, std::list<Breakpoint*>> m_pending;
 
     std::map<uintptr_t, Breakpoint*> m_active_brkpnt;
+    
+    std::map<uintptr_t, std::unique_ptr<BranchData>> m_branch_info_cache;
 
     TargetDescription& m_target_desc;
 
@@ -72,9 +76,12 @@ public:
     // and value is the breakpoint which was hit.
     std::map<pid_t, Breakpoint*> m_suspendedBrkPnt;
 
+    ArmDisassembler* m_arm_disasm;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
 
-    BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {};
+    BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {
+        m_arm_disasm = new ArmDisassembler(false);
+    };
 
     // add breakpoint in format module@addr1,addr2,add3
     void parseModuleBrkPnt(std::string& brk_mod_addr);
@@ -97,7 +104,7 @@ public:
         return false;
     }
 
-    void restoreSuspendedBreakpoint(DebugOpts& debug_opts);
+    void restoreSuspendedBreakpoint(TraceeProgram& traceeProgram);
 
     void handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_addr);
 
@@ -106,7 +113,7 @@ public:
     void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, std::string* label);
 
     // Currently only support ARM32 Architecture
-    void placeSingleStepBreakpoint(BranchData& brk_addr, DebugOpts& debug_opts);
+    void placeSingleStepBreakpoint(uintptr_t brkpt_hit_addr, TraceeProgram& traceeProgram);
 };
 
 #endif

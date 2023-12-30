@@ -2,13 +2,11 @@
 #include "modules.hpp"
 #include "tracee.hpp"
 #include "breakpoint.hpp"
-#include "witch.hpp"
 
 
 Debugger::Debugger(TargetDescription& _target_desc)
 	: m_target_desc(_target_desc) {	
-	
-	m_arm_disasm = new ArmDisassembler(false);
+
 	m_tracee_factory = new TraceeFactory();
 	m_syscallMngr = new SyscallManager();
 	m_breakpointMngr = new BreakpointMngr(m_target_desc);
@@ -495,14 +493,6 @@ bool Debugger::eventLoop() {
 			m_log->debug("Breakpoint Restore Hit addr : 0x{:x} ", brk_addr);
 			m_log->debug("Restoring Breakpoint addr : 0x{:x}", traceeProgram->m_brkpnt_addr);
 			
-			if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
-				std::unique_ptr<BranchData> branch_info_brkpt = std::move(traceeProgram->m_single_step_brkpnt);
-				branch_info_brkpt->m_target_brkpt->disable(traceeProgram->getDebugOpts());
-				if(branch_info_brkpt->m_fall_target)
-					branch_info_brkpt->m_fall_target_brkpt->disable(traceeProgram->getDebugOpts());
-				// branch_info_brkpt->disable(traceeProgram->getDebugOpts());
-				// branch_info_brkpt.reset();
-			}
 			// debug_event->print();
 			if(debug_event->event.type == TraceeEvent::STOPPED 
 				&& debug_event->reason.status == TrapReason::BREAKPOINT) {
@@ -512,7 +502,7 @@ bool Debugger::eventLoop() {
 				// step, at this stage we will restore the original breakpoint and remove the
 				// single-step breakpoint 
 				
-				m_breakpointMngr->restoreSuspendedBreakpoint(traceeProgram->getDebugOpts());
+				m_breakpointMngr->restoreSuspendedBreakpoint(*traceeProgram);
 				active_breakpoint.erase(traceeProgram->m_brkpnt_addr);
 				m_log->info("Breakpoint handled 0x{:x}", traceeProgram->m_brkpnt_addr);
 				
@@ -605,16 +595,19 @@ bool Debugger::eventLoop() {
 					
 					uintptr_t brk_addr = 0;
 
-					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+					// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64) {
+				#if defined(SUPPORT_ARCH_AMD64)						
 						AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
 						brk_addr = amdReg.getBreakpointAddr();
-					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+				#elif defined(SUPPORT_ARCH_ARM)
+				// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
 						brk_addr = armReg.getBreakpointAddr();
-					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+				#elif defined(SUPPORT_ARCH_ARM64)
+				// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
 						ARM64Register& armReg = reinterpret_cast<ARM64Register&>(debug_opts->m_register);
 						brk_addr = armReg.getBreakpointAddr();
-					}
+				#endif
 
 					if(active_breakpoint.count(brk_addr) > 0) {
 					//  prev_brk_addr == brk_addr && prev_pid != debug_opts->getPid()) {}
@@ -641,43 +634,31 @@ bool Debugger::eventLoop() {
 					// not the place to handle it
 					// debug_opts->m_register->print();
 					m_breakpointMngr->handleBreakpointHit(*debug_opts, brk_addr);
-
-					if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 ||
-						traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
+				#if defined(SUPPORT_ARCH_X86) || defined(SUPPORT_ARCH_AMD64)
+					// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 ||
+					// 	traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
 						AMD64Register& amdReg = reinterpret_cast<AMD64Register&>(debug_opts->m_register);
 						amdReg.setProgramCounter(brk_addr);
 						amdReg.update();
 						traceeProgram->toStateBreakpoint();
 						traceeProgram->singleStep();
-					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
-						// TODO : Breakpoint support for ARM32 is work in progress
-						ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
-						
-						uintptr_t next_inst_addr = 0;
-						if(armReg.isThumbMode()) {
-							next_inst_addr = brk_addr + 2;
-						} else {
-							next_inst_addr = brk_addr + 4;
-						}
-
-						// m_inst_analyzer.getBranchDest();
-						// auto ss_bkpt = std::unique_ptr<Breakpoint>(m_breakpointMngr->getBreakpointObj(brk_addr));
-						std::unique_ptr<BranchData> branch_info = std::unique_ptr<BranchData>(new BranchData(brk_addr));
-						Addr* inst_data = debug_opts->m_memory.readPointerObj(brk_addr, 4);
-						m_arm_disasm->getBranchInfo(inst_data->data(), *branch_info, *debug_opts);
-						branch_info->print();
-						m_breakpointMngr->placeSingleStepBreakpoint(*branch_info, *debug_opts);
-						traceeProgram->m_single_step_brkpnt = std::move(branch_info);
-						// armReg.setProgramCounter(brk_addr);
-						// armReg.update();
+				#elif defined(SUPPORT_ARCH_ARM)
+					// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
+						// ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
+						m_breakpointMngr->placeSingleStepBreakpoint(brk_addr, *traceeProgram);
 						// traceeProgram->toStateRunning();
 						traceeProgram->toStateBreakpoint();
 						// single stepping is not supported in ARM32 Linux Kernel
 						traceeProgram->contExecution(0);
-					} else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
+				#elif defined(SUPPORT_ARCH_ARM64)
+					// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
 						traceeProgram->toStateBreakpoint();
 						traceeProgram->singleStep();
-					}
+					// }
+				#else
+						m_log->error("Invalid Architecture is specified")
+							exit(-1);
+				#endif
 					
 					// debug_opts->m_register->print();
 					break;
