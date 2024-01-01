@@ -5,7 +5,7 @@ BranchData::BranchData(addr_t _branch_addr) :
     m_direct_branch{false},
     m_conditional_branch{false},
     m_is_call{false},
-    m_target{0}, m_fall_target{0} {
+    m_target{0}, m_fall_target{0}, m_target_brkpt(nullptr) {
 }
 
 

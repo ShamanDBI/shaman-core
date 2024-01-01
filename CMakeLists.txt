@@ -61,6 +61,18 @@ target_link_libraries(witch PRIVATE capstone)
 
 #-- END
 
+#-- SHARED IPC Start
+
+set(SHAMAN_IPC_SRC
+  src/mempipe/main.cpp
+)
+
+add_executable(shaman_ipc)
+target_include_directories(witch PRIVATE src/mempipe)
+target_sources(shaman_ipc PRIVATE ${SHAMAN_IPC_SRC} src/mempipe/main.cpp)
+
+#-- SHARED IPC END
+
 # Architecture specific files
 set(ARCH_SRC
   src/arch/intel/x86_breakpoint.cpp
