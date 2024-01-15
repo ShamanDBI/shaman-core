@@ -1,7 +1,7 @@
 #include "breakpoint_mngr.hpp"
 #include "debugger.hpp"
 #include "tracee.hpp"
-
+#include "debug_opts.hpp"
 
 void BreakpointMngr::parseModuleBrkPnt(std::string &brk_mod_addr)
 {
@@ -31,25 +31,28 @@ void BreakpointMngr::parseModuleBrkPnt(std::string &brk_mod_addr)
     m_pending[mod_name] = brk_offset;
 }
 
-void BreakpointMngr::addBrkPnt(Breakpoint *brkPtr)
+void BreakpointMngr::addBrkPnt(BreakpointPtr brkPtr)
 {
 
-    std::list<Breakpoint *> brk_offset;
+    std::list<Breakpoint *> pending_bkpt_list;
 
     auto pnd_brk_iter = m_pending.find(brkPtr->m_modname);
     if (pnd_brk_iter != m_pending.end())
     {
-        brk_offset = pnd_brk_iter->second;
-        m_log->error("Module found!");
+        pending_bkpt_list = pnd_brk_iter->second;
+        m_log->trace("Module in which the breakpoint will be inject is found!");
     }
+    // Module in which you want to inject breakpoint is not found! Appending at the top
 
-    brk_offset.push_back(brkPtr);
-    m_pending[brkPtr->m_modname] = brk_offset;
+    pending_bkpt_list.push_back(brkPtr);
+    m_pending[brkPtr->m_modname] = pending_bkpt_list;
 }
 
-// put all the pending breakpoint in the tracee
-void BreakpointMngr::inject(DebugOpts& debug_opts)
+/// @brief inject the pending breakpoint of the module for which
+///        the breakpoint is register
+void BreakpointMngr::inject(TraceeProgram& traceeProgram)
 {
+    DebugOpts& debug_opts = traceeProgram.getDebugOpts();
     debug_opts.m_procMap.print();
     m_log->trace("Yeeahh... Injecting all the pending Breakpoints!");
     
@@ -81,7 +84,7 @@ void BreakpointMngr::inject(DebugOpts& debug_opts)
             uintptr_t brk_addr = mod_base_addr + brkpnt_obj->m_offset;
             m_log->debug("Setting Brk at addr : 0x{:x}", brk_addr);
             brkpnt_obj->setAddress(brk_addr);
-            brkpnt_obj->enable(debug_opts);
+            brkpnt_obj->enable(traceeProgram);
             m_log->trace("This is debug stop!");
             // brkpnt_obj->addPid(debug_opts.getPid());
             m_active_brkpnt[brk_addr] = brkpnt_obj;
@@ -115,6 +118,7 @@ void BreakpointMngr::restoreSuspendedBreakpoint(TraceeProgram& traceeProgram)
     DebugOpts& debug_opts = traceeProgram.getDebugOpts();
 
 #if defined(SUPPORT_ARCH_ARM)
+    // additional step over logic required on case of ARM architecture 
     std::unique_ptr<BranchData> branch_info_brkpt = std::move(traceeProgram.m_single_step_brkpnt);
     m_log->debug("Restoring breakpoint and resuming execution!");
     branch_info_brkpt->m_target_brkpt->disable(debug_opts);
@@ -129,7 +133,7 @@ void BreakpointMngr::restoreSuspendedBreakpoint(TraceeProgram& traceeProgram)
         auto suspend_bkpt_obj = sus_bkpt_iter->second;
 
         if (suspend_bkpt_obj->shouldEnable()) {
-            suspend_bkpt_obj->enable(debug_opts);
+            suspend_bkpt_obj->enable(traceeProgram);
             m_log->trace("Restoring");
         } else {
             m_log->trace("Not restoring");
@@ -144,25 +148,30 @@ void BreakpointMngr::restoreSuspendedBreakpoint(TraceeProgram& traceeProgram)
     }
 }
 
-void BreakpointMngr::handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_addr)
+BreakpointPtr BreakpointMngr::handleBreakpointHit(TraceeProgram& traceeProgram, uintptr_t brk_addr)
 {
+    DebugOpts& debug_opts = traceeProgram.getDebugOpts();
     // PC points to the next instruction after execution
     m_log->trace("Breakpoint Hit! addr 0x{:x}", brk_addr);
     // find the breakpoint object for further processing
-    auto brk_obj = getBreakpointObj(brk_addr);
+    BreakpointPtr brk_obj = getBreakpointObj(brk_addr);
     if (brk_obj == nullptr) {
         m_log->trace("No Breakpoint Handler found!");
         exit(-1);
-        return;
+        return nullptr;
     }
 
+    // store the object to restore after the breakpoint
+    // stepover is done
     m_suspendedBrkPnt[debug_opts.m_pid] = brk_obj;
-    brk_obj->handle(debug_opts);
+
+    // the actual breakpoint handling logic
+    brk_obj->handle(traceeProgram);
     
     // m_log->debug("Brkpnt obj found!");
     // restore the value of original breakpoint instruction
-    brk_obj->disable(debug_opts);
-    // return brk_obj;
+    brk_obj->disable(traceeProgram);
+    return brk_obj;
 }
 
 void BreakpointMngr::printStats()
@@ -192,13 +201,22 @@ void BreakpointMngr::placeSingleStepBreakpoint(uintptr_t brkpt_hit_addr, TraceeP
     if (branch_info_iter != m_branch_info_cache.end()) {
         // tracee is found, its under over management
         std::unique_ptr<BranchData> ss_bkpt_obj = std::move(branch_info_iter->second);
-        ss_bkpt_obj->m_target_brkpt->enable(debug_opts);
+        
+        // if the breakpoint location can go to two possible destination
+        // the put breakpoint on both the addreses and wait on either one
+        // of the to execute and then restore at those orginal breakpoint
+        // from that location
+        ss_bkpt_obj->m_target_brkpt->enable(traceeProgram);
         if(ss_bkpt_obj->m_fall_target) {
-            ss_bkpt_obj->m_fall_target_brkpt->enable(debug_opts);
+            ss_bkpt_obj->m_fall_target_brkpt->enable(traceeProgram);
         }
         traceeProgram.m_single_step_brkpnt = std::move(ss_bkpt_obj);
     } else {
+
         m_log->info("No Branch data found!");
+        
+        // we are encounter the breakpoint address for the first time we need to
+        // calculate the branch destination
         std::unique_ptr<BranchData> branch_info(new BranchData(brkpt_hit_addr));
         // we need this instruction data in case we are in computed target instruction
         // and we need to emulate the instruction everytime.
@@ -210,13 +228,13 @@ void BreakpointMngr::placeSingleStepBreakpoint(uintptr_t brkpt_hit_addr, TraceeP
         std::unique_ptr<Breakpoint> targetBranchBkpt(new Breakpoint(*new std::string("single-stop-target"), 0));
         // targetBranchBkpt->setInjector(new ARMBreakpointInjector());
         targetBranchBkpt->makeSingleStep(branch_info->m_target);
-        targetBranchBkpt->enable(debug_opts);
+        targetBranchBkpt->enable(traceeProgram);
         branch_info->m_target_brkpt = std::move(targetBranchBkpt);
         if(branch_info->m_fall_target) {
             m_log->debug("Fall through breakpoint at 0x{:x}", branch_info->m_fall_target);
             std::unique_ptr<Breakpoint> targetFallBranchBkpt(new Breakpoint(*new std::string("single-stop-fall-target"), 0));
             targetFallBranchBkpt->makeSingleStep(branch_info->m_fall_target);
-            targetFallBranchBkpt->enable(debug_opts);
+            targetFallBranchBkpt->enable(traceeProgram);
             branch_info->m_fall_target_brkpt = std::move(targetFallBranchBkpt);
         }
         traceeProgram.m_single_step_brkpnt = std::move(branch_info);

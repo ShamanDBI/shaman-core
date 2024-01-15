@@ -1,4 +1,6 @@
 #include "breakpoint.hpp"
+#include "debug_opts.hpp"
+
 
 static const uint8_t arm64_breakpoint[] = {0x00, 0x00, 0x20, 0xd4};
 

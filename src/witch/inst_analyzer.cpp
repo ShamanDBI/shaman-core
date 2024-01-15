@@ -1,7 +1,5 @@
+#include "branch_data.hpp"
 #include "inst_analyzer.hpp"
-#include "debug_opts.hpp"
-#include "debugger.hpp"
-
 
 bool ARMInstAnalyzer::isBranch(const cs_insn *inst) const noexcept {
     if (inst->detail == NULL) return false;
@@ -61,8 +59,6 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         }
     }
 
-
-
     if ((detail->arm.operands[0].type == ARM_OP_REG)
         && (detail->arm.operands[0].reg == ARM_REG_PC)) {
         if (inst->id == ARM_INS_STR) {
@@ -85,7 +81,6 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         } else {
             m_log->error("1st operand is not register");
         }
-
         
         // Extraction the second operand
         cs_arm_op *sec_op = &(detail->arm.operands[2]);
@@ -128,6 +123,7 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
             }
 
         }
+
         SPDLOG_LOGGER_DEBUG(m_log, "Opt 1 : 0x{:x} Opt 2 : 0x{:x}", val_1, val_2);
         // m_log->debug("Val 1 : 0x{:x} Val 2 : 0x{:x}", val_1, val_2);
         switch (inst->id) {
@@ -174,7 +170,6 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         }
     }
 
-    
     if(isConditional(inst)) {
        // this mean we need a fall-though breakpoint
         branch_info.m_conditional_branch = true;

@@ -1,5 +1,5 @@
 #include "breakpoint.hpp"
-
+#include "debug_opts.hpp"
 
 void ARMBreakpointInjector::inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {
     // TODO : save the data of the breakpoint location in the buffer this

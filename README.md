@@ -2,38 +2,6 @@
 
 Architecture Neutral DBI for Embedded systems
 
-## Why did I create this tool?
-
-1. Security Assessment of Linux Based IoT Devices.
-1. This tool is specifically targeted for old version of linux where it difficult to find any debugging or instrumentation tools.
-
-## Programming Interface
-
-1. **Breakpoint Handling** - give you programmable opportunity to when the breakpoint is hit. You will have access to program memory and register which you can manipulate when you hit the breakpoint.
-1. **System-call handling** - You can get callback handler before entering and after the syscall is serviced by kernel. You can even cancel system and implement jailer. You will get access to program memory and register which you can manipulate at both points i.e. before and after system call.
-1. **File Descriptor Trace** - this are more glorified syscall handler, basically you can get callback when there are operation done on File descriptor.
-	1. Since there are different category of file descriptor like File, Socket and IPC you can inteface which you can register and manipulate the program memory/register.
-	1. You can use it in trace only mode or even maniplate parameter on before and after system calls.
-1. Function Hooking and Instrumentation - you can also replace the entire functionality of the function with your assembly code.
-1. Basic Block hooking and instrumentation - same as above.
-
-## Quick Usage Guide 
-
-```shell
-Shaman DBI Framework
-Usage: ./build/bin/shaman [OPTIONS]
-
-Options:
-  -h,--help                   Print this help message and exit
-  -l,--log TEXT               application debug logs
-  -o,--trace TEXT             output of the tracee logs
-  -p,--pid INT                PID of process to attach to
-  -b,--brk TEXT ...           Address of the breakpoints
-  -e,--exec TEXT ... REQUIRED program to execute
-  -f,--follow                 follow the fork/clone/vfork syscalls
-  -s,--syscall                trace system calls
-
-```
 ## Build
 
 
@@ -41,14 +9,6 @@ Options:
 cmake -S . -B build
 cmake --build build --target shaman
 ```
-
-## Use Case
-
-1. This can be used to intercept socket operation and used to manipulate data to and from the target program, essentially use it as proxy program
-1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
-1. Function hook very similar to system call trace but for functions.
-1. Resource Tracing
-  1. Kernel usually operates on system resource like File, 
 
 ## Dependencies
 
@@ -68,14 +28,11 @@ The problem arises when a thread A hits a breakpoint to step-over is we have to 
 1. Case 1 - Two threads are operating on different section of the code. This is really not a problem out tool currently supports this feature.
 1. Case 2 - Two threads running the same section of the code. This is little challenging to solve currently we are working on this.
 
-## Adding New Architecture Support
+## Developing for Different Architecture
 
-There are three places where archiecture specific support is needed
-1. Breakpoint Handling
-1. System Call Tracing
-1. Defining and using Register values
+Us buildroot to compile the VM and OS tools. It will generate all the necessary toolchain, libraries and Qemu machine.
 
-## Research Paper to Incorporate
+## Research Papers
 
 1. [An In-Depth Analysis of Disassembly on Full-Scale x86/x64 Binaries](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_andriesse.pdf)
 1. ARMore: pushing Love Back into binaires
@@ -90,10 +47,15 @@ There are three places where archiecture specific support is needed
   1. This paper accurately describes the challenges of breakpoint management in muli-threading environment. we have to implement these feature as gdb has implemented it.
 
 ## Ref
+
+List of reference Material which will be helpful to buld the this tool
+
 1. [ARM and MIPS Ptrace Impl](https://github.com/aleden/ptracetricks/blob/main/ptracetricks.cpp)
 1. [Writing Debugger in CPP](https://blog.tartanllama.xyz/writing-a-linux-debugger-source-signal/)
 1. [Various Qemu Build Linux Machine to test the tool](https://people.debian.org/~aurel32/qemu/)
-2. [TinyInst - lightweight DBI Framework by googleprojectzero](https://github.com/googleprojectzero/TinyInst/)
-3. [Implementing GDB Stub Protocol](https://medium.com/swlh/implement-gdb-remote-debug-protocol-stub-from-scratch-1-a6ab2015bfc5)
+1. [TinyInst - lightweight DBI Framework by googleprojectzero](https://github.com/googleprojectzero/TinyInst/)
+1. [Implementing GDB Stub Protocol](https://medium.com/swlh/implement-gdb-remote-debug-protocol-stub-from-scratch-1-a6ab2015bfc5)
 1. [Python3 with ghidra - Mandiant Project](https://github.com/mandiant/Ghidrathon)
-2. [bcov produces coverage information without recompiling a program by instrumenting it with breakpoints](https://bcov.sourceforge.net/)
+1. [bcov produces coverage information without recompiling a program by instrumenting it with breakpoints](https://bcov.sourceforge.net/)
+1. [Programming Design Patterns](https://gameprogrammingpatterns.com/contents.html)
+  1. Design Pattern which might be helpful for out framework

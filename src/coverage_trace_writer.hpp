@@ -18,7 +18,7 @@ enum CoverageRecordType: uint16_t {
 
 
 /**
- * This class write coverage trace to file
+ * @brief This class write coverage trace to file
 */
 class CoverageTraceWriter {
 

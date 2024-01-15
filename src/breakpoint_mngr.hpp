@@ -4,7 +4,6 @@
 #include <map>
 #include <list>
 
-#include "debug_opts.hpp"
 #include "breakpoint.hpp"
 #include "branch_data.hpp"
 #include "witch.hpp"
@@ -90,7 +89,7 @@ public:
     
     void addBrkPnt(Breakpoint* brkPtr);
     // put all the pending breakpoint in the tracee    
-    void inject(DebugOpts& debug_opts);
+    void inject(TraceeProgram &traceeProg);
 
     Breakpoint* getBreakpointObj(uintptr_t bk_addr);
 
@@ -106,11 +105,11 @@ public:
 
     void restoreSuspendedBreakpoint(TraceeProgram& traceeProgram);
 
-    void handleBreakpointHit(DebugOpts& debug_opts, uintptr_t brk_addr);
+    BreakpointPtr handleBreakpointHit(TraceeProgram &traceeProg, uintptr_t brk_addr);
 
     void printStats();
 
-    void setBreakpointAtAddr(DebugOpts& debug_opts, uintptr_t brk_addr, std::string* label);
+    void setBreakpointAtAddr(TraceeProgram &traceeProg, uintptr_t brk_addr, std::string* label);
 
     // Currently only support ARM32 Architecture
     void placeSingleStepBreakpoint(uintptr_t brkpt_hit_addr, TraceeProgram& traceeProgram);

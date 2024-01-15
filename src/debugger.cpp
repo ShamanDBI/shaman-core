@@ -1,8 +1,8 @@
 #include "debugger.hpp"
 #include "modules.hpp"
 #include "tracee.hpp"
-#include "breakpoint.hpp"
-
+#include "syscall_injector.hpp"
+#include "config.hpp"
 
 Debugger::Debugger(TargetDescription& _target_desc)
 	: m_target_desc(_target_desc) {	
@@ -10,6 +10,7 @@ Debugger::Debugger(TargetDescription& _target_desc)
 	m_tracee_factory = new TraceeFactory();
 	m_syscallMngr = new SyscallManager();
 	m_breakpointMngr = new BreakpointMngr(m_target_desc);
+	m_syscall_injector = new SyscallInjector();
 }
 
 void Debugger::addBreakpoint(std::vector<std::string>& _brk_pnt_str) {
@@ -439,9 +440,10 @@ bool Debugger::eventLoop() {
 			} else {
 				m_log->info("Thread hasn't stopped yet!");
 			}
-			// don't put the break statement here, its intentionally
-			// left behind.
-		case TraceeState::INITIAL_STOP:
+			// Process `INITIAL_STOP` occurs right after the attach is successful
+			// not putting a 'break' statement was an intentional
+		case TraceeState::INITIAL_STOP: {
+
 			m_log->info("Initial Stop, prepaing the tracee!");
 
 			if (m_followFork) {
@@ -456,19 +458,24 @@ bool Debugger::eventLoop() {
 				m_log->error("Error occured while setting ptrace options while restarting the tracee!");
 			}
 
-			traceeProgram->toStateRunning();
-
-			// TODO : figure out the lifetime of this param
 			traceeProgram->getDebugOpts().m_procMap.parse();
+			BreakpointPtr sys_inject_setup_bkpt = m_syscall_injector->setUp(*new std::string("/root/test_prog"), 0x14e4);
 			
-			// TODO : this is not appropriate point to injectrea
-			// breakpoint in case of fork
-			// when you fork the breakpoints which are put before
-			// are already in place, so we only need to inject
-			// which are pending
-			m_breakpointMngr->inject(traceeProgram->getDebugOpts());
+			m_breakpointMngr->addBrkPnt(sys_inject_setup_bkpt);
+			
+			// Read the process map
+			/**
+			 * TODO : this is not appropriate point to inject
+			 * breakpoint in case of fork
+			 * when you create thread the breakpoints which are put before
+			 * are already in place, so we only need to inject
+			 * which are pending
+			 */
+			m_breakpointMngr->inject(*traceeProgram);
 
+			traceeProgram->toStateRunning();
 			traceeProgram->contExecution();
+		}
 			break;
 		case TraceeState::BREAKPOINT_HIT:
 			// This state is triggered because of the single step after breakpoint hit.
@@ -539,6 +546,7 @@ bool Debugger::eventLoop() {
 				traceeProgram->toStateExited();
 				break;
 			case TraceeEvent::STOPPED:
+				{
 				m_log->info("STOPPED : ");
 				if (debug_event->reason.status == TrapReason::CLONE ||
 					debug_event->reason.status == TrapReason::FORK ||
@@ -573,7 +581,12 @@ bool Debugger::eventLoop() {
 					// and its debugger responsibity to track it
 					m_log->debug("SYSCALL ENTER");
 					m_syscallMngr->onEnter(*traceeProgram);
-					traceeProgram->toStateSysCall();
+					if(traceeProgram->m_inject_call) {
+						traceeProgram->toStateInject();
+					} else {
+
+						traceeProgram->toStateSysCall();
+					}
 				} else if(debug_event->reason.status == TrapReason::BREAKPOINT) {
 					/**
 					 * To please breakpoint we have to place breakpoint inst
@@ -633,7 +646,7 @@ bool Debugger::eventLoop() {
 					// the hit, and its architecture dependent, so this is
 					// not the place to handle it
 					// debug_opts->m_register->print();
-					m_breakpointMngr->handleBreakpointHit(*debug_opts, brk_addr);
+					auto bkpt_obj = m_breakpointMngr->handleBreakpointHit(*traceeProgram, brk_addr);
 				#if defined(SUPPORT_ARCH_X86) || defined(SUPPORT_ARCH_AMD64)
 					// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 ||
 					// 	traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
@@ -645,10 +658,15 @@ bool Debugger::eventLoop() {
 				#elif defined(SUPPORT_ARCH_ARM)
 					// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM32) {
 						// ARM32Register& armReg = reinterpret_cast<ARM32Register&>(debug_opts->m_register);
-						m_breakpointMngr->placeSingleStepBreakpoint(brk_addr, *traceeProgram);
-						// traceeProgram->toStateRunning();
-						traceeProgram->toStateBreakpoint();
-						// single stepping is not supported in ARM32 Linux Kernel
+						if(bkpt_obj->shouldEnable()) {
+
+							// single stepping is not supported in ARM32 Linux Kernel, so we have
+							// to do it ourself!
+							m_breakpointMngr->placeSingleStepBreakpoint(brk_addr, *traceeProgram);
+							traceeProgram->toStateBreakpoint();
+						} else {
+							// traceeProgram->toStateRunning();
+						}
 						traceeProgram->contExecution(0);
 				#elif defined(SUPPORT_ARCH_ARM64)
 					// } else if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::ARM64) {
@@ -656,8 +674,8 @@ bool Debugger::eventLoop() {
 						traceeProgram->singleStep();
 					// }
 				#else
-						m_log->error("Invalid Architecture is specified")
-							exit(-1);
+						m_log->error("Invalid Architecture is specified");
+						exit(-1);
 				#endif
 					
 					// debug_opts->m_register->print();
@@ -669,6 +687,7 @@ bool Debugger::eventLoop() {
 				}
 				traceeProgram->contExecution();
 				// this function processes "PTRACE_EVENT stops" event
+				}
 				break;
 			case TraceeEvent::CONTINUED:
 				m_log->debug("CONTINUED");
@@ -679,6 +698,12 @@ bool Debugger::eventLoop() {
 				traceeProgram->contExecution();
 			}
 			break;
+		case TraceeState::INJECT_SYSCALL:
+		/// this and the followin state are syscall exit event
+			m_log->error("We are in Inject Syscall");
+			m_syscall_injector->cleanUp(*traceeProgram);
+		// Processing `IN_SYSCALL` occurs right after the 'INJECT_SYSCALL' exit
+		// not putting a 'break' statement was an intentional
 		case TraceeState::IN_SYSCALL:
 			m_log->debug("State SYSCALL");
 			/**

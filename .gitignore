@@ -11,3 +11,4 @@ tmp*
 *.cov
 ref_code
 .vscode
+gen_html_docs

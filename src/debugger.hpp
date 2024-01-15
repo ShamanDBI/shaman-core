@@ -124,6 +124,7 @@
 
 class TraceeProgram;
 class TraceeFactory;
+class SyscallInjector;
 
 
 // this is current state of the tracee
@@ -151,6 +152,8 @@ struct TargetDescription {
 
 class Debugger {
 
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
+
 public:
 	// new
 	BreakpointMngr* m_breakpointMngr = nullptr;
@@ -160,6 +163,7 @@ public:
 	std::map<pid_t, TraceeProgram*> m_Tracees;
 
 	TraceeProgram* m_leader_tracee = nullptr;
+	SyscallInjector* m_syscall_injector = nullptr;
 	
 	std::string* m_prog = nullptr;
 
@@ -169,9 +173,6 @@ public:
 	// std::vector<std::string>* brk_pnt_str; // remove
 
 	TraceeFactory* m_tracee_factory = nullptr; //remove
-
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
-
  
 	bool m_traceSyscall = false;
 	bool m_followFork = false;

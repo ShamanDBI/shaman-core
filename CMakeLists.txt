@@ -37,7 +37,9 @@ FetchContent_Declare(
   GIT_TAG        5.0.1
 )
 
-
+set(GRAPHVIZ_EXTERNAL_LIBS FALSE)
+# only dependencies between libraries
+set(GRAPHVIZ_EXECUTABLES FALSE)
 # ------------------------------------------------------------------
 
 FetchContent_MakeAvailable(spdlog)
@@ -96,8 +98,9 @@ set(ARCH_SRC
 set(SRC
   src/memory.cpp
   src/modules.cpp
-  src/debugger.cpp
+  src/registers.hpp
   src/debug_opts.cpp
+  src/debugger.cpp
   src/breakpoint.cpp
   src/breakpoint_mngr.cpp
   src/breakpoint_reader.cpp
@@ -138,6 +141,7 @@ target_link_libraries(test_prog pthread)
 add_executable(client test/network/client.c)
 add_executable(server test/network/server.c)
 
+add_executable(oop_test test/oop_test.cpp)
 
 set(TEST_SRC
   test/unittest/test.cpp

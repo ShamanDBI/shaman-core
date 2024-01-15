@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "breakpoint.hpp"
-#include "amd64_breakpoint_inject.hpp"
+#include "debug_opts.hpp"
+#include "tracee.hpp"
 
 
 Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
@@ -22,15 +23,15 @@ Breakpoint::Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr
     #endif
     };
 
-Breakpoint::~Breakpoint() { 
-    m_log->trace("Breakpoint at {:x} going out scope!", m_addr);
-    m_addr = 0;
-    m_offset = 0;
-    m_hit_count = 0;
-    m_enabled = false;
-    m_backupData.reset();
-    // m_pids.clear();
-}
+// Breakpoint::~Breakpoint() { 
+//     m_log->trace("Breakpoint at {:x} going out scope!", m_addr);
+//     m_addr = 0;
+//     m_offset = 0;
+//     m_hit_count = 0;
+//     m_enabled = false;
+//     m_backupData.reset();
+//     // m_pids.clear();
+// }
 
 Breakpoint& Breakpoint::setInjector(BreakpointInjector* brk_pnt_injector) {
     m_bkpt_injector = brk_pnt_injector;
@@ -70,19 +71,19 @@ bool Breakpoint::shouldEnable() {
     return true;
 }
 
-bool Breakpoint::handle(DebugOpts& debug_opts) {
+bool Breakpoint::handle(TraceeProgram &traceeProg) {
     m_hit_count++;
     return true;
 }
 
-int Breakpoint::enable(DebugOpts& debug_opts) {
-    m_bkpt_injector->inject(debug_opts, m_backupData);
+int Breakpoint::enable(TraceeProgram &traceeProg) {
+    m_bkpt_injector->inject(traceeProg.getDebugOpts(), m_backupData);
     m_enabled = true;
     return 1;
 };
 
-int Breakpoint::disable(DebugOpts& debug_opts) {
-    m_bkpt_injector->restore(debug_opts, m_backupData);
+int Breakpoint::disable(TraceeProgram &traceeProg) {
+    m_bkpt_injector->restore(traceeProg.getDebugOpts(), m_backupData);
     m_enabled = false;
     return 1;
 };

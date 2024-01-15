@@ -1,8 +1,6 @@
 #include <capstone/capstone.h>
 #include "witch.hpp"
 #include "inst_analyzer.hpp"
-#include "basic_block.hpp"
-#include "debug_opts.hpp"
 
 
 ArmDisassembler::ArmDisassembler(bool is_thumb_mode) {
@@ -13,7 +11,6 @@ ArmDisassembler::ArmDisassembler(bool is_thumb_mode) {
         mode = CS_MODE_ARM;
         m_is_thumb = is_thumb_mode;
     }
-
 
     if (cs_open(CS_ARCH_ARM, mode, &m_handle) != CS_ERR_OK)
     {
@@ -31,6 +28,7 @@ ArmDisassembler::~ArmDisassembler() {
     delete m_inst_analyzer;
 }
 
+    /*
 void ArmDisassembler::iter_basic_block(cs_insn *insn) {
     std::vector<BasicBlock *> all_ident_bb;
     BasicBlock* curr_bb;
@@ -59,6 +57,7 @@ void ArmDisassembler::iter_basic_block(cs_insn *insn) {
     curr_bb->append(insn);
     m_log->trace("No of Basic Block : %ld\n", all_ident_bb.size());
 }
+    */
 
 void ArmDisassembler::disassSingleInst(const uint8_t *data, uint64_t vaddr, cs_insn* insn) {
 

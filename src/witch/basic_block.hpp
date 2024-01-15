@@ -1,21 +1,12 @@
-//===------------------------------------------------------------*- C++ -*-===//
-//
-// This file is distributed under BSD License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-// 
-// Copyright (c) 2015-2016 University of Kaiserslautern.
-
 #pragma once
-// #include "common.h"
 #include <vector>
 
 struct cs_insn;
 
 using addr_t = size_t;
+
 /**
- * BasicBlock
- * a lightweight container for data relevant to basic blocks contained in
+ * @brief a lightweight container for data relevant to basic blocks contained in
  * a maximal block.
  */
 class BasicBlock {

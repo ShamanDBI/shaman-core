@@ -9,8 +9,7 @@ struct dev_major_minor_t {
     int minor;
 };
 
-class ProcMap {
-public:
+struct ProcMap {
     enum MAPS_PERMS {
         PERMS_READ    = 1 << 0,
         PERMS_WRITE   = 1 << 1,
@@ -28,6 +27,7 @@ public:
 };
 
 
+/// @brief Information about the process map
 class ProcessMap {
 
     std::vector<ProcMap*> m_map;
@@ -49,7 +49,9 @@ public:
 	uintptr_t findModuleBaseAddr(std::string &module_path);
 	void parseLine(char *line);
 	void parseProcessMapFile(FILE *procmaps_file);
-	int parse();
+	
+    /// @brief parses the process map from '/proc/<pid>/maps'
+    int parse();
 	void permStr(uint8_t perm_val, char * pem_str);
 	void print();
     void list_child_threads();

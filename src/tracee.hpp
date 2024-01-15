@@ -11,7 +11,8 @@
 #include "linux_debugger.hpp"
 #include "registers.hpp"
 #include "debugger.hpp"
-
+#include "syscall_injector.hpp"
+#include "breakpoint.hpp"
 
 class TargetDescription;
 
@@ -25,34 +26,43 @@ enum DebugType {
 	FOLLOW_OPTS    = (1 << 6)
 };
 
-// this is current state of the tracee
+/// @brief this is current state of the tracee
 enum TraceeState {
-	// once the tracee is spawned it is assigned this state
+
+	/// @brief once the tracee is spawned it is assigned this state
 	// tracee is then started with the desired ptrace options
 	INITIAL_STOP = 1,
 	
-	// We are trying to attach to a running process
+	/// @brief We are trying to attach to a running process
 	ATTACH,
-	// on the initialization is done it is set in the running
-	// state
+	
+	/// @brief once the initialization is done it is set in the running
+	/// state
 	RUNNING,
-	// tracee is put in this state when it has sent request to
-	// kernel and the kernel is processing system call, this 
-	// mean syscall enter has already occured
+	
+	/// @brief tracee is put in this state when it has sent request to
+	/// kernel and the kernel is processing system call, this 
+	/// mean syscall enter has already occured
 	IN_SYSCALL,
-	// the process has existed and object is avaliable to free
+
+	/// @brief syscall injection in progress
+	INJECT_SYSCALL,
+	
+	/// @brief the process has existed and object is avaliable to free
 	EXITED, 
 
-	// there is hit for a breakpoint and the tracee is in the
-	// process of step over.
+	/// @brief there is hit for a breakpoint and the tracee is in the
+	/// process of step over.
 	BREAKPOINT_HIT,
-	// Invalid state, not to be used anywhere!
+	
+	/// @brief Invalid state, not to be used anywhere! Use to indicate
+	/// error
 	UNKNOWN
 };
 
-class TraceeProgram {
 
-public:
+struct TraceeProgram {
+
 	TraceeState m_state;
 
 	// pid of the process which is getting traced
@@ -66,6 +76,9 @@ public:
 	// SyscallManager* m_syscallMngr = nullptr;
 
   	bool m_followFork = false;
+
+	// syscall call been injected in the tracee
+	std::unique_ptr<SyscallInject> m_inject_call;
 
   	std::shared_ptr<spdlog::logger> m_log = spdlog::get("tracee");
 
@@ -153,6 +166,8 @@ public:
 	void toStateSysCall();
 
 	void toStateExited();
+
+	void toStateInject();
 
 	void toStateBreakpoint();
 

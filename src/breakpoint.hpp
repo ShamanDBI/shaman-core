@@ -7,10 +7,17 @@
 
 #include "spdlog/spdlog.h"
 
-#include "debug_opts.hpp"
 #include "memory.hpp"
 
+class DebugOpts;
+class TraceeProgram;
 
+/**
+ * @brief class which is doing the actual injection dirty work
+ * 
+ * This is the class which you platform specific implementation for
+ * placing the breakpoint should do
+*/
 class BreakpointInjector {
 
 protected:
@@ -96,71 +103,110 @@ struct ARM64BreakpointInjector : public BreakpointInjector {
 
 // ------------------------------- [ ARM ISA END ] ---------------------------------
 
-
+/**
+ * @brief Breakpoint which are inject in the Tracee program
+ * 
+ * This is another important interface of the framework
+*/
 class Breakpoint {
 
 protected:
 
+    ///@brief indicate if the breakpoint is currently enabled
     bool m_enabled = false;
 
+    /// @brief logging the data
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
 
 public:
+
+    /// @brief different type of breakpoint
     enum BreakpointType {
-        // single shot breakpoint used for collecting code coverage
-        // Delete the breakpoint after it has been hit once
+        /// @brief single shot breakpoint used for collecting code coverage
+        ///       Delete the breakpoint after it has been hit once
         SINGLE_SHOT = 1,
 
-        // this breakpoint will be restored after handling it.
+        /// @brief this breakpoint will be restored after handling it.
         NORMAL = 2,
 
-        // this kind of breakpoint are used to single step the 
-        // breakpoint handling, and they are not restored after execution
+        /// @brief this kind of breakpoint are used to single step the 
+        /// breakpoint handling, and they are not restored after execution
         SINGLE_STEP = 3
     } m_type;
 
+    /// @brief custom pointer which can be used by the handler function
+    uintptr_t m_custom_ptr = 0;
+
+    /// @brief The object which will actually inject the breakpoint
     BreakpointInjector* m_bkpt_injector;
 
-    // this is the concrete address of the breakpoint
+    /// @brief this is the concrete address of the breakpoint
     // resolved address
     uintptr_t m_addr = 0;
     
-    // breakpoint instruction data is stored to the memory
-    // later restored when brk pnt is hit
+    /// @brief breakpoint instruction data is stored to the memory
+    /// later restored when brk pnt is hit
     std::unique_ptr<Addr> m_backupData = nullptr;
     
     // DebugOpts& m_debug_opts = nullptr;
     
-    // name of the module in which this breakpoint exist
+    /// @brief name of the module in which this breakpoint exist
     std::string& m_modname;
 
-    // number of time this breakpoint was hit
+    /// @brief  number of time this breakpoint was hit
     uint32_t m_hit_count = 0;
 
-    // max hit count after which you want remove the breakpoint
+    /// @brief max hit count after which you want remove the breakpoint
     uint32_t m_max_hit_count = UINT32_MAX;
 
-    // offset from the module
+    /// @brief offset from the module
     uintptr_t m_offset = 0;
 
     // process id's in which this breakpoint is active
     // std::vector<pid_t> m_pids; // pid of tracee
-
+    
+    /// @brief User friendly name of the breakpoint
     std::string m_label;
 
+    /// @brief 
+    /// @param modname 
+    /// @param offset 
+    /// @param bk_addr 
+    /// @param _label 
+    /// @param brk_type 
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
         std::string* _label, BreakpointType brk_type);
     
+    /// @brief 
+    /// @param modname 
+    /// @param offset 
+    /// @param brk_addr 
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t brk_addr) :
         Breakpoint(modname, offset, brk_addr, nullptr, NORMAL) {}
 
+    /// @brief 
+    /// @param modname 
+    /// @param offset 
+    /// @param brk_type 
     Breakpoint(std::string& modname, uintptr_t offset, BreakpointType brk_type) :
         Breakpoint(modname, offset, 0, nullptr, brk_type) {}
 
+    /// @brief 
+    /// @param modname 
+    /// @param offset 
     Breakpoint(std::string& modname, uintptr_t offset) :
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
 
-    ~Breakpoint();
+    /// @brief Destructor
+    ~Breakpoint()  { 
+        m_log->trace("Breakpoint at {:x} going out scope!", m_addr);
+        m_addr = 0;
+        m_offset = 0;
+        m_hit_count = 0;
+        m_enabled = false;
+        m_backupData.reset();
+        // m_pids.clear();
+    }
 
     Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector);
 
@@ -172,8 +218,8 @@ public:
 
     // void addPid(pid_t pid);
 
-    // this is made virtual to capture the event in which the breakpoint
-    // is actually paced in the process memory
+    /// @brief this is made virtual to capture the event in which the breakpoint
+    /// is actually paced in the process memory
     virtual void setAddress(uintptr_t brkpnt_addr);
 
     void printDebug() {
@@ -184,13 +230,24 @@ public:
 
     bool shouldEnable();
 
-    virtual bool handle(DebugOpts& debug_opts);
+    virtual bool handle(TraceeProgram &traceeProg);
 
+    /// @brief Is my breakpoint enabled?
+    /// @return true if enabled and false otherwise
     bool isEnabled() { return m_enabled; }
 
-    virtual int enable(DebugOpts& debug_opts);
+    /// @brief Disable the breakpoint
+    /// @param debug_opts 
+    /// @return 
+    virtual int enable(TraceeProgram &traceeProg);
 
-    virtual int disable(DebugOpts& debug_opts);
+    /// @brief enable the Breakpoint
+    /// @param debug_opts 
+    /// @return 
+    virtual int disable(TraceeProgram &traceeProg);
 };
+
+
+using BreakpointPtr = Breakpoint *;
 
 #endif

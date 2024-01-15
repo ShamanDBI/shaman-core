@@ -1,5 +1,4 @@
 #include "debug_opts.hpp"
-#include "modules.hpp"
 
 
 DebugOpts::DebugOpts(pid_t _tracee_pid, Registers& _registers, 

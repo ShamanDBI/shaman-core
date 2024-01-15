@@ -3,30 +3,29 @@
 
 #include <vector>
 #include <memory>
+
 #include <capstone/capstone.h>
-
 #include "config.hpp"
-
 #include "spdlog/spdlog.h"
-#include "branch_data.hpp"
 
-// #include "debug_opts.hpp"
 
-class DebugOpts;
+#include "debug_opts.hpp"
 
+// class DebugOpts;
+class BranchData;
 
 class ARMInstAnalyzer {
     
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
 
 public:
-    /**
-     * return true if instruction is a branch
-     */
+
+
+    /// @brief return true if instruction is a branch
     bool isBranch(const cs_insn *inst) const noexcept;
 
     /**
-     * return true if instruction is conditional, note that conditional
+     * @brief return true if instruction is conditional, note that conditional
      * instructions inside IT block context info that is not available here.
      */
     bool isConditional(cs_insn *inst) const;

@@ -33,6 +33,23 @@ void* do_loop(void* data) {
     pthread_exit(NULL);
 }
 
+#include <sys/mman.h>
+#include <fcntl.h>
+
+void real_infinite_loop() {
+    pid_t tid = gettid();
+    void* mem_alloc =  mmap(
+            NULL, 
+            0x1000, 
+            PROT_READ | PROT_WRITE | PROT_EXEC, 
+            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    printf("Allocated memory %p\n", mem_alloc);
+    while(1) {
+        printf("[%d] I just woke up, again!\n", tid);
+        sleep(3);
+    }
+}
+
 void do_infinite_loop(void * data) {
     size_t counter = 5000;
     // pid_t tid = syscall(SYS_gettid);
@@ -43,6 +60,55 @@ void do_infinite_loop(void * data) {
         sleep(0.5);
         counter--;
     }
+}
+
+void test_computed_calls(void* param) {
+    int *_param = (int *)param;
+
+    int test_id = _param[0];
+    switch (test_id)
+    {
+    case 1:
+        printf("This is the string %d\n", test_id);
+        break;
+    case 2:
+        printf("This is case 2 string %d\n", test_id);
+        break;
+    case 3:
+        printf("This is case 3 string %d\n", test_id);
+        break;
+    case 4:
+        printf("This is case 4 string %d\n", test_id);
+        break;
+    case 5:
+        printf("This is case 5 string %d\n", test_id);
+        break;
+    default:
+        printf("This is an invalid call %d\n", test_id);
+        break;
+    }
+    printf("This param 2 %d\n", _param[1]);
+}
+
+void test_threaded_computed_calls() {
+    #define NUM_OF_THREADS 50
+    int        thr_id;         /* thread ID for the newly created thread */
+    pthread_t  p_thread[NUM_OF_THREADS];       /* thread's structure                     */
+    int        a         = 1;  /* thread 1 identifying number            */
+    int        b         = 1;  /* thread 2 identifying number            */
+
+    for(int i=0; i < NUM_OF_THREADS; i++) {
+        int *param = (int *)malloc(2 * sizeof(int));
+        param[0] = rand() % 6;
+        param[1] = rand();
+        thr_id = pthread_create(&p_thread[i], NULL, test_computed_calls, (void*)param);
+        printf("New Thread created with id : %d\n", thr_id);
+    }
+    
+    for(int i=0;i<NUM_OF_THREADS;i++) {
+        pthread_join(p_thread[i], NULL);
+    }
+    return 0;
 }
 
 void test_infinite_threads() {
@@ -260,6 +326,12 @@ int main(int argc, char *argv[])
             break;
         case 9:
             test_file_dumping(argv[2]);
+            break;
+        case 10:
+            test_threaded_computed_calls();
+            break;
+        case 11:
+            real_infinite_loop();
             break;
         default:
             printf("Unknown test case ID\n");

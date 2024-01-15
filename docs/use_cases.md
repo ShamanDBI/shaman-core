@@ -2,7 +2,6 @@
 
 In this document I have documented all the possible use cases I am thinking of it can be use.
 
-
 1. Intercepting File Descriptor Operations
 1. Anti-Debug Bypasses
     1. Trace ptrace related system calls and block them

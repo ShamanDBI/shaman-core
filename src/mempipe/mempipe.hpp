@@ -138,7 +138,7 @@ public:
         shm_unlink(shmpath);
 
         int shm_fd = shm_open(shmpath, O_CREAT | O_EXCL | O_RDWR, 0600);
-
+    
         if (shm_fd == -1)
             return MemPipeError::ErrShmOpen;
 

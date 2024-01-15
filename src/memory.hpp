@@ -8,7 +8,9 @@
 #include <spdlog/spdlog.h>
 #include <fstream>
 
-
+/**
+ * @brief Abstract the pointer in Tracee Process
+*/
 class Addr {
 
     uint8_t* m_data; // local buffer holding the data of tracee memory location
@@ -17,10 +19,11 @@ class Addr {
 
 public:
 
-    // memory size should be the multiple of memory pointer size
-    // so for 64-bit system it should be multiple of 8 and for
-    // 32-bit system it should be multiple of 4
+    /// @brief memory size should be the multiple of memory pointer size
+    /// so for 64-bit system it should be multiple of 8 and for
+    /// 32-bit system it should be multiple of 4
     Addr(uint64_t _r_addr, size_t _size);
+    
     ~Addr();
 
     Addr(Addr &addrObj);
@@ -65,6 +68,8 @@ public:
     friend class RemoteMemory;
 };
 
+
+using AddrPtr = Addr *;
 
 class RemoteMemory {
 

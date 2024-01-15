@@ -11,7 +11,9 @@ struct RegisterAliases {
   int regnum;
 };
 
-
+/**
+ * @brief Abstraction for represent Register of the Tracee
+*/
 class Registers {
 
 protected:
@@ -32,16 +34,19 @@ public:
           m_gp_reg_size(_gp_reg_size)
     {
         m_gp_reg_data = reinterpret_cast<uintptr_t>(malloc(m_gp_reg_size));
-    };
+    }
     
+    // Destructor
     ~Registers() {
         free(reinterpret_cast<void *>(m_gp_reg_data));
-    };
+    }
 
     void setPid(pid_t tracee_pid) { 
         m_pid = tracee_pid;
-    };
+    }
 
+    /// @brief read the General Purpose register of the Tracee Process
+    /// @return return the ptrace error value
     virtual int fetch() {
         struct iovec io;
         
@@ -54,8 +59,10 @@ public:
         }
 
         return pt_ret;
-    };
+    }
 
+    /// @brief Upate the general purpose register value to the Tracee Process
+    /// @return 
     virtual int update() {
         struct iovec io;
 
@@ -68,7 +75,24 @@ public:
             m_log->error("Unable to get tracee [pid : {}] register, Err code: {}", m_pid, ret);
         }
         return ret;
-    };
+    }
+
+    /// @brief Creates a copy for General Purpose registers
+    /// freeing the returned copy is the responsibility of the Caller
+    /// @return return the copy of register.
+    std::uintptr_t getRegisterCopy() {
+        void* gp_reg_copy = malloc(m_gp_reg_size);
+        memcpy(gp_reg_copy, reinterpret_cast<void*>(m_gp_reg_data), m_gp_reg_size);
+        return reinterpret_cast<std::uintptr_t>(gp_reg_copy);
+    }
+
+    /// @brief Restore the copy of the register
+    /// You can obtain the copy of the GP Register using `getRegisterCopy` function
+    /// @param register_copy 
+    void restoreRegisterCopy(std::uintptr_t register_copy) {
+        memcpy(reinterpret_cast<void *>(m_gp_reg_data), reinterpret_cast<void *>(register_copy), m_gp_reg_size);
+    }
+
 };
 
 

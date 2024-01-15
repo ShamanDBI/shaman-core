@@ -8,11 +8,10 @@
 #include "spdlog/fmt/bin_to_hex.h"
 #include "spdlog/cfg/argv.h" // for loading levels from argv
 
-#include "debugger.hpp"
 #include "breakpoint_reader.hpp"
 #include "syscall.hpp"
 #include "memory.hpp"
-
+#include "debugger.hpp"
 
 class DataSocket : public NetworkOperationTracer
 {
@@ -104,12 +103,15 @@ class DataSocket : public NetworkOperationTracer
 	}
 };
 
-struct OverwriteFileData : public FileOperationTracer {
+struct OverwriteFileData : public FileOperationTracer
+{
 
-	bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace) {
+	bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	{
 		m_log->warn("onFilter!");
 
-		switch (sc_trace.getSyscallNo()) {
+		switch (sc_trace.getSyscallNo())
+		{
 		case SysCallId::OPENAT:
 			Addr file_path_addr_t(sc_trace.v_arg[1], 100);
 			debugOpts.m_memory.readRemoteAddrObj(file_path_addr_t, 100);
@@ -141,12 +143,12 @@ struct OverwriteFileData : public FileOperationTracer {
 			uint64_t buf_len = sc_trace.v_arg[2];
 			Addr buf(sc_trace.v_arg[1], buf_len);
 			debug_opts.m_memory.readRemoteAddrObj(buf, buf_len);
-			m_log->critical("Read : {}", reinterpret_cast<char*>(buf.data()));
+			m_log->critical("Read : {}", reinterpret_cast<char *>(buf.data()));
 			// m_log->warn("{} {} {}", fd, reinterpret_cast<char *>(buf.data()), buf_len);
-			// const char * mal_cont = "Malicious\x00";	
+			// const char * mal_cont = "Malicious\x00";
 			// memcpy(buf.data(), mal_cont, sizeof(mal_cont));
 			const uint8_t mal_data[16] = {0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
-									   0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42};
+										  0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42};
 			buf.copy_buffer(mal_data, sizeof(mal_data));
 			debug_opts.m_memory.writeRemoteAddrObj(buf, sizeof(mal_data));
 		}
@@ -253,13 +255,38 @@ void init_logger(std::string &log_file, int debug_log_level)
 }
 
 
+#include <sys/mman.h>
+
+#define ARM_MMAP2 192
+
+
+class MmapSyscallInject : public SyscallInject {
+
+	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
+	std::uintptr_t m_mmap_addr = 0;
+
+public:
+
+	MmapSyscallInject(uint64_t mmap_size): SyscallInject(ARM_MMAP2) {
+		setCallArg(0, 0);
+		setCallArg(1, mmap_size);
+		setCallArg(2, PROT_READ | PROT_WRITE);
+		setCallArg(3, MAP_PRIVATE | MAP_ANONYMOUS);
+		setCallArg(4, -1);
+		setCallArg(5, 0);
+	}
+
+	void onComplete() {
+		m_mmap_addr = m_ret_value;
+		m_log->error("Mmap Allocation on addr {:x}", m_mmap_addr);
+	}
+};
 
 int main(int argc, char **argv)
 {
 
 	CLI::App app{"Shaman DBI Framework"};
 
-	
 	std::string trace_log_path, app_log_path, basic_block_path;
 	std::string coverage_output;
 	std::string tmp_log;
@@ -329,8 +356,12 @@ int main(int argc, char **argv)
 		// return 0;
 	}
 
-	debug.addBreakpoint(brk_pnt_addrs);
 
+	auto inject_mmap_sys = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x2000));
+
+	// debug.m_syscallMngr->injectSyscall(std::move(inject_mmap_sys));
+	debug.addBreakpoint(brk_pnt_addrs);
+	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys));
 	// debug.addSyscallHandler(new OpenAt1Handler());
 	// debug.addSyscallHandler(new OpenAt2Handler());
 	debug.addFileOperationHandler(new OverwriteFileData());

@@ -37,6 +37,10 @@ void TraceeProgram::toStateExited() {
 	m_state = TraceeState::EXITED;
 }
 
+void TraceeProgram::toStateInject() {
+	m_state = TraceeState::INJECT_SYSCALL;
+}
+
 bool TraceeProgram::hasExited() {
 	return m_state == TraceeState::EXITED;
 }
@@ -80,6 +84,9 @@ std::string TraceeProgram::getStateString() {
 			break;
 		case TraceeState::IN_SYSCALL:
 			return std::string("SYSCALL");
+			break;
+		case TraceeState::INJECT_SYSCALL:
+			return std::string("INJECT_SYSCALL");
 			break;
 		case TraceeState::EXITED:
 			return std::string("EXITED");

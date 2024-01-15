@@ -7,9 +7,14 @@
 #include "spdlog/spdlog.h"
 #include "breakpoint.hpp"
 
+// using addr_t = uintptr_t;
+class Breakpoint;
 
-using addr_t = uintptr_t;
-
+/**
+ * @brief This class contains branch destination of Instruction
+ * 
+ * This is used to implement Single-Stepping in ARM 32 Architecture
+*/
 struct BranchData {
 
     // we don't need compulation to take the branch
@@ -23,22 +28,23 @@ struct BranchData {
     // this is set when to get the target
     bool m_is_computed; 
     
-    addr_t m_branch_addr; // Address of the Branch Instruction 
+    uintptr_t m_branch_addr; // Address of the Branch Instruction 
     
-    addr_t m_target; // branch taken when the true condition is meet
+    uintptr_t m_target; // branch taken when the true condition is meet
     
     // branch taken when the false condition is meet, also called
     // as fall-through branch
-    addr_t m_fall_target;
+    uintptr_t m_fall_target;
+
     std::unique_ptr<Breakpoint> m_target_brkpt;
     std::unique_ptr<Breakpoint> m_fall_target_brkpt;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("disasm");
     
-    BranchData(addr_t _branch_addr);
+    BranchData(uintptr_t _branch_addr);
 
     BranchData(const BranchData&) = delete;
     BranchData& operator=(const BranchData&) = delete;
-    ~BranchData() = default;
+    // ~BranchData() = def;
 
     bool isConditional() { return m_conditional_branch; }
     bool isDirect() { return m_direct_branch; }
@@ -46,9 +52,9 @@ struct BranchData {
     bool isComputed() { return m_is_computed; }
     void print();
 
-    addr_t addr() { return m_branch_addr; };
-    addr_t target() { return m_target; }
-    addr_t fall_addr() { return m_fall_target; }
+    uintptr_t addr() { return m_branch_addr; };
+    uintptr_t target() { return m_target; }
+    uintptr_t fall_addr() { return m_fall_target; }
 };
 
 #endif

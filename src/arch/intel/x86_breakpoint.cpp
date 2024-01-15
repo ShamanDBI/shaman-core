@@ -1,4 +1,6 @@
 #include "breakpoint.hpp"
+#include "debug_opts.hpp"
+
 
 #define BREAKPOINT_X86_INST 0xcc
 #define NOP_INST 0x90
