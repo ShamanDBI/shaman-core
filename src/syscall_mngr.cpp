@@ -588,15 +588,25 @@ void SyscallInjector::execute(TraceeProgram &traceeProg)
 	// Pop one syscall which we want to inject
 	auto inject_syscall = std::move(m_pending_syscall_inject.back());
 	m_pending_syscall_inject.pop_back();
+
+	// Create a copy of register state which will be restored later
 	inject_syscall->m_gp_register_copy = armRegObj->getRegisterCopy();
 
-	std::uintptr_t bkpt_pc = armRegObj->getRegIdx(ARM32Register::PC) + 4;
-	// const uint8_t* tmp_backup_byte = (uint8_t*)malloc(buf_backup_size);
     const uint32_t arm_inst_size = 4;
-	m_log->error("Inst injection addr {:x}", bkpt_pc);
-	Addr* inst_backup = debug_opts.m_memory.readPointerObj(bkpt_pc, arm_inst_size);
-	inst_backup->copy_buffer(arm_linux_le_svc, sizeof(arm_linux_le_svc));
+	// address of the next instruction after the breakpoint address
+	std::uintptr_t bkpt_pc = armRegObj->getRegIdx(ARM32Register::PC) + arm_inst_size;
+	
+	m_log->debug("Instruction injection addr {:x}", bkpt_pc);
+	
+	AddrPtr inst_backup = debug_opts.m_memory.readPointerObj(bkpt_pc, arm_inst_size);
+	uint8_t* tmp_backup_byte = inst_backup->get_buffer_copy();
+	inject_syscall->m_backup_inst = inst_backup;
+	inst_backup->copy_buffer(arm_linux_le_svc, sizeof(arm_linux_le_svc)); 
 	debug_opts.m_memory.writeRemoteAddrObj(*inst_backup, sizeof(arm_linux_le_svc));
+	
+	inst_backup->copy_buffer(const_cast<uint8_t *>(tmp_backup_byte), inst_backup->size()); 
+	free(tmp_backup_byte);
+	armRegObj->print();
 	// Update the sycall parameter
 	switch (traceeProg.m_target_desc.m_cpu_arch)
 	{
@@ -631,7 +641,8 @@ void SyscallInjector::cleanUp(TraceeProgram &traceeProg) {
 	traceeProg.m_inject_call->m_ret_value = armRegObj->getRegIdx(ARM32Register::R0);
 	m_log->debug("Inject Return value : {:x}", traceeProg.m_inject_call->m_ret_value);
 	traceeProg.m_inject_call->onComplete();
-	getchar();
+	
+	debug_opts.m_memory.writeRemoteAddrObj(*traceeProg.m_inject_call->m_backup_inst, sizeof(arm_linux_le_svc));
 	// Restore origingal state Where we hijacked the program flow
 	armRegObj->restoreRegisterCopy(traceeProg.m_inject_call->m_gp_register_copy);
 	armRegObj->print();

@@ -30,6 +30,12 @@ public:
 
     uint8_t* data() { return m_data; };
 
+    uint8_t* get_buffer_copy() {
+        uint8_t * new_copy = reinterpret_cast<uint8_t *>(malloc(m_size));
+        memcpy(new_copy, m_data, m_size);
+        return new_copy;
+    }
+
     void copy_buffer(const uint8_t* _buf, size_t _buf_len) {
         memcpy(m_data, _buf, _buf_len);
     }
@@ -38,6 +44,8 @@ public:
     size_t size() { return m_size; };
     void resize(uint64_t new_size);
     void setRemoteAddress(uint64_t _r_addr) { r_addr = _r_addr; }
+    
+    /// @brief set the memory to zero
     void clean();
     void print();
 

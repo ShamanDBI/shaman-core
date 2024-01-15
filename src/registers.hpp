@@ -1,10 +1,12 @@
 #ifndef H_REGISTER_H
 #define H_REGISTER_H
 
-#include "spdlog/spdlog.h"
 #include <sys/ptrace.h>
 #include <sys/uio.h>
 #include <elf.h>
+#include <capstone/capstone.h>
+#include "spdlog/spdlog.h"
+
 
 struct RegisterAliases {
   const char *const name;
@@ -225,9 +227,10 @@ public:
 
 #define ARCH_ARM_GP_REG_CNT 18
 #define CPSR_THUMB 0x20
-#include <capstone/capstone.h>
 
 class ARM32Register: public IRegisters<uint32_t> {
+    
+    std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
 
 public:
     enum REGISTER_IDX : uint8_t {
@@ -250,8 +253,9 @@ public:
         CPSR,
         ORIG_R0
     };
+    /// @brief mapping of our register index to Capstone register index
     int* arm_cap_reg_map;
-    std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
+    
 
     ARM32Register(pid_t tracee_pid)
         : IRegisters<uint32_t>(tracee_pid, ARCH_ARM_GP_REG_CNT) {
@@ -292,34 +296,37 @@ public:
     }
 
     void print() {
-        m_log->debug("--------------------[ ARM REGISTER ]--------------------");
+        m_log->trace("--------------------[ ARM REGISTER ]--------------------");
 
         for(int i=0; i < ARCH_ARM_GP_REG_CNT; i++) {
             switch (i) {
             case PC:
-                m_log->debug("\tPC   {:#04x}", getRegIdx(i));
+                m_log->trace("\tPC   {:#04x}", getRegIdx(i));
                 break;
             case SP:
-                m_log->debug("\tSP   {:#04x}", getRegIdx(i));
+                m_log->trace("\tSP   {:#04x}", getRegIdx(i));
                 break;
             case LR:
-                m_log->debug("\tLR   {:#04x}", getRegIdx(i));
+                m_log->trace("\tLR   {:#04x}", getRegIdx(i));
                 break;
             case FP:
-                m_log->debug("\tFP   {:#04x}", getRegIdx(i));
+                m_log->trace("\tFP   {:#04x}", getRegIdx(i));
                 break;
             case IP:
-                m_log->debug("\tIP   {:#04x}", getRegIdx(i));
+                m_log->trace("\tIP   {:#04x}", getRegIdx(i));
                 break;
             case CPSR:
-                m_log->debug("\tCPSR {:#04x}", getRegIdx(i));
+                m_log->trace("\tCPSR {:#04x}", getRegIdx(i));
+                break;
+            case ORIG_R0:
+                m_log->trace("\tORIG_R0 {:#04x}", getRegIdx(i));
                 break;
             default:
-                m_log->debug("\tR{:<3} {:#04x}",i, getRegIdx(i));
+                m_log->trace("\tR{:<3} {:#04x}",i, getRegIdx(i));
                 break;
             }
         }
-        m_log->debug("--------------------[ ARM END REGISTER ]-----------------");
+        m_log->trace("--------------------[ ARM END REGISTER ]-----------------");
     };
 };
 

@@ -2,6 +2,8 @@
 #define H_SYSCALL_INJECTOR_H
 
 #include "breakpoint.hpp"
+#include "memory.hpp"
+
 
 /// @brief Parameter of the syscall you want to inject
 /// The programming model needs more clarity who would you go
@@ -10,6 +12,9 @@ struct SyscallInject
 
 	/// @brief General Purpose register copy
 	std::uintptr_t m_gp_register_copy;
+
+    /// @brief instruction backup data
+    AddrPtr m_backup_inst;
 
 	/// @brief syscall number to inject
 	uint64_t m_syscall_id;
@@ -122,6 +127,7 @@ public:
 
 	bool handle(TraceeProgram &traceeProg)
 	{
+        Breakpoint::handle(traceeProg);
 		m_syscall_inject.execute(traceeProg);
         return true;
 	}
