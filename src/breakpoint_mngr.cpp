@@ -121,9 +121,9 @@ void BreakpointMngr::restoreSuspendedBreakpoint(TraceeProgram& traceeProgram)
     // additional step over logic required on case of ARM architecture 
     std::unique_ptr<BranchData> branch_info_brkpt = std::move(traceeProgram.m_single_step_brkpnt);
     m_log->debug("Restoring breakpoint and resuming execution!");
-    branch_info_brkpt->m_target_brkpt->disable(debug_opts);
+    branch_info_brkpt->m_target_brkpt->disable(traceeProgram);
     if(branch_info_brkpt->m_fall_target)
-        branch_info_brkpt->m_fall_target_brkpt->disable(debug_opts);
+        branch_info_brkpt->m_fall_target_brkpt->disable(traceeProgram);
     m_branch_info_cache[branch_info_brkpt->addr()] = std::move(branch_info_brkpt);
 #endif
 
