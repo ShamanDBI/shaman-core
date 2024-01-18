@@ -263,11 +263,13 @@ void init_logger(std::string &log_file, int debug_log_level)
 class MmapSyscallInject : public SyscallInject {
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
-	std::uintptr_t m_mmap_addr = 0;
+	AddrPtr m_mmap_addr = nullptr;
 
 public:
 
 	MmapSyscallInject(uint64_t mmap_size): SyscallInject(ARM_MMAP2) {
+		m_mmap_addr = new Addr();
+		m_mmap_addr->setRemoteSize(mmap_size);
 		setCallArg(0, 0);
 		setCallArg(1, mmap_size);
 		setCallArg(2, PROT_READ | PROT_WRITE);
@@ -277,8 +279,12 @@ public:
 	}
 
 	void onComplete() {
-		m_mmap_addr = m_ret_value;
-		m_log->error("Mmap Allocation on addr {:x}", m_mmap_addr);
+		/**
+		 * Check the return value an do some error handling and logging
+		 */
+		uintptr_t mmap_addr = m_ret_value;
+		m_mmap_addr->setRemoteAddress(mmap_addr);
+		m_log->info("Page allocated at address 0x{:x}", mmap_addr);
 	}
 };
 

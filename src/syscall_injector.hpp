@@ -5,8 +5,12 @@
 #include "memory.hpp"
 
 
-/// @brief Parameter of the syscall you want to inject
-/// The programming model needs more clarity who would you go
+/// @brief 
+
+/**
+ * @brief Parameter of the syscall you want to inject 
+ * 
+ */
 struct SyscallInject
 {
 
@@ -18,12 +22,15 @@ struct SyscallInject
 
 	/// @brief syscall number to inject
 	uint64_t m_syscall_id;
-
+	
 	/// @brief argument of the system call
 	uint64_t m_sys_args[SYSCALL_MAXARGS];
 
 	/// @brief return value of the system call
 	uint64_t m_ret_value;
+
+	/// @brief number of parameter of the syscall
+	uint8_t m_num_param;
 
 	SyscallInject(uint64_t _syscall_id) : m_syscall_id(_syscall_id)
 	{
@@ -47,17 +54,21 @@ struct SyscallInject
 		return *this;
 	}
 
-	/// @brief Set the argument of the syscall you want to make
-	/// @param arg_id index of the argument you want to set
-	/// @param arg_value value of the argument value
-	/// @return
+	/**
+	 * @brief Set the argument of the syscall
+	 * 
+	 * @param arg_id index of the argument
+	 * @param arg_value value of the argument value
+	 * @return SyscallInject& 
+	 */
 	SyscallInject &setCallArg(int8_t arg_id, uint64_t arg_value)
 	{
 		m_sys_args[arg_id] = arg_value;
+		m_num_param++;
 		return *this;
 	}
 
-	/// @brief this callback is called once the call inject is completed
+	/// @brief this callback is called once the syscall execution is completed
 	virtual void onComplete(){};
 };
 
@@ -75,7 +86,7 @@ struct SyscallInject
  * 	  before the syscall instruction.
  *    this is done in `clearUp` function.
  * 
- * This model of programming allow for more flexibility interms of at
+ * This model of programming allow for more flexibility in-terms of at
  * what point do you want to invoke a set of syscalls.
  * 
  * You could have different set of syscalls invoked at different point
@@ -86,11 +97,13 @@ struct SyscallInjector
 
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
 
+	/** @brief Breakpoint location at which the syscalls will be executed*/
 	BreakpointPtr m_setup_breakpoint;
 
 	/// @brief pending system call to inject
 	std::list<std::unique_ptr<SyscallInject>> m_pending_syscall_inject;
 
+	/** Number of breakpoint which are successfully executed*/
 	uint64_t m_syscall_inject_count = 0;
 
 	/// @brief Queue the syscall parameter to inject

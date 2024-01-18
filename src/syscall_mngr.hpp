@@ -30,12 +30,17 @@ struct SyscallTraceData
 	// System call number which is converted to canonical system call
 	SysCallId syscall_id;
 
-	// The real syscall number observed by the
+	/** @brief syscall number observer by the Register */
 	int16_t orig_syscall_number;
-	int64_t v_rval; /* Return value */
-	// number of argument this syscall takes
-	uint8_t nargs;					 /* number of argument */
-	uint64_t v_arg[SYSCALL_MAXARGS]; /* System call arguments */
+	
+	/** @brief return value of the system call */
+	int64_t v_rval;
+
+	/// @brief number of argument this syscall takes
+	uint8_t nargs; 
+	
+	/// @brief argument of the syscall
+	uint64_t v_arg[SYSCALL_MAXARGS];
 
 	SyscallTraceData()
 	{

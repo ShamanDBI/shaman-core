@@ -28,9 +28,23 @@ protected:
 public:
 
     BreakpointInjector(uint8_t _brk_size):  m_brk_size(_brk_size) {};
+    /**
+     * @brief Insert a breakpoint into the target
+     * 
+     * @param debug_opts Tracee in which this breakpoint will be inserted
+     * @param targetAddress The Addres at which the breakpoint will be insert
+     *                  and the data of the original instruction will be copied
+     * into the address object
+     */
+    virtual void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress) {};
 
-    virtual void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {};
-    virtual void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData) {};
+    /**
+     * @brief Restore the original instruction in the Tracee process
+     * 
+     * @param debug_opts 
+     * @param targetAddress 
+     */
+    virtual void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress) {};
 };
 
 // its 1 but I need to fix it
@@ -41,8 +55,8 @@ class X86BreakpointInjector : public BreakpointInjector {
 public:
     X86BreakpointInjector() : BreakpointInjector(INTEL_BREAKPOINT_INST_SIZE) {};
 
-    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
-    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
 };
 
 // ------------------------------- ARM ISA ------------------------------------
@@ -87,8 +101,8 @@ struct ARMBreakpointInjector : public BreakpointInjector {
 
     ARMBreakpointInjector(): BreakpointInjector(4) {}
 
-    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
-    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
 };
 
 
@@ -96,13 +110,16 @@ struct ARM64BreakpointInjector : public BreakpointInjector {
 
     ARM64BreakpointInjector(): BreakpointInjector(4) {}
 
-    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
-    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& m_backupData);
+    void inject(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
+    void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
 };
 
 
 // ------------------------------- [ ARM ISA END ] ---------------------------------
-
+enum ResultBrkpt {
+    Success = 0,
+    RemoveBkpt
+};
 /**
  * @brief Breakpoint which are inject in the Tracee program
  * 
@@ -230,20 +247,40 @@ public:
 
     bool shouldEnable();
 
+    /**
+     * @brief Implement the Breakpoint action code in this function
+     * 
+     * @param traceeProg Tracee thread which has triggered the breakpoint
+     * In case of multi-threaded program breakpoint can be triggered by 
+     * different threads as they share the same code.
+     * 
+     * @return true 
+     * @return false 
+     */
     virtual bool handle(TraceeProgram &traceeProg);
 
-    /// @brief Is my breakpoint enabled?
-    /// @return true if enabled and false otherwise
+    /**
+     * @brief Is my breakpoint enabled?
+     * 
+     * @return true if breakpoint is enabled
+     * @return false if breakpoit is disabled
+     */
     bool isEnabled() { return m_enabled; }
 
-    /// @brief Disable the breakpoint
-    /// @param debug_opts 
-    /// @return 
+    /**
+     * @brief Disable the breakpoint
+     * 
+     * @param traceeProg tracee for which this breakpoint will be disabled
+     * @return int 
+     */
     virtual int enable(TraceeProgram &traceeProg);
 
-    /// @brief enable the Breakpoint
-    /// @param debug_opts 
-    /// @return 
+    /**
+     * @brief Enable the breakpoint
+     * 
+     * @param traceeProg tracee for which this breakpoint will be enabled
+     * @return int 
+     */
     virtual int disable(TraceeProgram &traceeProg);
 };
 

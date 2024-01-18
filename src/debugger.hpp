@@ -149,6 +149,14 @@ struct TargetDescription {
 	CPU_ARCH m_cpu_arch;
 };
 
+class ProcessEvent {
+	virtual void onProcess() = 0;
+	virtual void onThread() = 0;
+	virtual void onExit() = 0;
+	virtual void onFork() = 0;
+	virtual void onModuleLoad();
+	virtual void onModuleUnload();
+};
 
 class Debugger {
 
