@@ -7,6 +7,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 #include <fstream>
+#include "config.hpp"
 
 /**
  * @brief Abstract the Encapsulate Memory Location in Tracee Process
@@ -110,13 +111,14 @@ public:
 
 
 using AddrPtr = Addr *;
-
+#include <stdio.h>
 class RemoteMemory {
 
     pid_t m_pid;
 
 #ifdef SUPPORT_MEM_FILE
     std::fstream* m_mem_file;
+    FILE* m_mem_fd;
 #endif
 
 public:
@@ -125,6 +127,7 @@ public:
     ~RemoteMemory();
 
     int readRemoteAddrObj(Addr& dest, size_t readSize);
+
     int writeRemoteAddrObj(Addr& data, size_t writeSize);
 
     Addr* readPointerObj(uintptr_t _remote_addr, uint64_t _buffer_size);

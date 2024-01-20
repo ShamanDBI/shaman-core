@@ -14,12 +14,6 @@
 struct SyscallInject
 {
 
-	/// @brief General Purpose register copy
-	std::uintptr_t m_gp_register_copy;
-
-    /// @brief instruction backup data
-    AddrPtr m_backup_inst;
-
 	/// @brief syscall number to inject
 	uint64_t m_syscall_id;
 	
@@ -36,16 +30,10 @@ struct SyscallInject
 	{
 		memset(m_sys_args, 0, sizeof(m_sys_args));
 		m_ret_value = 0;
-		m_gp_register_copy = 0;
 	}
 
 	~SyscallInject()
 	{
-		if (m_gp_register_copy)
-		{
-			free(reinterpret_cast<void *>(m_gp_register_copy));
-			m_gp_register_copy = 0;
-		}
 	}
 
 	SyscallInject &setSyscallId(uint64_t syscall_id)
@@ -106,6 +94,13 @@ struct SyscallInjector
 	/** Number of breakpoint which are successfully executed*/
 	uint64_t m_syscall_inject_count = 0;
 
+	/// @brief General Purpose register copy
+	std::uintptr_t m_gp_register_copy;
+
+    /// @brief instruction backup data
+    AddrPtr m_backup_inst;
+
+
 	/// @brief Queue the syscall parameter to inject
 	/// @return
 	void injectSyscall(std::unique_ptr<SyscallInject> syscall_data);
@@ -124,6 +119,10 @@ struct SyscallInjector
 	///        and restore the process execution state
 	/// @param traceeProg
 	void cleanUp(TraceeProgram &traceeProg);
+
+	void saveProgramState(TraceeProgram &traceeProg);
+	void restoreProgramState(TraceeProgram &traceeProg);
+	void setSyscallParams(TraceeProgram &traceeProg);
 };
 
 /// @brief Breakpoint to faciliate syscall injection

@@ -11,54 +11,88 @@
 #include <unistd.h>
 #include <string.h>
 
-#define CURR_NUM_BUFFER 10
-#define CURR_CHUNK_SIZE 1024
+#define DEFAULT_NUM_BUFFER 10
+#define DEFAULT_CHUNK_SIZE 1024
 
+/// @brief Magic ID for the Shared Memory
 const uint64_t MEMPIPE_MAGIC = 0xef7bea3fb9ec4746;
 
+/**
+ * @brief Error Code when creating Shared Memory
+ * 
+ */
 enum class MemPipeError
 {
+    /// @brief Error opening shared memory syscall
     ErrShmOpen = 1,
+
+    /// @brief Unable to Create Shared Memory of desired size 
     ErrSetMemorySize,
+
+    /// @brief Error mapping memory
     ErrMapMemory,
+
+    /// @brief Error reading from Shared Memory File Descriptor
     ErrPipeMismatch,
+
+    /// @brief Mismatching shared memory configuration
     ErrInvalidIPCConfig,
+
+    /// @brief Success
     ResultOk
 };
 
-
+/**
+ * @brief Shared Memory Buffer Mediator to allocate Shared buffer
+ * 
+ * @tparam CHUNK_SIZE Size of each buffer
+ * @tparam NUM_BUFFERS Number of such buffer
+ */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 struct MemPipe
 {
-    // unique identifer representing our Shared memory
+    /// @brief unique identifer representing our Shared memory
     uint64_t magic;
 
-    // Size of each Chuck
+    /// @brief Size of each Chuck
     uint64_t chunk_size;
 
-    // number of such Chunks
+    /// @brief number of such Chunks
     uint32_t num_buffers;
 
-    // unique id of the shared memory
+    /// @brief unique id of the shared memory
     uint32_t m_uid;
 
     std::atomic_bool client_owned[NUM_BUFFERS];
 
-    /// Holds the length of a transferred buffer. This must be populated prior
+    /// @brief Holds the length of a transferred buffer. This must be populated prior
     /// to `client_owned` being set to `true`, and must be ordered correctly
     /// on the processor
+
+    /**
+     * @brief Holds the length of a transferred buffer. This must be populated prior to
+     * `client_owned` being set to `true`, and must be ordered correctly on the
+     * processor
+     */
     std::atomic_uint32_t client_len[NUM_BUFFERS];
 
-    /// The sequence number for a given buffer, must be set prior to
+    /// @brief The sequence number for a given buffer, must be set prior to
     /// `client_owned` and ordered correctly on the processor
     std::atomic_uint64_t client_seq[NUM_BUFFERS];
 
+    /// @brief Currently processed sequence number
     std::atomic_uint64_t cur_seq;
 
+    /// @brief Pointer to the Chunk Buffers
     uint8_t chunks[NUM_BUFFERS][CHUNK_SIZE];
 };
 
-
+/**
+ * @brief Chunk Writer object
+ * 
+ * @tparam CHUNK_SIZE 
+ * @tparam NUM_BUFFERS 
+ */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class ChunkWriter
 {
@@ -79,11 +113,27 @@ class ChunkWriter
     bool m_blocking;
 
 public:
+
+    /**
+     * @brief Construct a new Chunk Writer object
+     * 
+     * @param _mem_pipe 
+     * @param _bytes 
+     * @param _idx 
+     * @param _blocking 
+     */
     ChunkWriter(MemPipe<CHUNK_SIZE, NUM_BUFFERS> *_mem_pipe,
                 uint8_t *_bytes, uint32_t _idx, bool _blocking)
         : m_mem_pipe(_mem_pipe), m_shm_raw_buffer(_bytes),
           m_idx(_idx), m_written(0), m_blocking(_blocking){};
 
+    /**
+     * @brief Write the data to the buffer
+     * 
+     * @param buffer 
+     * @param buf_size 
+     * @return uint32_t 
+     */
     uint32_t send(uint8_t *buffer, uint32_t buf_size)
     {
 
@@ -120,13 +170,29 @@ public:
 };
 
 
+/**
+ * @brief Encapsulation for Producer Buffer
+ * 
+ * @tparam CHUNK_SIZE 
+ * @tparam NUM_BUFFERS 
+ */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class SendPipe
 {
+    /// @brief Unique Identifier for the Shared Memory
     uint64_t m_uid;
+
+
     MemPipe<CHUNK_SIZE, NUM_BUFFERS> *m_mem_pipe;
 
 public:
+
+    /**
+     * @brief create a Shared Memory Segment
+     * 
+     * @param pipe_id 
+     * @return MemPipeError 
+     */
     MemPipeError create(uint64_t pipe_id)
     {
         char shmpath[40] = {0};
@@ -159,7 +225,7 @@ public:
             return MemPipeError::ErrMapMemory;
         }
 
-        // close(shm_fd);
+        close(shm_fd);
 
         m_uid = pipe_id;
 
@@ -177,7 +243,7 @@ public:
 
         return MemPipeError::ResultOk;
     };
-
+    
     ~SendPipe()
     {
         int ret = munmap(m_mem_pipe, sizeof(MemPipe<CHUNK_SIZE, NUM_BUFFERS>));
@@ -210,12 +276,26 @@ public:
     };
 };
 
+/**
+ * @brief Unique identifer for the Consumer Buffer
+ * 
+ */
 typedef uint64_t Ticket;
 
-typedef int (*DataProcFuncPtr)(uint8_t *, uint32_t) ;
+/**
+ * @brief Peek at the data before accepting it for processsing
+ * 
+ * @param buffer pointer to the buffer which has the data
+ * @param buffer_size size of the buffer
+ */
+typedef int (*DataProcFuncPtr)(uint8_t * buffer, uint32_t buffer_size) ;
 
-/// The receiving side of a pipe, this will allow you to read sequenced data
-/// as it was sent from a `SendPipe`
+/**
+ * @brief The receiving side of a pipe, this will allow you to read sequenced data as it was sent from a `SendPipe`
+ * 
+ * @tparam CHUNK_SIZE 
+ * @tparam NUM_BUFFERS 
+ */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class RecvPipe
 {
@@ -275,8 +355,23 @@ public:
         return MemPipeError::ResultOk;
     };
 
-    Ticket requestTicket() { return m_seq.fetch_add(1, std::memory_order_relaxed); };
+    /**
+     * @brief Request a new `Ticket` for processing new buffer
+     * 
+     * @return Ticket 
+     */
+    Ticket requestTicket() { 
+        return m_seq.fetch_add(1, std::memory_order_relaxed); 
+    };
 
+    /**
+     * @brief Given a `Ticket` for a new buffer for processing
+     * 
+     * @param ticket Buffer corresponding to the ticket
+     * @param data_proc Function to peek at the data
+     * @param new_ticket 
+     * @return int 
+     */
     int try_recv(Ticket ticket, DataProcFuncPtr data_proc, Ticket * new_ticket)
     {
         for (int ii = 0; ii < m_mem_pipe->num_buffers; ii++)

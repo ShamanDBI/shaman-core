@@ -14,4 +14,6 @@
 
 #define SPDLOG_ACTIVE_LEVEL SHAMAN_LOG_LEVEL_TRACE
 
+// #define SUPPORT_MEM_FILE 1
+
 #endif

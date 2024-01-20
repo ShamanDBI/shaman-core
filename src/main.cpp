@@ -364,10 +364,13 @@ int main(int argc, char **argv)
 
 
 	auto inject_mmap_sys = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x2000));
+	auto inject_mmap_sys2 = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x5000));
 
 	// debug.m_syscallMngr->injectSyscall(std::move(inject_mmap_sys));
 	debug.addBreakpoint(brk_pnt_addrs);
 	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys));
+	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys2));
+
 	// debug.addSyscallHandler(new OpenAt1Handler());
 	// debug.addSyscallHandler(new OpenAt2Handler());
 	debug.addFileOperationHandler(new OverwriteFileData());

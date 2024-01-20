@@ -1,253 +1,322 @@
+#include <unistd.h> // for file operations
 #include <sys/ptrace.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/bin_to_hex.h"
 #include "memory.hpp"
 
-
 Addr::Addr(uint64_t _r_addr, size_t _size)
-    : m_size(_size), r_addr(_r_addr) {
-        if(_size < 8) {
-            _size = 8;
-        }
-        m_data = (uint8_t *) malloc(_size);
+    : m_size(_size), r_addr(_r_addr)
+{
+    if (_size < 8)
+    {
+        _size = 8;
+    }
+    m_data = (uint8_t *)malloc(_size);
 }
 
-Addr::Addr(Addr &addrObj) {
+Addr::Addr(Addr &addrObj)
+{
     m_size = addrObj.m_size;
     r_addr = addrObj.r_addr;
-    m_data = (uint8_t *) malloc(m_size);
+    m_data = (uint8_t *)malloc(m_size);
     memcpy(m_data, addrObj.m_data, addrObj.m_size);
 }
 
-void Addr::print() {
+void Addr::print()
+{
     auto log = spdlog::get("main");
     std::vector<uint8_t> hex_data_copy(m_size);
     memcpy(hex_data_copy.data(), m_data, m_size);
-    log->warn("Addr | raddr 0x{:x}, size {}, data {:Xpn}", r_addr, m_size , spdlog::to_hex(hex_data_copy));
+    log->warn("Addr | raddr 0x{:x}, size {}, data {:Xpn}", r_addr, m_size, spdlog::to_hex(hex_data_copy));
 }
 
-Addr::~Addr() {
+Addr::~Addr()
+{
     free(m_data);
     m_data = NULL;
     r_addr = 0;
     m_size = 0;
 }
 
-void Addr::clean() {
+void Addr::clean()
+{
     // set the data to zero
     memset(m_data, 0, m_size);
 }
 
-void Addr::resize(uint64_t new_size) {
+void Addr::resize(uint64_t new_size)
+{
     m_size = new_size;
     m_data = (uint8_t *)realloc(m_data, new_size);
 }
 
-int8_t Addr::read_i8() {
+int8_t Addr::read_i8()
+{
     return m_data[0];
 }
 
-uint8_t Addr::read_u8() {
+uint8_t Addr::read_u8()
+{
     return m_data[0];
 }
 
-void Addr::write_i8(int8_t value) {
+void Addr::write_i8(int8_t value)
+{
     m_data[0] = value;
 }
 
-void Addr::write_u8(uint8_t value) {
+void Addr::write_u8(uint8_t value)
+{
     m_data[0] = value;
 }
 
-void Addr::write_u16(uint16_t value) {
-    m_data[0] = (uint8_t) value;
-    m_data[1] = (uint8_t) (value >> 8);
+void Addr::write_u16(uint16_t value)
+{
+    m_data[0] = (uint8_t)value;
+    m_data[1] = (uint8_t)(value >> 8);
 }
 
-void Addr::write_i16(int16_t value) {
+void Addr::write_i16(int16_t value)
+{
     write_i16(value);
 }
 
-void Addr::write_u32(uint32_t value) {
-    m_data[0] = (uint8_t) value;
-    m_data[1] = (uint8_t) (value >> 8);
-    m_data[2] = (uint8_t) (value >> 16);
-    m_data[3] = (uint8_t) (value >> 24);
+void Addr::write_u32(uint32_t value)
+{
+    m_data[0] = (uint8_t)value;
+    m_data[1] = (uint8_t)(value >> 8);
+    m_data[2] = (uint8_t)(value >> 16);
+    m_data[3] = (uint8_t)(value >> 24);
 }
 
-void Addr::write_i32(int32_t value) {
+void Addr::write_i32(int32_t value)
+{
     write_u32(value);
 }
 
-void Addr::write_u64(uint64_t value) {
-    m_data[0] = (uint8_t) value;
-    m_data[1] = (uint8_t) (value >> 8);
-    m_data[2] = (uint8_t) (value >> 16);
-    m_data[3] = (uint8_t) (value >> 24);
-    m_data[4] = (uint8_t) (value >> 32);
-    m_data[5] = (uint8_t) (value >> 40);
-    m_data[6] = (uint8_t) (value >> 48);
-    m_data[7] = (uint8_t) (value >> 56);
+void Addr::write_u64(uint64_t value)
+{
+    m_data[0] = (uint8_t)value;
+    m_data[1] = (uint8_t)(value >> 8);
+    m_data[2] = (uint8_t)(value >> 16);
+    m_data[3] = (uint8_t)(value >> 24);
+    m_data[4] = (uint8_t)(value >> 32);
+    m_data[5] = (uint8_t)(value >> 40);
+    m_data[6] = (uint8_t)(value >> 48);
+    m_data[7] = (uint8_t)(value >> 56);
 }
 
-void Addr::write_i64(int64_t value) {
+void Addr::write_i64(int64_t value)
+{
     write_u64(value);
 }
 
-uint16_t Addr::read_u16() {
+uint16_t Addr::read_u16()
+{
     uint16_t value = 0;
-    value |= (uint16_t) m_data[0];
-    value |= (uint16_t) m_data[1] << 8;
+    value |= (uint16_t)m_data[0];
+    value |= (uint16_t)m_data[1] << 8;
     return value;
 }
 
-int16_t Addr::read_i16() {
-    
+int16_t Addr::read_i16()
+{
+
     int16_t value = 0;
-    value |= (int16_t) m_data[0];
-    value |= (int16_t)(int8_t) m_data[3] << 8;
+    value |= (int16_t)m_data[0];
+    value |= (int16_t)(int8_t)m_data[3] << 8;
     return value;
 }
 
-uint32_t Addr::read_u32() {
+uint32_t Addr::read_u32()
+{
     uint32_t value = 0;
-    value |= (uint32_t) m_data[0];
-    value |= (uint32_t) m_data[1] << 8;
-    value |= (uint32_t) m_data[2] << 16;
-    value |= (uint32_t) m_data[3] << 24;
+    value |= (uint32_t)m_data[0];
+    value |= (uint32_t)m_data[1] << 8;
+    value |= (uint32_t)m_data[2] << 16;
+    value |= (uint32_t)m_data[3] << 24;
     return value;
 }
 
-int32_t Addr::read_i32() {
-    
+int32_t Addr::read_i32()
+{
+
     int32_t value = 0;
-    value |= (int32_t) m_data[0];
-    value |= (int32_t) m_data[1] << 8;
-    value |= (int32_t) m_data[2] << 16;
-    value |= (int32_t)(int8_t) m_data[3] << 24;
+    value |= (int32_t)m_data[0];
+    value |= (int32_t)m_data[1] << 8;
+    value |= (int32_t)m_data[2] << 16;
+    value |= (int32_t)(int8_t)m_data[3] << 24;
 
     return value;
 }
 
-uint64_t Addr::read_u64() {
+uint64_t Addr::read_u64()
+{
     uint64_t value = 0;
-    value |= (uint64_t) m_data[0];
-    value |= (uint64_t) m_data[1] << 8;
-    value |= (uint64_t) m_data[2] << 16;
-    value |= (uint64_t) m_data[3] << 24;
-    value |= (uint64_t) m_data[4] << 32;
-    value |= (uint64_t) m_data[5] << 40;
-    value |= (uint64_t) m_data[6] << 48;
+    value |= (uint64_t)m_data[0];
+    value |= (uint64_t)m_data[1] << 8;
+    value |= (uint64_t)m_data[2] << 16;
+    value |= (uint64_t)m_data[3] << 24;
+    value |= (uint64_t)m_data[4] << 32;
+    value |= (uint64_t)m_data[5] << 40;
+    value |= (uint64_t)m_data[6] << 48;
     // Sign-extend the most significant byte
-    value |= (uint64_t) m_data[7] << 56;
+    value |= (uint64_t)m_data[7] << 56;
     return value;
 }
 
-int64_t Addr::read_i64() {
+int64_t Addr::read_i64()
+{
     int64_t value = 0;
-    value |= (int64_t) m_data[0];
-    value |= (int64_t) m_data[1] << 8;
-    value |= (int64_t) m_data[2] << 16;
-    value |= (int64_t) m_data[3] << 24;
-    value |= (int64_t) m_data[4] << 32;
-    value |= (int64_t) m_data[5] << 40;
-    value |= (int64_t) m_data[6] << 48;
+    value |= (int64_t)m_data[0];
+    value |= (int64_t)m_data[1] << 8;
+    value |= (int64_t)m_data[2] << 16;
+    value |= (int64_t)m_data[3] << 24;
+    value |= (int64_t)m_data[4] << 32;
+    value |= (int64_t)m_data[5] << 40;
+    value |= (int64_t)m_data[6] << 48;
     // Sign-extend the most significant byte
-    value |= (int64_t)(int8_t) m_data[7] << 56;
+    value |= (int64_t)(int8_t)m_data[7] << 56;
     return value;
 }
 
 // ------------- REMOTE MEMORY MANAGEMENT ---------------
+#include <stdlib.h>
 
-RemoteMemory::RemoteMemory(pid_t tracee_pid) {
+RemoteMemory::RemoteMemory(pid_t tracee_pid)
+{
     m_pid = tracee_pid;
-
+    // O_RDWR
 #ifdef SUPPORT_MEM_FILE
-    char path[100];
-    
-    sprintf(path, "/proc/%d/mem", m_pid);
-    m_mem_file = new std::fstream(path, 
-        std::ios::binary | std::ios::in | std::ios::out);
+    char path[100] = {0};
 
-    if (m_mem_file->is_open()) {
+    sprintf(path, "/proc/%d/mem", m_pid);
+    m_mem_fd = fopen(path, "rb+");
+
+    // m_mem_file = new std::fstream(path,
+    //     std::ios::binary | std::ios::in | std::ios::out);
+
+    // if (m_mem_file->is_open()) {
+    if (m_mem_fd != NULL)
+    {
         spdlog::info("Mem file {} is open!", path);
-    } else {
+    }
+    else
+    {
         spdlog::info("Error opening {} Mem file!", path);
     }
 #endif
 }
 
-RemoteMemory::~RemoteMemory() {
+RemoteMemory::~RemoteMemory()
+{
 #ifdef SUPPORT_MEM_FILE
-    m_mem_file->close();
-    m_mem_file = nullptr;
+    // m_mem_file->close();
+    // m_mem_file = nullptr;
 #endif
     m_pid = 0;
 };
 
+int RemoteMemory::readRemoteAddrObj(Addr &dest, size_t readSize)
+{
 
-int RemoteMemory::readRemoteAddrObj(Addr& dest, size_t readSize) {
-    
-#ifdef SUPPORT_MEM_FILE
-    m_mem_file->seekg(dest.r_addr);
-    m_mem_file->read((char *)m_data, readSize);
-#else
     unsigned int bytes_read = 0;
-    if(readSize < 8) {
+#ifdef SUPPORT_MEM_FILE
+    // m_mem_file->seekg(dest.r_addr);
+    // m_mem_file->read((char *)m_data, readSize);
+
+    if (fseeko(m_mem_fd, dest.raddr(), SEEK_SET) != -1)
+    {
+        bytes_read = fread((void *)dest.m_data, 1, readSize, m_mem_fd);
+        if (bytes_read != -1)
+        {
+            spdlog::info("Read done {} {}", dest.raddr(), readSize);
+            return 0;
+        }
+        spdlog::error("Read not done");
+    }
+    else
+    {
+        spdlog::error("Seek not done!");
+    }
+    return 0;
+#else
+    if (readSize < 8)
+    {
         readSize = 8;
     }
 
     memset(dest.m_data, 0, readSize);
 
-    long * read_addr = (long *) dest.raddr();
-    long * copy_addr = (long *) dest.m_data;
+    long *read_addr = (long *)dest.raddr();
+    long *copy_addr = (long *)dest.m_data;
     unsigned long ret;
 
-    do {
+    do
+    {
         ret = ptrace(PTRACE_PEEKTEXT, m_pid, (read_addr++), NULL);
         // printf("RD : %p\n", ret);
         *(copy_addr++) = ret;
         bytes_read += sizeof(long);
-    } while(ret && bytes_read < (readSize - sizeof(long)));
-    
+    } while (ret && bytes_read < (readSize - sizeof(long)));
+
     // spdlog::debug("read pid : {}", m_pid);
 
-#endif
     return bytes_read;
-
+#endif
 }
 
-int RemoteMemory::writeRemoteAddrObj(Addr& dest, size_t writeSize) {
+int RemoteMemory::writeRemoteAddrObj(Addr &dest, size_t writeSize)
+{
 
+    uint32_t bytes_write = 0;
 #ifdef SUPPORT_MEM_FILE
     // m_mem_file->seekg(dest.r_addr);
     // m_mem_file->write((char *)m_data, writeSize);
+    if (fseeko(m_mem_fd, dest.raddr(), SEEK_SET) != -1)
+    {
+        bytes_write = fwrite((void *)dest.m_data, 1, writeSize, m_mem_fd);
+        if (bytes_write != -1)
+        {
+            spdlog::info("Write done {} {}", dest.raddr(), bytes_write);
+            return 0;
+        };
+        spdlog::error("Write not done");
+    }
+    else
+    {
+        spdlog::error("Seek not done!");
+    }
+    return 0;
 #else
-    uint32_t bytes_write = 0;
-    long * write_addr = (long *) dest.raddr();
-    long * copy_addr = (long *) dest.m_data;
+    long *write_addr = (long *)dest.raddr();
+    long *copy_addr = (long *)dest.m_data;
     long ret;
-    
-    do {
+
+    do
+    {
         ret = ptrace(PTRACE_POKEDATA, m_pid, (write_addr++), *(copy_addr++));
         // printf("WD : %lu \t", ret);
         bytes_write += sizeof(long);
         // printf("%lu %lu %d\n", bytes_write , (writeSize - sizeof(long)), ret > -1);
-    } while((ret > -1 )&& bytes_write < (writeSize - sizeof(long)));
-    
-#endif
-    // spdlog::debug("write pid : {}", m_pid);
+    } while ((ret > -1) && bytes_write < (writeSize - sizeof(long)));
 
     return bytes_write;
+#endif
+    // spdlog::debug("write pid : {}", m_pid);
 }
 
-Addr* RemoteMemory::readPointerObj(uintptr_t _remote_addr, uint64_t _buffer_size) {
-    Addr* remote_addr_obj = new Addr(_remote_addr, _buffer_size);
+Addr *RemoteMemory::readPointerObj(uintptr_t _remote_addr, uint64_t _buffer_size)
+{
+    Addr *remote_addr_obj = new Addr(_remote_addr, _buffer_size);
     readRemoteAddrObj(*remote_addr_obj, _buffer_size);
     return remote_addr_obj;
 }
 
-int RemoteMemory::read_cstring(Addr *data) {
+int RemoteMemory::read_cstring(Addr *data)
+{
     return 0;
 }
