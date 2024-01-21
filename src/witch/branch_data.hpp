@@ -44,7 +44,7 @@ struct BranchData {
 
     BranchData(const BranchData&) = delete;
     BranchData& operator=(const BranchData&) = delete;
-    // ~BranchData() = def;
+    // ~BranchData() = default;
 
     bool isConditional() { return m_conditional_branch; }
     bool isDirect() { return m_direct_branch; }

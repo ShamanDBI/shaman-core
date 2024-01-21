@@ -150,25 +150,44 @@ struct TargetDescription {
 };
 
 class ProcessEvent {
-	virtual void onProcess() = 0;
-	virtual void onThread() = 0;
-	virtual void onExit() = 0;
-	virtual void onFork() = 0;
-	virtual void onModuleLoad();
-	virtual void onModuleUnload();
+	virtual void onCreateProcess() {};
+	virtual void onThreadExit() {};
+	virtual void onExit() {};
+	virtual void onFork() {};
+	virtual void onModuleLoad() {};
+	virtual void onModuleUnload() {};
+};
+
+/// @brief Result while
+enum class DebugResult {
+	Success = 0,
+	
+	/// @brief Error while Creating Fork for Tracing
+	ErrForking,
+
+	/// @brief Error while attaching program for Debugging
+	ErrAttachingPtrace,
+	
+	/// @brief error while exiting from exec family of function
+	ErrExit,
+
+	/// @brief Error while stopping the thread
+	ErrStopThread,
 };
 
 class Debugger {
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
 
+	/// @brief Currently Active Tracee request which is been processed
+	pid_t m_signalled_pid = 0;
 public:
 	// new
 	BreakpointMngr* m_breakpointMngr = nullptr;
 	SyscallManager* m_syscallMngr = nullptr;
 
 	
-	std::map<pid_t, TraceeProgram*> m_Tracees;
+	std::map<pid_t, TraceeProgram*> m_tracees;
 
 	TraceeProgram* m_leader_tracee = nullptr;
 	SyscallInjector* m_syscall_injector = nullptr;
@@ -199,14 +218,28 @@ public:
 
 	Debugger(TargetDescription& _target_desc);
 
-	int spawn(std::vector<std::string>& cmdline);
+	DebugResult spawn(std::vector<std::string>& cmdline);
 
-	void attach(pid_t tracee_pid);
-	void attachThread(pid_t tracee_pid);
+	/// @brief Attach to process and all the threads
+	/// @param tracee_pid Process ID to attach to
+	/// @return 
+	DebugResult attach(pid_t tracee_pid);
 
-	// in and architecture CPU mode can change not its architecture
-	// for eg 64 bit machine can run 32 bit program but and ARM
-	// cannot natively run x64 binary
+	/// @brief Attach to single Thread
+	/// @param tracee_pid 
+	/// @return 
+	DebugResult attachThread(pid_t tracee_pid);
+
+	/// @brief Stop all the Threads which we control
+	DebugResult stopAllThreads();
+	
+	/// @brief Stop the One Tracee Thread only
+	/// @param stopTracee Tracee to stop
+	DebugResult stopThread(TraceeProgram &stopTracee);
+
+	/// @brief in and architecture CPU mode can change not its architecture
+	/// for eg 64 bit machine can run 32 bit program but and ARM
+	/// cannot natively run x64 binary
 	void setCPUMode(CPU_MODE cpu_mode);
 
 	TraceeProgram* addChildTracee(pid_t child_tracee_pid);

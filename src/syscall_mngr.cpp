@@ -663,12 +663,10 @@ void SyscallInjector::cleanUp(TraceeProgram &traceeProg) {
 	armRegObj->fetch();
 	m_log->debug("Syscall Injection Done!");
 
-	armRegObj->print();
+	// armRegObj->print();
 	traceeProg.m_inject_call->m_ret_value = armRegObj->getRegIdx(ARM32Register::R0);
 	m_log->debug("Inject Return value : {:x}", traceeProg.m_inject_call->m_ret_value);
 	traceeProg.m_inject_call->onComplete();
-
-	getchar();
 
 	if (m_pending_syscall_inject.size() == 0)
 	{
@@ -677,7 +675,7 @@ void SyscallInjector::cleanUp(TraceeProgram &traceeProg) {
 
 		// Since we don't have anything else to inject, we clean up everything
 		if(m_gp_register_copy) {
-			free(m_gp_register_copy);
+			free((void *)m_gp_register_copy);
 			delete m_backup_inst;
 		}
 

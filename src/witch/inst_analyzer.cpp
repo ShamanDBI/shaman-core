@@ -180,6 +180,10 @@ bool ARMInstAnalyzer::getBranchDest(cs_insn* inst, BranchData& branch_info, Debu
         branch_info.m_target = inst->address + inst->size;
     }
 
+    if(branch_info.m_target == branch_info.m_fall_target) {
+        branch_info.m_fall_target = 0;
+    }
+
     return true;
 }
 

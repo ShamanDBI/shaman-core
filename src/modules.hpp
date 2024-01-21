@@ -27,7 +27,13 @@ struct ProcMap {
 };
 
 
-/// @brief Information about the process map
+/// @brief Interface for ProcFS for Linux
+
+/**
+ * @brief Interface for ProcFS for Linux
+ * 
+ * Currently only Provides Information about the Process Map
+ */
 class ProcessMap {
 
     std::vector<ProcMap*> m_map;

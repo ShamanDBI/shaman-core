@@ -54,6 +54,9 @@ enum TraceeState {
 	/// @brief there is hit for a breakpoint and the tracee is in the
 	/// process of step over.
 	BREAKPOINT_HIT,
+
+	/// @brief Tracee was stoppe explicitly
+	STOPPED,
 	
 	/// @brief Invalid state, not to be used anywhere! Use to indicate
 	/// error
@@ -100,12 +103,14 @@ struct TraceeProgram {
 	TargetDescription &m_target_desc;
 	// BreakpointMngr* m_breakpointMngr;
 
-	// pid of the program we are tracing/debugging
-	pid_t getPid() {
+	/// @brief pid of the program we are tracing/debugging
+	pid_t pid() {
 		return m_pid;
 	}
 
-	pid_t getThreadGroupid() {
+	/// @brief Get thread group id
+	/// @return 
+	pid_t tid() {
 		return m_tg_pid;
 	};
 	
@@ -142,8 +147,8 @@ struct TraceeProgram {
 	};
 
 	TraceeProgram& setLogFile(std::string log_name) {
-		auto log_file_name = spdlog::fmt_lib::format("{}_{}.log", log_name, getPid());
-		auto log_inst_name = spdlog::fmt_lib::format("tc-{}",getPid());
+		auto log_file_name = spdlog::fmt_lib::format("{}_{}.log", log_name, pid());
+		auto log_inst_name = spdlog::fmt_lib::format("tc-{}",pid());
 		m_log = spdlog::basic_logger_mt(log_inst_name, log_file_name);
 		return *this;
 	};

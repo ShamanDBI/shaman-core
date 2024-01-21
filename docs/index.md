@@ -34,7 +34,8 @@ Architecture Neutral DBI for Embedded systems
     1. Framework will figure the different tricks used by the process to bypass anti-debugging mitigaations.
     1. Trace ptrace related system calls and block them
 1. Support in Multi-threaded Environment
-1. Support for all the above feature in Micrcontrollers.
+1. Support for all the above feature in Micro-Controllers.
+1. Crash Analysis for Fuzzing.
 
 ## Quick Usage Guide 
 

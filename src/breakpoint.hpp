@@ -59,44 +59,6 @@ public:
     void restore(DebugOpts& debug_opts, std::unique_ptr<Addr>& targetAddress);
 };
 
-// ------------------------------- ARM ISA ------------------------------------
-
-/* Under ARM GNU/Linux the traditional way of performing a breakpoint
-   is to execute a particular software interrupt, rather than use a
-   particular undefined instruction to provoke a trap. Upon exection
-   of the software interrupt the kernel stops the inferior with a
-   SIGTRAP, and wakes the debugger.  */
-
-static const uint8_t arm_linux_arm_le_breakpoint[] = { 0x01, 0x00, 0x9f, 0xef };
-
-static const uint8_t arm_linux_arm_be_breakpoint[] = { 0xef, 0x9f, 0x00, 0x01 };
-
-/* However, the EABI syscall interface (new in Nov. 2005) does not look at
-   the operand of the swi if old-ABI compatibility is disabled.  Therefore,
-   use an undefined instruction instead.  This is supported as of kernel
-   version 2.5.70 (May 2003), so should be a safe assumption for EABI
-   binaries.  */
-
-static const uint8_t eabi_linux_arm_le_breakpoint[] = { 0xf0, 0x01, 0xf0, 0xe7 };
-
-static const uint8_t eabi_linux_arm_be_breakpoint[] = { 0xe7, 0xf0, 0x01, 0xf0 };
-
-/* All the kernels which support Thumb support using a specific undefined
-   instruction for the Thumb breakpoint.  */
-
-static const uint8_t arm_linux_thumb_be_breakpoint[] = {0xde, 0x01};
-
-static const uint8_t arm_linux_thumb_le_breakpoint[] = {0x01, 0xde};
-
-/* Because the 16-bit Thumb breakpoint is affected by Thumb-2 IT blocks,
-   we must use a length-appropriate breakpoint for 32-bit Thumb
-   instructions.  See also thumb_get_next_pc.  */
-
-static const uint8_t arm_linux_thumb2_be_breakpoint[] = { 0xf7, 0xf0, 0xa0, 0x00 };
-
-static const uint8_t arm_linux_thumb2_le_breakpoint[] = { 0xf0, 0xf7, 0x00, 0xa0 };
-
-
 struct ARMBreakpointInjector : public BreakpointInjector {
 
     ARMBreakpointInjector(): BreakpointInjector(4) {}
@@ -116,14 +78,16 @@ struct ARM64BreakpointInjector : public BreakpointInjector {
 
 
 // ------------------------------- [ ARM ISA END ] ---------------------------------
-enum ResultBrkpt {
+enum BrkptResult {
     Success = 0,
     RemoveBkpt
 };
+
 /**
  * @brief Breakpoint which are inject in the Tracee program
  * 
- * This is another important interface of the framework
+ * This Interface give you ability to stop at arbitrary point in the
+ * program.
 */
 class Breakpoint {
 
@@ -176,53 +140,58 @@ public:
     /// @brief max hit count after which you want remove the breakpoint
     uint32_t m_max_hit_count = UINT32_MAX;
 
-    /// @brief offset from the module
+    /// @brief offset value of the breakpoint WRT to `m_modname` base address
     uintptr_t m_offset = 0;
-
-    // process id's in which this breakpoint is active
-    // std::vector<pid_t> m_pids; // pid of tracee
     
     /// @brief User friendly name of the breakpoint
     std::string m_label;
 
-    /// @brief 
-    /// @param modname 
-    /// @param offset 
-    /// @param bk_addr 
-    /// @param _label 
-    /// @param brk_type 
+    /**
+     * @brief Create Breakpoint object with friendly Name
+     * 
+     * This will give you a very low level control of the breakpoint interface
+     * 
+     * NOTE - its best to avoid setting Concrete address of the breakpoint
+     * 
+     * @param modname name of the module in which the breakpoint will be placed
+     * @param offset offset WRT to the module base address
+     * @param bk_addr Concrete Breakpoint address
+     * @param _label A frendly label which will be printed in the log file
+     * @param brk_type Breakpoint Type
+     */
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t bk_addr,
         std::string* _label, BreakpointType brk_type);
-    
-    /// @brief 
-    /// @param modname 
-    /// @param offset 
-    /// @param brk_addr 
+
     Breakpoint(std::string& modname, uintptr_t offset, uintptr_t brk_addr) :
         Breakpoint(modname, offset, brk_addr, nullptr, NORMAL) {}
 
-    /// @brief 
-    /// @param modname 
-    /// @param offset 
-    /// @param brk_type 
     Breakpoint(std::string& modname, uintptr_t offset, BreakpointType brk_type) :
         Breakpoint(modname, offset, 0, nullptr, brk_type) {}
 
-    /// @brief 
-    /// @param modname 
-    /// @param offset 
+    /**
+     * @brief Construct a new Breakpoint object with the Module name and the 
+     * Offset WRT to the Module base address
+     * 
+     * This will be most commonly used Constructor
+     * 
+     * @param modname Module name 
+     * @param offset offset from the base of the Module 
+     */
     Breakpoint(std::string& modname, uintptr_t offset) :
         Breakpoint(modname, offset, 0, nullptr, NORMAL) {}
 
     /// @brief Destructor
     ~Breakpoint()  { 
+        reset();
+    }
+
+    void reset() {
         m_log->trace("Breakpoint at {:x} going out scope!", m_addr);
         m_addr = 0;
         m_offset = 0;
         m_hit_count = 0;
         m_enabled = false;
         m_backupData.reset();
-        // m_pids.clear();
     }
 
     Breakpoint& setInjector(BreakpointInjector* brk_pnt_injector);

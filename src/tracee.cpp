@@ -51,23 +51,23 @@ int TraceeProgram::contExecution(uint32_t sig) {
 	
 	if (debugType & DebugType::DEFAULT) {
 		m_log->trace("contExec Tracee CONT");
-		pt_ret = ptrace(PTRACE_CONT, getPid(), 0L, sig);
+		pt_ret = ptrace(PTRACE_CONT, pid(), 0L, sig);
 	} else if (debugType & DebugType::TRACE_SYSCALL) {
 		m_log->trace("contExec Tracee Syscall");
-		pt_ret = ptrace(PTRACE_SYSCALL, getPid(), 0L, sig);
+		pt_ret = ptrace(PTRACE_SYSCALL, pid(), 0L, sig);
 	} else if (debugType & DebugType::SINGLE_STEP) {
 		m_log->trace("contExec single step");
-		pt_ret = ptrace(PTRACE_SINGLESTEP, getPid(), 0L, sig);
+		pt_ret = ptrace(PTRACE_SINGLESTEP, pid(), 0L, sig);
 	}
 
 	if(pt_ret < 0) {
-		m_log->error("ptrace continue call failed for pid {} ! Err code : {} ", getPid(), pt_ret);
+		m_log->error("ptrace continue call failed for pid {} ! Err code : {} ", pid(), pt_ret);
 	}
 	return pt_ret;
 }
 
 int TraceeProgram::singleStep() {
-	int pt_ret = ptrace(PTRACE_SINGLESTEP, getPid(), 0L, 0);
+	int pt_ret = ptrace(PTRACE_SINGLESTEP, pid(), 0L, 0);
 	if(pt_ret < 0) {
 		m_log->error("failed to single step! Err code : {} ", pt_ret);
 	}
@@ -107,7 +107,7 @@ std::string TraceeProgram::getStateString() {
 }
 
 void TraceeProgram::printStatus() {
-	m_log->debug("PID : {} TID : {} State : {}", getPid(), getThreadGroupid(), getStateString());
+	m_log->debug("PID : {} TID : {} State : {}", pid(), tid(), getStateString());
 }
 
 // void TraceeProgram::addPendingBrkPnt(std::vector<std::string>& brk_pnt_str) {

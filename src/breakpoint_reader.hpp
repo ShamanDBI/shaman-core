@@ -85,7 +85,7 @@ public:
 	{
 		Breakpoint::handle(traceeProg);
 		m_log->warn("We are writing coverag data to file!");
-		m_trace_writer->add_cov(traceeProg.getPid(), m_module_id, m_addr);
+		m_trace_writer->add_cov(traceeProg.pid(), m_module_id, m_addr);
 		return true;
 	}
 
