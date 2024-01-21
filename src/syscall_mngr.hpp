@@ -21,19 +21,24 @@
 
 class TraceeProgram;
 
-/// @brief The struct is used to store syscall data while the data is been
-/// processed by the Kernel, i.e. `onEnter` to `onExit`
+/**
+ * @brief Captures the System Call parameters and the return value
+ * 
+ * @ingroup platform_support programming_interface
+ */
 struct SyscallTraceData
 {
-	pid_t m_pid; /* If 0, this syscall trace data is free */
+	/// @brief Process which is make this syscall 
+	/// If 0, this syscall trace data is Invalid
+	pid_t m_pid;
 
-	// System call number which is converted to canonical system call
+	/// @brief System call number which is converted to canonical system call
 	SysCallId syscall_id;
 
-	/** @brief syscall number observer by the Register */
+	/// @brief syscall number observer by the Register
 	int16_t orig_syscall_number;
 	
-	/** @brief return value of the system call */
+	/// @brief return value of the system call
 	int64_t v_rval;
 
 	/// @brief number of argument this syscall takes
@@ -47,7 +52,7 @@ struct SyscallTraceData
 		reset();
 	}
 
-	/// @brief reset the object values to invalid state
+	/// @brief Reset the object values to invalid state
 	void reset()
 	{
 		syscall_id = SysCallId::NO_SYSCALL;
@@ -68,6 +73,8 @@ struct SyscallTraceData
 		m_pid = otherSyscall.m_pid;
 	}
 
+	/// @brief Get integer value of the System Call number
+	/// @return 
 	int16_t getSyscallNo()
 	{
 		return syscall_id.getIntValue();
@@ -79,10 +86,30 @@ struct SyscallTraceData
 	}
 };
 
+/**
+ * @brief Result from System Call Interface
+ * 
+ */
+enum class SyscallResult {
+	/// @brief Continue the execution of the Syscall without changing anything
+	Continue = 0,
 
+	/// @brief We want to *Block* from the System Call from executing
+	/// this can be done only at @ref SyscallHandler::onEnter function
+	BlockSyscall,
+};
+
+/**
+ * @brief System Call state value
+ * 
+ */
 enum SyscallState
 {
+	/// @brief System call is just submitted to the Kernel, not yet exeucted
 	ON_ENTER = 1,
+
+	/// @brief System calls is executed by the Kernel, return value of the
+	/// can be inspected
 	ON_EXIT = 2
 };
 
@@ -129,6 +156,15 @@ struct ResourceTracer
 	}
 };
 
+/**
+ * @addtogroup programming_interface
+ * @{
+ */
+
+/**
+ * @brief Callback Interface for Tracing File related Operation
+ * 
+ */
 struct FileOperationTracer
 {
 
@@ -174,6 +210,10 @@ struct FileOperationTracer
 	};
 };
 
+/**
+ * @brief Callback Interface for Tracing Network Related Operation
+ * 
+ */
 struct NetworkOperationTracer
 {
 
@@ -246,8 +286,12 @@ struct NetworkOperationTracer
 	};
 };
 
-/// @brief Register syscall `onEnter` and `onExit` event of particular
-/// syscall
+
+/**
+ * @brief Interface to Observe or change the System Call parameter
+ * 
+ * Register syscall @ref onEnter and @ref onExit event of particular syscall
+ */
 struct SyscallHandler
 {
 
@@ -263,23 +307,33 @@ struct SyscallHandler
 
 	~SyscallHandler() { m_syscall_id = SysCallId::NO_SYSCALL; }
 
-	/// @brief This function is call before the Syscall data is passed to the Kernel
-	/// @param sc_trace - system call data
-	/// @return
+	/**
+	 * @brief This function is call before the Syscall Data is passed to the Kernel
+	 * for execution, You can change of the call parameter at this point.
+	 * 
+	 * @param sc_trace System call data
+	 * @return int 
+	 */
 	virtual int onEnter(SyscallTraceData &sc_trace) { return 0; };
 
-	/// @brief This function is call after the Syscall data is executed by the Kernel
-	/// @param sc_trace - this structure has the syscall parameter and return the value
-	/// @return
+	/**
+	 * @brief This function is call after the Syscall data is executed by the Kernel
+	 * You can observe the return value of the Syscall at this state.
+	 * 
+	 * @param sc_trace this structure has the syscall parameter and return the value
+	 * in @ref SyscallTraceData::v_rval
+	 * @return int 
+	 */
 	virtual int onExit(SyscallTraceData &sc_trace) { return 0; };
 };
 
-enum SysMngrResult
-{
-	ResultOk = 0,
-	ErrorTooMany,
-};
+/** @} End of group*/
 
+/**
+ * @brief Provides mean to register Syscall and Resource Tracing Interfaces 
+ * 
+ * @ingroup platform_support
+ */
 class SyscallManager
 {
 
@@ -307,46 +361,92 @@ class SyscallManager
 
 	uint64_t m_syscall_executed = 0;
 
+	/**
+	 * @brief Read System Call parameter
+	 * 
+	 * @param traceeProg Tracee from which the call parameter will be read
+	 * 
+	 * @ingroup platform_support
+	 */
 	void readSyscallParams(TraceeProgram &traceeProg);
+	
+	/**
+	 * @brief Read return value for the Registers
+	 * 
+	 * @param traceeProg Tracee from which the return value will be read
+	 * 
+	 * @ingroup platform_support
+	 */
 	void readRetValue(TraceeProgram &traceeProg);
 
 	int handleFileOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &m_cached_args);
 	int handleNetworkOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &m_cached_args);
+
+	/*
 	int handleIPCOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &m_cached_args);
 	int handleProcessOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &m_cached_args);
 	int handleTimeOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &m_cached_args);
+	*/
 
 	// void injectPendingSyscall(SyscallState sys_state,TraceeProgram& traceeProg);
 public:
-	int addFileOperationHandler(FileOperationTracer *file_opt_handler);
-	int removeFileOperationHandler(FileOperationTracer *file_opt_handler);
 
+	/**
+	 * @brief Add File Operation for Tracing
+	 * 
+	 * @param file_opt_handler 
+	 * @return int Number File Tracer currently registered
+	 */
+	int addFileOperationHandler(FileOperationTracer *file_opt_handler);
+
+	// int removeFileOperationHandler(FileOperationTracer *file_opt_handler);
+	
+	/**
+	 * @brief Add Network Tracing Interface
+	 * 
+	 * @param network_opt_handler 
+	 * @return int 
+	 */
 	int addNetworkOperationHandler(NetworkOperationTracer *network_opt_handler);
 
+	/**
+	 * @brief Register interface for Tracing Individual Syscall Call
+	 * 
+	 * @param syscall_hdlr callback implemenation
+	 * @return int 
+	 */
 	int addSyscallHandler(SyscallHandler *syscall_hdlr);
-	int removeSyscallHandler(SyscallHandler *syscall_hdlr);
 
-	/// @brief  This function is call before the Syscall data is passed to the Kernel
-	/// @param traceeProg - tracee which is making the Syscall
-	/// @return
+	// int removeSyscallHandler(SyscallHandler *syscall_hdlr);
+
+	/**
+	 * @brief This function is call before the Syscall data is passed to the Kernel
+	 * 
+	 * @param traceeProg tracee which is making the Syscall
+	 * @return int 
+	 */
 	int onEnter(TraceeProgram &traceeProg);
 
-	/// @brief This function is call after the Syscall data is executed by the Kernel
-	/// @param traceeProg - tracee which is making the Syscall
-	/// @return
+	/**
+	 * @brief This function is call before the Syscall data is passed to the Kernel
+	 * 
+	 * @param traceeProg tracee which is making the Syscall
+	 * @return int 
+	 */
 	int onExit(TraceeProgram &traceeProg);
-
-	// /// @brief Inject syscall in the running process
-	// /// @return
-	// int injectSyscall(std::unique_ptr<SyscallInject> syscall_data);
 };
+
+/**
+ * @brief Following functions convert platform Specific System Call number to 
+ * Platfrom independ canonical Syscall number
+ * 
+ * @param syscall_number 
+ * @return SysCallId 
+ */
 
 SysCallId amd64_canonicalize_syscall(AMD64_SYSCALL syscall_number);
 SysCallId arm64_canonicalize_syscall(ARM64_SYSCALL syscall_number);
-
-// this is because standard mapping is done on this syscall ID
 SysCallId arm32_canonicalize_syscall(int16_t syscall_number);
-
 SysCallId i386_canonicalize_syscall(int16_t syscall_number);
 
 #endif

@@ -22,9 +22,7 @@
  * 
  * Tracing a single process is easy you don't need to take care
  * of what breakpoint handle to invoke
- 
  * ######################################################################
- 
  * Fork Event
  * ----------
  * The fork call basically makes a duplicate of the current process,
@@ -120,14 +118,16 @@
  * ---------
  * Good Discussion about this topic can be found on this thread
  * https://stackoverflow.com/questions/4856255/the-difference-between-fork-vfork-exec-and-clone
-*/
+ */
 
 class TraceeProgram;
 class TraceeFactory;
 class SyscallInjector;
 
-
-// this is current state of the tracee
+/**
+ * @brief CPU Architectur of the Target
+ * 
+ */
 enum CPU_ARCH : uint8_t {
 	X86 = 0x00,
 	AMD64 = 0x01,
@@ -135,6 +135,10 @@ enum CPU_ARCH : uint8_t {
 	ARM64 = 0x20
 };
 
+/**
+ * @brief Execution mode of the Target
+ * 
+ */
 enum CPU_MODE : uint8_t{
 	x86_16 = 0x00,
 	x86_32 = 0x01,
@@ -144,22 +148,45 @@ enum CPU_MODE : uint8_t{
 	ARM_64 = 0x12
 };
 
+/**
+ * @brief All the Architecture speicfic detials will be avaible in this
+ * class 
+ */
 struct TargetDescription {
 	CPU_MODE m_cpu_mode;
 	CPU_ARCH m_cpu_arch;
 };
 
+/**
+ * @brief Callback for the events which Process can generate
+ * 
+ * @ingroup programming_interface
+ */
 class ProcessEvent {
-	virtual void onCreateProcess() {};
-	virtual void onThreadExit() {};
-	virtual void onExit() {};
-	virtual void onFork() {};
-	virtual void onModuleLoad() {};
-	virtual void onModuleUnload() {};
+	
+	/// @brief called when new process is created
+	virtual void onCreateProcess() = 0;
+
+	/// @brief Thread has exited
+	virtual void onThreadExit() = 0;
+
+	/// @brief Proces has exited
+	virtual void onExit() = 0;
+
+	/// @brief Process just forked
+	virtual void onFork() = 0;
+
+	/// @brief new Module has been loaded in the process
+	virtual void onModuleLoad() = 0;
+
+	/// @brief Called when a Library is unloaded 
+	virtual void onModuleUnload() = 0;
 };
 
-/// @brief Result while
+
+/// @brief Result while Attaching to a Process for debugging
 enum class DebugResult {
+	/// @brief Everything is OK!
 	Success = 0,
 	
 	/// @brief Error while Creating Fork for Tracing
@@ -175,33 +202,43 @@ enum class DebugResult {
 	ErrStopThread,
 };
 
+/**
+ * @brief The class provide the means to Debug the process.
+ *  
+ * This class provides a means by which one process (the "tracer") may observe 
+ * and control the execution of another process (the "tracee"), and examine and
+ * change the tracee's memory and registers. It is primarily used to implement
+ * breakpoint debugging and system call tracing.
+ */
 class Debugger {
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("debugger");
 
 	/// @brief Currently Active Tracee request which is been processed
 	pid_t m_signalled_pid = 0;
-public:
-	// new
-	BreakpointMngr* m_breakpointMngr = nullptr;
-	SyscallManager* m_syscallMngr = nullptr;
-
-	
 	std::map<pid_t, TraceeProgram*> m_tracees;
 
-	TraceeProgram* m_leader_tracee = nullptr;
+public:
+	
+	BreakpointMngr* m_breakpointMngr = nullptr;
+	SyscallManager* m_syscallMngr = nullptr;
+	
 	SyscallInjector* m_syscall_injector = nullptr;
+
+	/// @brief Thread Group Leader process
+	TraceeProgram* m_leader_tracee = nullptr;
+
 	
 	std::string* m_prog = nullptr;
 
 	std::vector<std::string>* m_argv = nullptr;
 	
 	pid_t prev_pid = 0;
-	// std::vector<std::string>* brk_pnt_str; // remove
 
 	TraceeFactory* m_tracee_factory = nullptr; //remove
  
 	bool m_traceSyscall = false;
+
 	bool m_followFork = false;
 
 	TargetDescription& m_target_desc;
@@ -218,6 +255,12 @@ public:
 
 	Debugger(TargetDescription& _target_desc);
 
+	/**
+	 * @brief Create new Process attach to the debugger immediately
+	 * 
+	 * @param cmdline 
+	 * @return DebugResult 
+	 */
 	DebugResult spawn(std::vector<std::string>& cmdline);
 
 	/// @brief Attach to process and all the threads

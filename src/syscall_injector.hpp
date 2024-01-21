@@ -10,6 +10,10 @@
 /**
  * @brief Parameter of the syscall you want to inject 
  * 
+ * You can register the syscall you want to inject with SyscallInjector interface
+ * you can have to call @ref SyscallInjector::injectSyscall
+ * 
+ * @ingroup programming_interface
  */
 struct SyscallInject
 {

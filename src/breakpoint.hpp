@@ -17,6 +17,8 @@ class TraceeProgram;
  * 
  * This is the class which you platform specific implementation for
  * placing the breakpoint should do
+ * 
+ * @ingroup platform_support
 */
 class BreakpointInjector {
 
@@ -84,10 +86,22 @@ enum BrkptResult {
 };
 
 /**
+ * @addtogroup programming_interface
+ * @{
+ */
+
+/**
  * @brief Breakpoint which are inject in the Tracee program
  * 
  * This Interface give you ability to stop at arbitrary point in the
  * program.
+ * 
+ * To using this Interface inherite this class and override @ref handle
+ * function and implement all the handling logic in it.
+ * 
+ * @ref handle function takes TraceeProgram as a parameter this parameter
+ * has Tracee which has triggered the breakpoint. You can use the parameter
+ * to inspect the Memory and Register of the Process in question
 */
 class Breakpoint {
 
@@ -101,13 +115,22 @@ protected:
 
 public:
 
-    /// @brief different type of breakpoint
+    /// @brief Different type of Breakpoints
     enum BreakpointType {
-        /// @brief single shot breakpoint used for collecting code coverage
-        ///       Delete the breakpoint after it has been hit once
+        /**
+         * @brief This breakpoint will be executed only ONCE
+         * 
+         * Once it hit @ref handle function will be called and the breakpoint
+         * will be then remove from the record.
+         * 
+         * This type of breakpoint can be used to collecting single-point
+         * code coverage
+         * 
+         */
         SINGLE_SHOT = 1,
 
-        /// @brief this breakpoint will be restored after handling it.
+        /// @brief Nothing special about this type. It will be restored after 
+        /// handling it.
         NORMAL = 2,
 
         /// @brief this kind of breakpoint are used to single step the 
@@ -198,6 +221,8 @@ public:
 
     Breakpoint& makeSingleStep(uintptr_t _brkpnt_addr);
 
+    /// @brief Factory Method to make the breakpoint @ref SINGLE_SHOT
+    /// @return 
     Breakpoint& makeSingleShot();
 
     Breakpoint& setMaxHitCount(uint32_t max_hit_count);
@@ -253,7 +278,7 @@ public:
     virtual int disable(TraceeProgram &traceeProg);
 };
 
-
+/** @} End of Group */
 using BreakpointPtr = Breakpoint *;
 
 #endif

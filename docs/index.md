@@ -55,11 +55,53 @@ Options:
 
 ```
 
-## Adding New Architecture Support
+## How to Write Plugins
 
-The Question comes in mind is *What if I want to add Support for New Architecture?*. Its actaully not too much of work!
+You can think of Framework as a High Performance Programming Debugger.
+Event Driven Programming
+
+You have two Major interface for Programming. First is 
+
+The functionality can be broadly classifed into two Inteface, One is System Call and Breakpoint
+
+### Breakpoint
+
+Breakpoint will give you abilility to stop and inspect at arbitrary point in the process. Initial impression might suggest that its very stop and go interface but think of interesting Points you want to halt the execution and inspect data. This could be at function entry and exit point where you are interested in tracing all the call parameter and their return type. You call trace all the malloc and free calls and catch bugs like double free or resource leakage.
+
+Please refere to [Breakpoint Handling](breakpoint.md) for more detials with code example on how to use the interface. 
+
+### Syscall
+
+Syscall is the API interface between User and Kernel by which it requests a server from the Kernel of the Operating System.
+
+This Interface will give you ability to stop and inspect before and after the System Call is made.
+1. A Process interacte with the Operating systems rich functionality it will make system call for things like Creating and Editing Files, Networking related functions, since Linux and Other Unix like OS have standard Kernel interface you can intercept every request that goes to the Kernel it comeback.
+1. To take advantage of this feature you can over-ride SyscallHandler class.
+1. System Call data is captured in SyscallTraceData class
+
+
+### Resource Tracing 
+
+System Call are not mode in isolation. The System calls can be grouped into base on type of resource to operate on, For example File is one type of Resource, Network Sockets are another example.
+
+Grouping of the system call by Resources can be grouped into are File, Network, Shared Memory, Process, Time. This [link](https://linasm.sourceforge.net/docs/syscalls/index.php) give you a very good overview of different category of System Call and their documentation of respective system call.
+
+There is a system call to create new file or open and exiting one, there are calls to query information about the file.
+
+Resource have a lifetime, there is a system call to 
+1. Create or open existing Resource
+1. There are calls to manipulate the Resource and 
+1. Finally there is system call to release the Resource.
+
+We will refere to this flow as *create-consume-release*
+
+The following set of interface provide you the ability to register a callback whenever a Process is attempting to creating a new Resource and give you a chance to peek at the parameter and decide if you are intereted in Tracing the entire life-cycle *create-consume-release* of the Resource. At present we have support for Network(NetworkOperationTracer) and file operation(FileOperationTracer) more will be added soon.
+
+## Adding Support New Architecture
+
+The Question comes in mind is *What if I want to add Support for New Architecture?*. Its actually not too much of work!
 
 There are three places where archiecture specific support is needed
-1. Breakpoint Handling - 
+1. Breakpoint Handling - Injecting and Restoring Breakpoints
 1. System Call Tracing - Handling System Call parameter
 1. Register Interface - using and collecting CPU Registers

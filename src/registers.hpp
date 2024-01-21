@@ -15,6 +15,7 @@ struct RegisterAliases {
 
 /**
  * @brief Abstraction for represent Register of the Tracee
+ * 
 */
 class Registers {
 
@@ -97,7 +98,15 @@ public:
 
 };
 
-
+/**
+ * @brief Implement this interface to add support for Register Handling
+ * 
+ * This is Architecture specific implementation
+ * 
+ * @tparam T Pointer Data type
+ * 
+ * @ingroup platform_support 
+ */
 template <class T> class IRegisters : public Registers {
 
 public:

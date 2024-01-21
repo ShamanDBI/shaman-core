@@ -257,10 +257,12 @@ int SyscallManager::addNetworkOperationHandler(NetworkOperationTracer *network_o
 	return 0;
 }
 
+/*
 int SyscallManager::removeFileOperationHandler(FileOperationTracer *file_opt_handler)
 {
 	return 0;
 }
+*/
 
 int SyscallManager::addSyscallHandler(SyscallHandler *syscall_hdlr)
 {
@@ -268,11 +270,13 @@ int SyscallManager::addSyscallHandler(SyscallHandler *syscall_hdlr)
 	return 0;
 }
 
+/*
 int SyscallManager::removeSyscallHandler(SyscallHandler *syscall_hdlr)
 {
 	// m_syscall_handler_map[syscall_hdlr->syscall_id] = syscall_hdlr;
 	return 0;
 }
+*/
 
 int SyscallManager::handleFileOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &syscall_args)
 {

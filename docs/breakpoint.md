@@ -28,7 +28,7 @@ public:
 		  Breakpoint(mod_name, bkpt_offset, SINGLE_SHOT)
 	{}
 
-	bool handle(DebugOpts &debug_opts)
+	bool handle(TraceeProgram &traceeProgram)
 	{
 		/**
 		 * Implement the breakpoint login in the function
@@ -40,7 +40,6 @@ public:
 		 * 4. Log data to file
 		 * 
 		 */
-		m_syscall_inject.execute();
 	}
 };
 

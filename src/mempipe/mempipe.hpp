@@ -47,6 +47,7 @@ enum class MemPipeError
  * 
  * @tparam CHUNK_SIZE Size of each buffer
  * @tparam NUM_BUFFERS Number of such buffer
+ * 
  */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 struct MemPipe
@@ -64,10 +65,6 @@ struct MemPipe
     uint32_t m_uid;
 
     std::atomic_bool client_owned[NUM_BUFFERS];
-
-    /// @brief Holds the length of a transferred buffer. This must be populated prior
-    /// to `client_owned` being set to `true`, and must be ordered correctly
-    /// on the processor
 
     /**
      * @brief Holds the length of a transferred buffer. This must be populated prior to
@@ -91,7 +88,9 @@ struct MemPipe
  * @brief Chunk Writer object
  * 
  * @tparam CHUNK_SIZE 
- * @tparam NUM_BUFFERS 
+ * @tparam NUM_BUFFERS
+ * 
+ * @ingroup programming_interface 
  */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class ChunkWriter
@@ -117,10 +116,10 @@ public:
     /**
      * @brief Construct a new Chunk Writer object
      * 
-     * @param _mem_pipe 
-     * @param _bytes 
-     * @param _idx 
-     * @param _blocking 
+     * @param _mem_pipe Metadata holding all the chunks
+     * @param _bytes    Pointer to the writeable Chunk
+     * @param _idx      Index in the chunk array
+     * @param _blocking block the @ref drop function call
      */
     ChunkWriter(MemPipe<CHUNK_SIZE, NUM_BUFFERS> *_mem_pipe,
                 uint8_t *_bytes, uint32_t _idx, bool _blocking)
@@ -128,11 +127,11 @@ public:
           m_idx(_idx), m_written(0), m_blocking(_blocking){};
 
     /**
-     * @brief Write the data to the buffer
+     * @brief Copy the given buffer to the shared buffered
      * 
-     * @param buffer 
-     * @param buf_size 
-     * @return uint32_t 
+     * @param buffer    source buffer to copy
+     * @param buf_size  size of the buffer to copy
+     * @return uint32_t bytes left in the Shared Buffer
      */
     uint32_t send(uint8_t *buffer, uint32_t buf_size)
     {
@@ -146,6 +145,10 @@ public:
         return to_write;
     }
 
+    /**
+     * @brief The buffer is avalible for the Consumer
+     * 
+     */
     void drop()
     {
         m_mem_pipe->client_len[m_idx].store(m_written, std::memory_order_relaxed);
@@ -166,6 +169,11 @@ public:
         }
     }
 
+    /**
+     * @brief Give accesss to the Raw Buffer
+     * 
+     * @return uint8_t* Pointer to the Shared Buffer
+     */
     uint8_t *data() { return m_shm_raw_buffer; };
 };
 
@@ -173,8 +181,10 @@ public:
 /**
  * @brief Encapsulation for Producer Buffer
  * 
- * @tparam CHUNK_SIZE 
- * @tparam NUM_BUFFERS 
+ * @tparam CHUNK_SIZE   Size of individual chunk
+ * @tparam NUM_BUFFERS  Number of such chunks
+ * 
+ * @ingroup programming_interface 
  */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class SendPipe
@@ -182,7 +192,7 @@ class SendPipe
     /// @brief Unique Identifier for the Shared Memory
     uint64_t m_uid;
 
-
+    /// @brief Metadata which has access to all the buffers
     MemPipe<CHUNK_SIZE, NUM_BUFFERS> *m_mem_pipe;
 
 public:
@@ -255,6 +265,12 @@ public:
 
     uint64_t uid() { return m_uid; };
 
+    /**
+     * @brief Get one of the buffer avaliable for consumption
+     * 
+     * @param blocking  block the call until the same chunk is available
+     * @return std::unique_ptr<ChunkWriter<CHUNK_SIZE, NUM_BUFFERS>> Chunk we want to process
+     */
     std::unique_ptr<ChunkWriter<CHUNK_SIZE, NUM_BUFFERS>> allocateBuffer(bool blocking)
     {
         while (true)
@@ -273,12 +289,11 @@ public:
                 }
             }
         }
-    };
+    }
 };
 
 /**
  * @brief Unique identifer for the Consumer Buffer
- * 
  */
 typedef uint64_t Ticket;
 
@@ -294,7 +309,9 @@ typedef int (*DataProcFuncPtr)(uint8_t * buffer, uint32_t buffer_size) ;
  * @brief The receiving side of a pipe, this will allow you to read sequenced data as it was sent from a `SendPipe`
  * 
  * @tparam CHUNK_SIZE 
- * @tparam NUM_BUFFERS 
+ * @tparam NUM_BUFFERS
+ * 
+ * @ingroup programming_interface 
  */
 template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 class RecvPipe
@@ -308,6 +325,12 @@ class RecvPipe
 public:
     ~RecvPipe(){};
 
+    /**
+     * @brief Open an existing Shared Memory Buffer
+     * 
+     * @param pipe_id       Unique ID of the Shared Memory
+     * @return MemPipeError Result of opening the Shared Memory
+     */
     MemPipeError open(uint64_t pipe_id)
     {
         char shmpath[40] = {0};
@@ -358,7 +381,7 @@ public:
     /**
      * @brief Request a new `Ticket` for processing new buffer
      * 
-     * @return Ticket 
+     * @return Ticket ticket for the New Request
      */
     Ticket requestTicket() { 
         return m_seq.fetch_add(1, std::memory_order_relaxed); 
@@ -369,8 +392,8 @@ public:
      * 
      * @param ticket Buffer corresponding to the ticket
      * @param data_proc Function to peek at the data
-     * @param new_ticket 
-     * @return int 
+     * @param new_ticket New Ticket Which has to be submitted for the next request
+     * @return int -1 failed to processs the Data, 0 for Successful Processing
      */
     int try_recv(Ticket ticket, DataProcFuncPtr data_proc, Ticket * new_ticket)
     {
@@ -401,9 +424,8 @@ public:
             return res;
 
         }
-        return -1;
-        
-    };
+        return -1;   
+    }
 };
 
 #endif

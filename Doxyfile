@@ -975,6 +975,7 @@ EXCLUDE_PATTERNS       =    */.git/*        \
                             */build_arm/*   \
                             */build_arm64/* \
                             */test/* \
+                            */_deps/* \
                             */script/* \
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
