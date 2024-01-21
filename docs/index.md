@@ -9,7 +9,7 @@ Architecture Neutral DBI for Embedded systems
 1. Binary analysis are usually re-usable across different projects
 1. Add support to as many ISA Architecture as possible.
 
-## Programming Interface
+## Important Features
 
 1. **[Programmatic Breakpoint Handling](breakpoint.md)** - give you programmable opportunity to when the breakpoint is hit. You will have access to program memory and register which you can manipulate when you hit the breakpoint.
     1. Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.
@@ -26,7 +26,7 @@ Architecture Neutral DBI for Embedded systems
     1. This will cover both senarios one were you have access to source code and where you don't have acess.
     1. Post processing of coverage in different programming languages.
 1. **Advance Data Tracing**
-    1. Tracing Data travelling accross different process
+    1. Tracing Data traveling across different process
     1. Attaching Debugger to different process/threads and hook their handlers.
     1. Data passing through IPC Mechanics between processing.
     1. This will be achieved by Programmatic breakpoint but on different Process.
