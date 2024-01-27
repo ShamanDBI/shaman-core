@@ -32,7 +32,7 @@ struct SyscallTraceData
 	/// If 0, this syscall trace data is Invalid
 	pid_t m_pid;
 
-	/// @brief System call number which is converted to canonical system call
+	/// @brief System call number which is converted to canonical System Call
 	SysCallId syscall_id;
 
 	/// @brief syscall number observer by the Register
@@ -74,7 +74,7 @@ struct SyscallTraceData
 	}
 
 	/// @brief Get integer value of the System Call number
-	/// @return 
+	/// @return Integer value of Syscall Number
 	int16_t getSyscallNo()
 	{
 		return syscall_id.getIntValue();
@@ -113,6 +113,28 @@ enum SyscallState
 	ON_EXIT = 2
 };
 
+/// @brief Result while tracing the Result 
+enum ResourceTraceResult {
+	/// @brief Trace this File Descriptor and remove the class from watch list
+	TRACE_ONLY = 1,
+
+	/// @brief Trace the current File Descriptor and keep watching other Resource,
+	TRACE_AND_KEEP,
+
+	/// @brief We are not interested in Tracing this File Descriptor
+	DONOT_TRACE,
+
+	/// @brief Block the Syscall, this is usually intented to emulate the syscall
+	/// and provide the fake data to be filled in the Parameter
+	BLOCK_SYSCALL,
+
+	/// @brief Continue the syscall execution normally
+	CONTINUE,
+
+	/// @brief Detach the Resource from Tracing this File Descriptor
+	DETACH,
+};
+
 struct ResourceTracer
 {
 	enum State
@@ -126,10 +148,10 @@ struct ResourceTracer
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 
-	virtual bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	virtual ResourceTraceResult onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
 		m_log->warn("ResourceTracer - onFilter : Not Implemented!");
-		return false;
+		return ResourceTraceResult::DONOT_TRACE;
 	};
 
 	void setFileDescriptor(uint64_t fd)
@@ -170,41 +192,68 @@ struct FileOperationTracer
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 
-	virtual bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	/**
+	 * @brief This Function will be Called everytime File is Created or opening an existing file,
+	 * 
+	 * This function gives a peek at the Syscall Data and you can implement logic 
+	 * 
+	 * @param debugOpts Tracee Making this System Call
+	 * @param sc_trace System Call Parameter
+	 * @return true Trace the file descriptor
+	 * @return false Donot Trace the file descriptor
+	 */
+	virtual bool onFilter(DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onFilter : Not Implemented!");
 		return false;
 	};
 
-	virtual void onOpen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	virtual void onOpen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onOpen : Not Implemented!");
 	};
-	virtual void onClose(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+
+	virtual void onClose(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onClose : Not Implemented!");
 	};
-	virtual void onRead(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+
+	virtual void onRead(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onRead : Not Implemented!");
 	};
-	virtual void onWrite(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+
+	virtual void onSeek(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->warn("FileOperationTracer - onSeek : Not Implemented!");
+	};
+
+	virtual void onWrite(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onWrite : Not Implemented!");
 	};
-	virtual void onIoctl(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	
+	virtual void onStats(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->warn("FileOperationTracer - onStats : Not Implemented!");
+	};
+
+	virtual void onIoctl(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer - onIoctl : Not Implemented!");
 	};
-	virtual void onMmap(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+
+	virtual void onMmap(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer onMmap : Not Implemented!");
 	};
-	virtual void onMunmap(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	
+	virtual void onMunmap(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer onMunmap : Not Implemented!");
 	};
-	virtual void onMisc(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	
+	virtual void onMisc(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
 	{
 		m_log->warn("FileOperationTracer onMisc : Not Implemented!");
 	};

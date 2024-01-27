@@ -801,7 +801,7 @@ bool Debugger::eventLoop()
 #if defined(SUPPORT_ARCH_X86) || defined(SUPPORT_ARCH_AMD64)
 					// if (traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::AMD64 ||
 					// 	traceeProgram->m_target_desc.m_cpu_arch == CPU_ARCH::X86) {
-					AMD64Register &amdReg = reinterpret_cast<AMD64Register &>(debug_opts->m_register);
+					// AMD64Register &amdReg = reinterpret_cast<AMD64Register &>(debug_opts->m_register);
 					amdReg.setProgramCounter(brk_addr);
 					amdReg.update();
 					traceeProgram->toStateBreakpoint();

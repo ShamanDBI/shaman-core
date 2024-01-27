@@ -13,15 +13,15 @@ Breakpoint::Breakpoint(
         m_label = spdlog::fmt_lib::format("{}@{:x}", m_modname.c_str(), offset);
     }
 
-#if defined(SUPPORT_ARCH_X86)
+#if defined(SUPPORT_ARCH_X86) || defined(SUPPORT_ARCH_AMD64)
     m_bkpt_injector = new X86BreakpointInjector();
 #elif defined(SUPPORT_ARCH_ARM)
     m_bkpt_injector = new ARMBreakpointInjector();
 #elif defined(SUPPORT_ARCH_ARM64)
     m_bkpt_injector = new ARM64BreakpointInjector();
 #else
-    log->error("No Architecture is specified")
-        exit(-1);
+    m_log->critical("Breakpoint No Architecture is specified");
+    exit(-1);
 #endif
 }
 

@@ -109,7 +109,9 @@ set(SRC
   src/linux_debugger.cpp
   src/syscall_mngr.cpp
   src/syscall.cpp
+  src/utils.cpp
 
+  # Disassebler/Assember Module
   src/witch/inst_analyzer.cpp
   src/witch/branch_data.cpp
   src/witch/witch.cpp

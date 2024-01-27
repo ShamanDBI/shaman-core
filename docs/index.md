@@ -57,12 +57,13 @@ Options:
 
 ## How to Write Plugins
 
-You can think of Framework as a High Performance Programming Debugger.
+This Framework is intended to be extend and tooling for specific use-cases. You can think of Framework as a High Performance Programming Debugger.
 Event Driven Programming
 
 You have two Major interface for Programming. First is 
-
-The functionality can be broadly classifed into two Inteface, One is System Call and Breakpoint
+The functionality can be broadly classifed into two Inteface:
+1. Breakpoint - This is to stop the program at arbitrary point in to program.
+1. System Call - Whenever the program make a System Call. 
 
 ### Breakpoint
 
@@ -82,16 +83,22 @@ This Interface will give you ability to stop and inspect before and after the Sy
 
 ### Resource Tracing 
 
-System Call are not mode in isolation. The System calls can be grouped into base on type of resource to operate on, For example File is one type of Resource, Network Sockets are another example.
+System Call have overlapping functionality based on the type of Resource on which they operate, For example socket, bind, connect and listen are used to create, listen and close Network connection, these System Call don't operate in isolation. Some of the most comman type of Resource which a OS provides are File, Network, IPC, Process Management, Time, etc. So we categories each System call by this Categories. You can refer to this [link](https://linasm.sourceforge.net/docs/syscalls/index.php), it gives you categorization of different System Call you a very good overview of different category of System Call and their documentation of respective system call.
 
-Grouping of the system call by Resources can be grouped into are File, Network, Shared Memory, Process, Time. This [link](https://linasm.sourceforge.net/docs/syscalls/index.php) give you a very good overview of different category of System Call and their documentation of respective system call.
+Resource Tracing gives you an interface for tracing different Resource a Process uses. The interface exposes life-cycle method of resource. A resource Life-cycle includes creation of resource manipulation and closing of resource. This method of tracing give you access to different granility of Reverse Engineering. Tracing Individual System Call is a make sense when you want to take decision soley on the syscall for example getting time from Kernel.
+
+But when you want to doing Attack surface enumeration you want to Trace the data coming and going out of the system you not looking at the indiviual System calls you focus is on the System Resource, like Data coming from Network is exposing you application to remote attacks, IPC resource is exposing your Process to other running Processes in the System, File Resource is exposing to the untrusted data from the file system that any user can write on the system. Similar argument can be made for Reverse Engineering Data recieved on the Network socket or reading from the File format reversing.
+
+While Resource Interface is give you option trace all the Resource in the system but thats not practical and that will would generate over-welming amount of data to process, and you might be only interested in tracing specific Resource, like specific client socket or Particular File on file system. Resource Tracing API provides you `onFilter` function give you a peek al the File Create or Open system call based on the syscall you can decide if you are interested in tracing, to implement your logic which will decide you are interesting in trace the Resource. If `onFilter` function return true the the Resource which is create will added to list of actively traced Resource. Actively Tracing Resource means we are interested in every transaction done on that Resource which mean through Resource Interface you will get callback on every System Call.
+
+Different types of Resource provide different type of callbacks. For example for File Operation you will get callback for Open, Read, Write, Close, etc. You can explore the details of the Interface on FileOperationTracer. Similary Network Sockets exposes some what similar callback, apart from callbacks for Open, Read, Write and Close. Network Resource different from file, A process can create Server Socket will is accepting Client connections and each client get its individual File Descriptor and returning True will only trace that Client Socket. While on the Client side, client might be creating socket connection to different Servers you might be interested in one connection. The traceing is automatically removed when the resource is closed.
 
 There is a system call to create new file or open and exiting one, there are calls to query information about the file.
 
-Resource have a lifetime, there is a system call to 
-1. Create or open existing Resource
-1. There are calls to manipulate the Resource and 
-1. Finally there is system call to release the Resource.
+When we talk about Resource have a Life-cycle, there are three category of the lifecycle method: 
+1. *Create or Open* existing Resource for example Create a Network Socket or Open a file from file system. All the System Call falling is this category invoke `onFilter` to decide if the Resoure has to be traced throught it lifecyle. This is case `onOpen` lifecycle method is called.
+1. *Consume* There are calls to manipulate the Resource like reading, writing to file descriptor. Based on type of resource all the system Call have a callback method. 
+1. *Relase* Finally there is system call to release the Resource for Example close System call. Since the Resource we are tracing no long exist tracing after this point is not done. For this case `onClose` callback is invoked.
 
 We will refere to this flow as *create-consume-release*
 
