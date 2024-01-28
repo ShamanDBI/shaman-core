@@ -6,5 +6,4 @@ include(CMakeFindDependencyMacro)
 
 find_dependency(Threads)
 
-
 check_required_components(@PROJECT_NAME@)
