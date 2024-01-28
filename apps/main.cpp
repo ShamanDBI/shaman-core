@@ -1,6 +1,6 @@
+#include <ShamanDBA/config.hpp>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "config.hpp"
 #include <CLI/CLI.hpp>
 
 #include "spdlog/spdlog.h"
@@ -8,12 +8,13 @@
 #include "spdlog/fmt/bin_to_hex.h"
 #include "spdlog/cfg/argv.h" // for loading levels from argv
 
-#include "breakpoint_reader.hpp"
-#include "syscall.hpp"
-#include "memory.hpp"
-#include "debugger.hpp"
-#include "utils.hpp"
-#include "syscall_collections.hpp"
+#include "ShamanDBA/breakpoint_reader.hpp"
+#include "ShamanDBA/syscall.hpp"
+#include "ShamanDBA/memory.hpp"
+#include "ShamanDBA/debugger.hpp"
+#include "ShamanDBA/utils.hpp"
+#include "ShamanDBA/syscall_collections.hpp"
+#include "ShamanDBA/syscall_injector.hpp"
 
 
 void parser_basic_block_file(Debugger &debug, std::string bb_path,
@@ -70,20 +71,19 @@ void init_logger(std::string &log_file, int debug_log_level)
 	}
 }
 
-
 #include <sys/mman.h>
 
 #define ARM_MMAP2 192
 
-
-class MmapSyscallInject : public SyscallInject {
+class MmapSyscallInject : public SyscallInject
+{
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
 	AddrPtr m_mmap_addr = nullptr;
 
 public:
-
-	MmapSyscallInject(uint64_t mmap_size): SyscallInject(ARM_MMAP2) {
+	MmapSyscallInject(uint64_t mmap_size) : SyscallInject(ARM_MMAP2)
+	{
 		m_mmap_addr = new Addr();
 		m_mmap_addr->setRemoteSize(mmap_size);
 		setCallArg(0, 0);
@@ -94,7 +94,8 @@ public:
 		setCallArg(5, 0);
 	}
 
-	void onComplete() {
+	void onComplete()
+	{
 		/**
 		 * Check the return value an do some error handling and logging
 		 */
@@ -177,7 +178,6 @@ int main(int argc, char **argv)
 		parser_basic_block_file(debug, basic_block_path, single_shot, cov_trace_writer);
 		// return 0;
 	}
-
 
 	auto inject_mmap_sys = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x2000));
 	auto inject_mmap_sys2 = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x5000));

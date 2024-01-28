@@ -11,11 +11,11 @@
 #include "linux_debugger.hpp"
 #include "registers.hpp"
 #include "debugger.hpp"
-#include "syscall_injector.hpp"
 #include "breakpoint.hpp"
 
 class TargetDescription;
-
+class BranchData;
+class SyscallInject;
 
 enum DebugType {
 	DEFAULT        = (1 << 1),
@@ -98,7 +98,7 @@ struct TraceeProgram {
 
 	// this is a temprory breapoint to handle single-step during
 	// breakpoint handling
-	std::unique_ptr<BranchData> m_single_step_brkpnt = nullptr;
+	std::unique_ptr<BranchData> m_single_step_brkpnt;
 
 	TargetDescription &m_target_desc;
 	// BreakpointMngr* m_breakpointMngr;
@@ -114,17 +114,14 @@ struct TraceeProgram {
 		return m_tg_pid;
 	};
 	
-	~TraceeProgram () {
-		// spdlog::warn("TraceeProgram : going out of scope!");
-		m_pid = 0;
-		m_tg_pid = 0;
-	}
+	// ~TraceeProgram () {
+	// 	// spdlog::warn("TraceeProgram : going out of scope!");
+	// 	m_pid = 0;
+	// 	m_tg_pid = 0;
+	// }
 
 	TraceeProgram(pid_t _tracee_pid, DebugType debug_type,
-		DebugOpts& _debug_opts, TargetDescription& _target_desc):
-		m_state(TraceeState::INITIAL_STOP), debugType(debug_type),
-		m_pid(_tracee_pid), m_tg_pid(_tracee_pid),
-		m_debug_opts(_debug_opts), m_target_desc(_target_desc) {}
+		DebugOpts& _debug_opts, TargetDescription& _target_desc);
 
 	// TraceeProgram& setDebugOpts(const DebugOpts& debug_opts) {
 	// 	m_debug_opts = debug_opts;

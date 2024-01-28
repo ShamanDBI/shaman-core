@@ -5,13 +5,12 @@
 #include <list>
 
 #include "breakpoint.hpp"
-#include "branch_data.hpp"
-#include "witch.hpp"
 
 
 class TargetDescription;
 class TraceeProgram;
-
+class BranchData;
+class ArmDisassembler;
 
 /**
  * @brief Manages the breakpoint for the Tracee Process
@@ -94,9 +93,7 @@ public:
     ArmDisassembler* m_arm_disasm;
     std::shared_ptr<spdlog::logger> m_log = spdlog::get("bkpt");
 
-    BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {
-        m_arm_disasm = new ArmDisassembler(false);
-    };
+    BreakpointMngr(TargetDescription& _target_desc);
 
     // add breakpoint in format module@addr1,addr2,add3
     void parseModuleBrkPnt(std::string& brk_mod_addr);

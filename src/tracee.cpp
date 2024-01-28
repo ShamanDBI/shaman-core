@@ -1,4 +1,13 @@
 #include "tracee.hpp"
+#include "branch_data.hpp"
+#include "syscall_injector.hpp"
+
+
+TraceeProgram::TraceeProgram(pid_t _tracee_pid, DebugType debug_type,
+		DebugOpts& _debug_opts, TargetDescription& _target_desc):
+		m_state(TraceeState::INITIAL_STOP), debugType(debug_type),
+		m_pid(_tracee_pid), m_tg_pid(_tracee_pid),
+		m_debug_opts(_debug_opts), m_target_desc(_target_desc) {}
 
 // returns true if the tracee is in valid state
 bool TraceeProgram::isValidState() {

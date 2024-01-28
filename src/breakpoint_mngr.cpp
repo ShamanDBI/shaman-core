@@ -2,6 +2,13 @@
 #include "debugger.hpp"
 #include "tracee.hpp"
 #include "debug_opts.hpp"
+#include "branch_data.hpp"
+#include "witch.hpp"
+
+
+BreakpointMngr::BreakpointMngr(TargetDescription& _target_desc) : m_target_desc(_target_desc) {
+    m_arm_disasm = new ArmDisassembler(false);
+};
 
 void BreakpointMngr::parseModuleBrkPnt(std::string &brk_mod_addr)
 {

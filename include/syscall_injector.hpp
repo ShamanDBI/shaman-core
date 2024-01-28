@@ -3,9 +3,10 @@
 
 #include "breakpoint.hpp"
 #include "memory.hpp"
+#include "syscall.hpp"
+#include "debug_opts.hpp"
+#include "tracee.hpp"
 
-
-/// @brief 
 
 /**
  * @brief Parameter of the syscall you want to inject 

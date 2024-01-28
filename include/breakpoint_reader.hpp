@@ -11,6 +11,9 @@
 #define REC_TYPE_FUNCTION 1
 #define REC_TYPE_BB 2
 
+class TraceeProgram;
+
+
 /**
  * @brief Parses the Basic Block information dumped by Disassembler
  */
@@ -62,7 +65,6 @@ struct BreakpointReader
 	}
 };
 
-class TraceeProgram;
 /**
  * @brief Specialized Breakpoint calls to collect and report Tracee
 */
