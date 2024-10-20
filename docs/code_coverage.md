@@ -20,9 +20,17 @@
     - There are some there tools which comes integerated
     - MPLAB Code Coverage by Micro Chip for Micro-controller
 - https://ldra.com/capabilities/code-coverage-analysis/#CA14
+- Bullseye Testing Technology
+- https://www.qt.io/product/quality-assurance/coco
+- [TestCocoon](https://www.testcocoon.org/download.tmp.html)
+
 ## Dynamic Coverage Reporting
 
 This approach dynamically modifies the program to insert code which will report the execution trace. This method provides more flexibility since you can dynamically add/remove instrumentation, this setting give you the ability to add business logic to the tracing. Besides this you have many advantages like
 1. In fuzzing use cases you can dynamically add/remove instrumentation if get more performance like 
 1. You can share the covereage data via different channels like shared memory(like AFL) or network sockets.
 1. You can dynamically attach to a running process and stream the code coverage in real-time without terminating process or recompiling the project.
+
+## Ref
+
+1. OS-less dynamic binary instrumentation for embedded firmware
