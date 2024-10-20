@@ -72,6 +72,6 @@ void CoverageTraceWriter::record_cov(pid_t tracee_pid, uint16_t module_id, uint6
         m_chunk_writer.reset();
         m_chunk_writer = m_ss_pipe->allocateBuffer(false);
     }
-    spdlog::warn("data write {}", data_write);
+    // spdlog::warn("data write {}", data_write);
     m_cov_data_points_count += 1;
 }
