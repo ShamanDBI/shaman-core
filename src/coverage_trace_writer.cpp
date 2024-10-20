@@ -1,6 +1,7 @@
 #include <coverage_trace_writer.hpp>
 
-#define MEM_PIPE_SHARED_DATA 1
+#undef MEM_PIPE_SHARED_DATA
+//#define MEM_PIPE_SHARED_DATA
 
 CoverageTraceWriter::CoverageTraceWriter(uint64_t pipe_id) {
     m_smem_pipe_id = pipe_id;
@@ -11,8 +12,9 @@ CoverageTraceWriter::CoverageTraceWriter(uint64_t pipe_id) {
     {
         spdlog::error("Error opening shared Memory!");
     }
-
+#ifdef MEM_PIPE_SHARED_DATA
     m_chunk_writer = m_ss_pipe->allocateBuffer(false);
+#endif
 }
 
 void CoverageTraceWriter::write_module_info()
@@ -35,9 +37,11 @@ void CoverageTraceWriter::write_module_info()
         m_trace_file.write((char *)&mod_id, sizeof(uint16_t));
 #endif
     }
+#ifdef MEM_PIPE_SHARED_DATA
     m_chunk_writer->drop();
     m_chunk_writer.reset();
     m_chunk_writer = m_ss_pipe->allocateBuffer(false);
+#endif
 }
 
 uint16_t CoverageTraceWriter::add_module(std::string module_name, uint64_t base_addr)
@@ -66,12 +70,15 @@ void CoverageTraceWriter::record_cov(pid_t tracee_pid, uint16_t module_id, uint6
     m_trace_file.write((char *)&module_id, sizeof(uint8_t));
     m_trace_file.write((char *)&exec_offset, sizeof(uint32_t));
 #endif
-    if(m_cov_data_points_count > 50) {
+    m_cov_data_points_count += 1;
+
+#ifdef MEM_PIPE_SHARED_DATA
+    if(m_cov_data_points_count >= 50) {
         m_cov_data_points_count = 0;
         m_chunk_writer->drop();
         m_chunk_writer.reset();
         m_chunk_writer = m_ss_pipe->allocateBuffer(false);
     }
+#endif
     // spdlog::warn("data write {}", data_write);
-    m_cov_data_points_count += 1;
 }

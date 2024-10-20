@@ -18,6 +18,7 @@
             - You can only collect execution trace, you cannot configure the tool to collect any other type of data. Like function parameters, Register values or stack trace of function.
             - You cannot use this technique in situation where target doesn't have standard file systems like micro-controllers.
     - There are some there tools which comes integerated
+    - MPLAB Code Coverage by Micro Chip for Micro-controller
 
 ## Dynamic Coverage Reporting
 

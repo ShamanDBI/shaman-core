@@ -146,6 +146,8 @@ int main(int argc, char **argv)
 	else if (pipe_id != 0)
 	{
 		cov_trace_writer = std::make_shared<CoverageTraceWriter>(pipe_id);
+	} else {
+		spdlog::error("You need give either file or pipe for output");
 	}
 
 	if (basic_block_path.length() > 0)
