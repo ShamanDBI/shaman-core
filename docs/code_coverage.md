@@ -19,7 +19,7 @@
             - You cannot use this technique in situation where target doesn't have standard file systems like micro-controllers.
     - There are some there tools which comes integerated
     - MPLAB Code Coverage by Micro Chip for Micro-controller
-
+- https://ldra.com/capabilities/code-coverage-analysis/#CA14
 ## Dynamic Coverage Reporting
 
 This approach dynamically modifies the program to insert code which will report the execution trace. This method provides more flexibility since you can dynamically add/remove instrumentation, this setting give you the ability to add business logic to the tracing. Besides this you have many advantages like
