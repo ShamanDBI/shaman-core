@@ -99,7 +99,7 @@ void real_infinite_loop()
     while (1)
     {
         printf("[%d] I just woke up, again!\n", tid);
-        sleep(3);
+        sleep(1);
     }
 }
 

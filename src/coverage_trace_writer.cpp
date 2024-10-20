@@ -1,17 +1,43 @@
 #include <coverage_trace_writer.hpp>
 
+#define MEM_PIPE_SHARED_DATA 1
+
+CoverageTraceWriter::CoverageTraceWriter(uint64_t pipe_id) {
+    m_smem_pipe_id = pipe_id;
+    m_ss_pipe = new SendPipe<DEFAULT_CHUNK_SIZE, DEFAULT_NUM_BUFFER>();
+    MemPipeError res = m_ss_pipe->create(m_smem_pipe_id);
+
+    if (res != MemPipeError::ResultOk)
+    {
+        spdlog::error("Error opening shared Memory!");
+    }
+
+    m_chunk_writer = m_ss_pipe->allocateBuffer(false);
+}
+
 void CoverageTraceWriter::write_module_info()
 {
-    uint8_t mod_id = 0;
+    uint16_t mod_id = 0;
     uint16_t rec_type = static_cast<uint16_t>(CoverageRecordType::MODULE);
     for (std::string &mod_name : m_module_names)
     {
-        m_trace_file.write((char *)&rec_type, sizeof(uint16_t));
         uint16_t mod_size = mod_name.size() & 0xffff;
+        mod_id = get_module_id(mod_name);
+#ifdef MEM_PIPE_SHARED_DATA
+        m_chunk_writer->send((uint8_t *)&rec_type, sizeof(uint16_t));
+        m_chunk_writer->send((uint8_t *)&mod_size, sizeof(uint16_t));
+        m_chunk_writer->send((uint8_t *)mod_name.c_str(), mod_size);
+        m_chunk_writer->send((uint8_t *)&mod_id, sizeof(uint16_t));
+#else
+        m_trace_file.write((char *)&rec_type, sizeof(uint16_t));
         m_trace_file.write((char *)&mod_size, sizeof(uint16_t));
         m_trace_file.write(mod_name.c_str(), mod_size);
         m_trace_file.write((char *)&mod_id, sizeof(uint16_t));
+#endif
     }
+    m_chunk_writer->drop();
+    m_chunk_writer.reset();
+    m_chunk_writer = m_ss_pipe->allocateBuffer(false);
 }
 
 uint16_t CoverageTraceWriter::add_module(std::string module_name, uint64_t base_addr)
@@ -23,12 +49,29 @@ uint16_t CoverageTraceWriter::add_module(std::string module_name, uint64_t base_
     return m_mod_curr_id - 1;
 }
 
-void CoverageTraceWriter::add_cov(pid_t tracee_pid, uint8_t module_id, uint64_t execution_addr)
+void CoverageTraceWriter::record_cov(pid_t tracee_pid, uint16_t module_id, uint64_t execution_addr)
 {
     uint16_t rec_type = static_cast<uint16_t>(CoverageRecordType::BASIC_BLOCK);
+
+    uint32_t exec_offset = (execution_addr - m_module_map[module_id]) & 0xFFFFFFFF;
+    int data_write = 0;
+#ifdef MEM_PIPE_SHARED_DATA
+    data_write += m_chunk_writer->send((uint8_t *)&rec_type, sizeof(uint16_t));
+    data_write += m_chunk_writer->send((uint8_t *)&module_id, sizeof(uint16_t));
+    data_write += m_chunk_writer->send((uint8_t *)&tracee_pid, sizeof(uint32_t));
+    data_write += m_chunk_writer->send((uint8_t *)&exec_offset, sizeof(uint32_t));
+#else
     m_trace_file.write((char *)&rec_type, sizeof(uint16_t));
     m_trace_file.write((char *)&tracee_pid, sizeof(uint32_t));
     m_trace_file.write((char *)&module_id, sizeof(uint8_t));
-    uint32_t exec_offset = (execution_addr - m_module_map[module_id]) & 0xFFFFFFFF;
     m_trace_file.write((char *)&exec_offset, sizeof(uint32_t));
+#endif
+    if(m_cov_data_points_count > 50) {
+        m_cov_data_points_count = 0;
+        m_chunk_writer->drop();
+        m_chunk_writer.reset();
+        m_chunk_writer = m_ss_pipe->allocateBuffer(false);
+    }
+    spdlog::warn("data write {}", data_write);
+    m_cov_data_points_count += 1;
 }

@@ -13,3 +13,9 @@ tmp*
 ref_code
 .vscode
 gen_html_docs
+eagle_coverage_app
+eagle_coverage_consumer
+test_target
+test_prog
+*.bb
+*.log

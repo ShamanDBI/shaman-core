@@ -3,6 +3,18 @@
 
 #define IPC_ID 0xcafe1
 
+/**
+ * @brief This file will show you how to use the Mempipe API's
+ * 
+ */
+
+/**
+ * @brief Function which will process the chunk data
+ * 
+ * @param buffer 
+ * @param buffer_len 
+ * @return int 
+ */
 int DataProcess(uint8_t *buffer, uint32_t buffer_len)
 {
     printf("Processing Data : ptr %p of len %d", buffer, buffer_len);
@@ -17,7 +29,11 @@ int DataProcess(uint8_t *buffer, uint32_t buffer_len)
     return 0;
 }
 
-void ParentWork()
+/**
+ * @brief This program flow is used by producer of the data
+ * 
+ */
+void PipeProducer()
 {
     printf("We are in parent\n");
     char rand_data[128] = {0};
@@ -45,7 +61,12 @@ void ParentWork()
     printf("Good Bye!\n");
 }
 
-void ChildWork()
+/**
+ * @brief This function demos how the consumer of the shared
+ * data will use the API's
+ * 
+ */
+void PipeConsumer()
 {
 
     printf("We are in child\n");
@@ -82,14 +103,14 @@ int main(int argc, char *argv[])
     {
         printf("ddd\n");
     } else {
-        ParentWork();
+        PipeProducer();
     }
 
     for (int i = 0; i < 10; i++)
     {
         if (cpid == 0)
         {
-            ChildWork();
+            PipeConsumer();
         }
         else
         {

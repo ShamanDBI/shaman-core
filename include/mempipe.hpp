@@ -45,6 +45,8 @@ enum class MemPipeError
 /**
  * @brief Shared Memory Buffer Mediator to allocate Shared buffer
  * 
+ * This class does management of chunk buffer
+ * 
  * @tparam CHUNK_SIZE Size of each buffer
  * @tparam NUM_BUFFERS Number of such buffer
  * 
@@ -53,13 +55,13 @@ template <uint32_t CHUNK_SIZE, uint32_t NUM_BUFFERS>
 struct MemPipe
 {
     /// @brief unique identifer representing our Shared memory
-    uint64_t magic;
+    uint64_t magic = MEMPIPE_MAGIC;
 
     /// @brief Size of each Chuck
-    uint64_t chunk_size;
+    uint64_t chunk_size = DEFAULT_CHUNK_SIZE;
 
     /// @brief number of such Chunks
-    uint32_t num_buffers;
+    uint32_t num_buffers = DEFAULT_NUM_BUFFER;
 
     /// @brief unique id of the shared memory
     uint32_t m_uid;
@@ -81,14 +83,16 @@ struct MemPipe
     std::atomic_uint64_t cur_seq;
 
     /// @brief Pointer to the Chunk Buffers
-    uint8_t chunks[NUM_BUFFERS][CHUNK_SIZE];
+    uint8_t chunks[NUM_BUFFERS][CHUNK_SIZE] = {0};
 };
 
 /**
- * @brief Chunk Writer object
+ * @brief Chunk Writer object, 
  * 
- * @tparam CHUNK_SIZE 
- * @tparam NUM_BUFFERS
+ * Data producer will write to shared memory using this class
+ * 
+ * @tparam CHUNK_SIZE size of each chunk
+ * @tparam NUM_BUFFERS number so chunk
  * 
  * @ingroup programming_interface 
  */
@@ -125,6 +129,16 @@ public:
                 uint8_t *_bytes, uint32_t _idx, bool _blocking)
         : m_mem_pipe(_mem_pipe), m_shm_raw_buffer(_bytes),
           m_idx(_idx), m_written(0), m_blocking(_blocking){};
+    
+    /**
+     * @brief Construct a new Chunk Writer object which is type of
+     * nullptr
+     * 
+     */
+    ChunkWriter()
+        : m_mem_pipe(new MemPipe<DEFAULT_CHUNK_SIZE, DEFAULT_NUM_BUFFER>())
+            , m_shm_raw_buffer(0),
+          m_idx(0), m_written(0), m_blocking(false){};
 
     /**
      * @brief Copy the given buffer to the shared buffered
@@ -139,20 +153,22 @@ public:
         uint32_t remain = CHUNK_SIZE - m_written;
         uint32_t to_write = std::min(remain, buf_size);
 
-        memcpy(m_shm_raw_buffer, buffer, to_write);
+        memcpy(m_shm_raw_buffer + m_written, buffer, to_write);
 
         m_written += to_write;
         return to_write;
     }
 
     /**
-     * @brief The buffer is avalible for the Consumer
+     * @brief makes the buffer is avalible for the consumer
      * 
      */
     void drop()
-    {
-        m_mem_pipe->client_len[m_idx].store(m_written, std::memory_order_relaxed);
+    {   
+        uint8_t *buffer = m_shm_raw_buffer;
 
+        m_mem_pipe->client_len[m_idx].store(m_written, std::memory_order_relaxed);
+        
         uint32_t seq_id = m_mem_pipe->cur_seq.fetch_add(1, std::memory_order_relaxed);
         m_mem_pipe->client_seq[m_idx].store(seq_id, std::memory_order_relaxed);
 
@@ -306,7 +322,8 @@ typedef uint64_t Ticket;
 typedef int (*DataProcFuncPtr)(uint8_t * buffer, uint32_t buffer_size) ;
 
 /**
- * @brief The receiving side of a pipe, this will allow you to read sequenced data as it was sent from a `SendPipe`
+ * @brief The receiving side of a pipe, this will allow you to 
+ * read sequenced data as it was sent from a `SendPipe`
  * 
  * @tparam CHUNK_SIZE 
  * @tparam NUM_BUFFERS

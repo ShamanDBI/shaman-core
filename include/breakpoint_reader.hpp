@@ -71,7 +71,7 @@ struct BreakpointReader
 class BreakpointCoverage : public Breakpoint
 {
 	std::shared_ptr<CoverageTraceWriter> m_trace_writer;
-	uint8_t m_module_id = 0;
+	uint16_t m_module_id = 0;
 
 public:
 	BreakpointCoverage(
@@ -87,7 +87,8 @@ public:
 	{
 		Breakpoint::handle(traceeProg);
 		m_log->warn("We are writing coverag data to file!");
-		m_trace_writer->add_cov(traceeProg.pid(), m_module_id, m_addr);
+		m_log->warn("{} {} {:x}", traceeProg.pid(), m_module_id, m_addr);
+		m_trace_writer->record_cov(traceeProg.pid(), m_module_id, m_addr);
 		return true;
 	}
 

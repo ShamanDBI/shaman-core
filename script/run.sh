@@ -1,0 +1,1 @@
+eagle_coverage_app/eagle_coverage -l app.log --cov-basic-block ./test_prog_1.bb --pipe-id 51966 -e ./test_target/bin/test_target 1

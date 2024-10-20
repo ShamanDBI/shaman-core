@@ -16,7 +16,6 @@
 #include "ShamanDBA/syscall_collections.hpp"
 #include "ShamanDBA/syscall_injector.hpp"
 
-
 void parser_basic_block_file(Debugger &debug, std::string bb_path,
 							 bool is_single_shot, std::shared_ptr<CoverageTraceWriter> cov_trace_writer)
 {
@@ -71,49 +70,16 @@ void init_logger(std::string &log_file, int debug_log_level)
 	}
 }
 
-#include <sys/mman.h>
-
-#define ARM_MMAP2 192
-
-class MmapSyscallInject : public SyscallInject
-{
-
-	std::shared_ptr<spdlog::logger> m_log = spdlog::get("main");
-	AddrPtr m_mmap_addr = nullptr;
-
-public:
-	MmapSyscallInject(uint64_t mmap_size) : SyscallInject(ARM_MMAP2)
-	{
-		m_mmap_addr = new Addr();
-		m_mmap_addr->setRemoteSize(mmap_size);
-		setCallArg(0, 0);
-		setCallArg(1, mmap_size);
-		setCallArg(2, PROT_READ | PROT_WRITE);
-		setCallArg(3, MAP_PRIVATE | MAP_ANONYMOUS);
-		setCallArg(4, -1);
-		setCallArg(5, 0);
-	}
-
-	void onComplete()
-	{
-		/**
-		 * Check the return value an do some error handling and logging
-		 */
-		uintptr_t mmap_addr = m_ret_value;
-		m_mmap_addr->setRemoteAddress(mmap_addr);
-		m_log->info("Page allocated at address 0x{:x}", mmap_addr);
-	}
-};
-
 int main(int argc, char **argv)
 {
 
-	CLI::App app{"Shaman DBI Framework"};
+	CLI::App app{"Eagle Coverage reporting tool"};
 
 	std::string trace_log_path, app_log_path, basic_block_path;
 	std::string coverage_output;
 	std::string tmp_log;
 	pid_t attach_pid{-1};
+	uint64_t pipe_id = 0;
 	std::vector<std::string> exec_prog;
 	std::vector<std::string> brk_pnt_addrs;
 	CPU_ARCH target_cpu_arch;
@@ -138,6 +104,8 @@ int main(int argc, char **argv)
 
 	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
 
+	app.add_option("--pipe-id", pipe_id, "pipe id used for shared memory");
+
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
 	app.add_flag("-s,--syscall", trace_syscalls, "trace system calls");
 
@@ -151,7 +119,7 @@ int main(int argc, char **argv)
 	spdlog::cfg::load_argv_levels(argc, argv);
 
 	auto log = spdlog::get("main");
-	log->info("Welcome to Shaman!");
+	log->info("Welcome to Eagle Coverage!");
 
 	TargetDescription targetDesc;
 
@@ -171,27 +139,22 @@ int main(int argc, char **argv)
 	Debugger debug(targetDesc);
 	std::shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
 
-	if (basic_block_path.length() > 0)
+	if (coverage_output.length() > 0)
 	{
 		cov_trace_writer = std::make_shared<CoverageTraceWriter>(coverage_output);
-		log->info("Processing basic block file {}", single_shot);
-		parser_basic_block_file(debug, basic_block_path, single_shot, cov_trace_writer);
-		// return 0;
+	}
+	else if (pipe_id != 0)
+	{
+		cov_trace_writer = std::make_shared<CoverageTraceWriter>(pipe_id);
 	}
 
-	auto inject_mmap_sys = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x2000));
-	auto inject_mmap_sys2 = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x5000));
+	if (basic_block_path.length() > 0)
+	{
+		log->info("Processing basic block file {}", single_shot);
+		parser_basic_block_file(debug, basic_block_path, single_shot, cov_trace_writer);
+	}
 
-	// debug.m_syscallMngr->injectSyscall(std::move(inject_mmap_sys));
 	debug.addBreakpoint(brk_pnt_addrs);
-	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys));
-	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys2));
-
-	// debug.addSyscallHandler(new OpenAt1Handler());
-	// debug.addSyscallHandler(new OpenAt2Handler());
-	debug.addFileOperationHandler(new OverwriteFileData());
-	debug.addNetworkOperationHandler(new DataSocket());
-	debug.addFileOperationHandler(new RandomeFileData(0xcafebabe));
 
 	if (trace_syscalls)
 	{

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11.0)
+cmake_minimum_required(VERSION 3.5.0)
 
 project(ShamanDBA)
 
@@ -106,7 +106,7 @@ set(SRC
   src/witch/witch.cpp
 )
 
-set(PUB_HEADER
+set(PUBLIC_HEADER
   include/breakpoint.hpp
   include/breakpoint_mngr.hpp
   include/breakpoint_reader.hpp
@@ -114,6 +114,7 @@ set(PUB_HEADER
   include/coverage_trace_writer.hpp
   include/debugger.hpp
   include/debug_opts.hpp
+  include/mempipe.hpp
   include/linux_debugger.hpp
   include/memory.hpp
   include/modules.hpp
@@ -128,7 +129,7 @@ set(PUB_HEADER
 
 add_library(${PROJECT_NAME} STATIC)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${PUB_HEADER}")
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADER}")
 
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -230,8 +231,18 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog_header_only capstone)
 # add_subdirectory(apps)
 # -- Testing configuration
 
-# add_executable(test_prog test/test_prog/prog.c)
-# target_link_libraries(test_prog pthread)
+set(TEST_TARGET_APP "test_target")
+
+project(${TEST_TARGET_APP})
+
+add_executable(${TEST_TARGET_APP})
+
+target_sources(${TEST_TARGET_APP}
+  PRIVATE
+  test/test_prog/prog.c
+)
+
+target_link_libraries(${TEST_TARGET_APP} pthread)
 
 # # Client Server
 # add_executable(client test/network/client.c)
