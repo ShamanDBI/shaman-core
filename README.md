@@ -50,9 +50,9 @@ Us buildroot to compile the VM and OS tools. It will generate all the necessary 
 	1. This paper focues on static rewriting of ARM binaries
 	1. It can do this for PIC and non-PIC code with/out symbols
 1. [SaBRe: load-time selective binary rewriting](https://link.springer.com/content/pdf/10.1007/s10009-021-00644-w.pdf?pdf=button)
-	1. SaBRe rewrites specific constructs—particularly system calls and functions—when the program is loaded into memory, and intercepts them using plugins through a simple API.
+	1. SaBRe rewrites specific constructs - particularly system calls and functions - when the program is loaded into memory, and intercepts them using plugins through a simple API.
 	1. We also discuss the theoretical underpinnings of disassembling and rewriting.
-	1. We developed two backends—for x86_64 and RISC-V—which were used to implement three plugins: a fast system call tracer, a multi-version executor, and a fault injector.
+	1. We developed two backends - for x86_64 and RISC-V - which were used to implement three plugins: a fast system call tracer, a multi-version executor, and a fault injector.
 	1. Our evaluation shows that SaBRe imposes little overhead, typically below 3%.
 1. [Non-stop Multi-threaded Debugging in GDB](https://s3.amazonaws.com/arena-attachments/309033/6f46f21a0abfe4de8f56468953378dfb.pdf)
   1. This paper accurately describes the challenges of breakpoint management in muli-threading environment. we have to implement these feature as gdb has implemented it.

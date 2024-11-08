@@ -1,7 +1,7 @@
 #include <coverage_trace_writer.hpp>
 
 #undef MEM_PIPE_SHARED_DATA
-//#define MEM_PIPE_SHARED_DATA
+#define MEM_PIPE_SHARED_DATA
 
 CoverageTraceWriter::CoverageTraceWriter(uint64_t pipe_id) {
     m_smem_pipe_id = pipe_id;
