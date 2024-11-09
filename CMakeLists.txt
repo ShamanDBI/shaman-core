@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(spdlog)
 # FetchContent_MakeAvailable(googletest)
 
 # You have to add this before FetchContent otherwise it won't work
-set(CAPSTONE_ARM_SUPPORT 1)
+set(CAPSTONE_ARM_SUPPORT ON)
 set(CAPSTONE_ARCHITECTURE_DEFAULT OFF)
 set(CAPSTONE_INSTALL ON)
 FetchContent_MakeAvailable(capstone)

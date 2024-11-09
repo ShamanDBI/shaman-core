@@ -16,6 +16,8 @@
 #include "ShamanDBA/syscall_collections.hpp"
 #include "ShamanDBA/syscall_injector.hpp"
 
+#include <sys/mman.h>
+#define ARM_MMAP2 192
 
 void parser_basic_block_file(Debugger &debug, std::string bb_path,
 							 bool is_single_shot, std::shared_ptr<CoverageTraceWriter> cov_trace_writer)
@@ -70,10 +72,6 @@ void init_logger(std::string &log_file, int debug_log_level)
 		}
 	}
 }
-
-#include <sys/mman.h>
-
-#define ARM_MMAP2 192
 
 class MmapSyscallInject : public SyscallInject
 {
