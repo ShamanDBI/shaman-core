@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11.0)
 
-project("eagle_coverage")
+project("binary_coverage")
 
 include(FetchContent) 
 
@@ -30,7 +30,7 @@ target_sources(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PUBLIC ShamanDBA CLI11::CLI11 spdlog)
 
 # -------------------------------- { Coverage Consumer Application} --------------------------------
-set(COVERAGE_CONSUME_APP "eagle_coverage_consumer")
+set(COVERAGE_CONSUME_APP "binary_coverage_consumer")
 
 project(${COVERAGE_CONSUME_APP})
 

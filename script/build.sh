@@ -11,11 +11,11 @@ cmake --install ./build_lib --prefix ./shaman_lib
 cmake -S apps -B build_apps
 cmake --build build_apps
 
-cmake -S eagle_coverage -B eagle_coverage_app
-cmake --build eagle_coverage_app
+cmake -S binary_coverage -B binary_coverage_app
+cmake --build binary_coverage_app
 
 echo "Building Coverage Consumer library"
 
-cmake -S eagle_coverage -B eagle_coverage_consumer
-cmake --build eagle_coverage_consumer
+cmake -S binary_coverage -B binary_coverage_consumer
+cmake --build binary_coverage_consumer
 

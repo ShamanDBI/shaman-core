@@ -73,7 +73,7 @@ void init_logger(std::string &log_file, int debug_log_level)
 int main(int argc, char **argv)
 {
 
-	CLI::App app{"Eagle Coverage reporting tool"};
+	CLI::App app{"Binary Coverage reporting tool"};
 
 	std::string trace_log_path, app_log_path, basic_block_path;
 	std::string coverage_output;

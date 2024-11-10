@@ -20,17 +20,17 @@ With this framework, I aim to consolidate dynamic reverse-engineering techniques
 
 # How to use Shaman Framework?
 
-Shaman is created with the intention to create tools using its API's, its meant to be a framework. Much of the features are exposed via classes which you need to in-herit and implement your logic and register it with the `Debugger` class. You can learn more about the API's in [next section](#instrumentation-api).
+Shaman is designed as a framework for building tools using its APIs. Many features are provided through classes that can be inherited to implement your own logic, which you then register with the `Debugger` class. You can find more details about the APIs in the [next section](#instrumentation-api).
 
-To start debugging you need to create `Debugger debug(targetDesc)` with `TargetDescription` which describes the target architecture. Then you can either attach to a running process with `debug.attach(pid)` function or you can spawn a new process with `debug.spawn("program param")`.
+To start instrumenting your target, first create an instance of the `Debugger` class and pass in a `TargetDescription`, which specifies the architecture of the program being executed. If you want to trace system calls, call `traceSyscall()`, and if you want to trace child processes, use `followFork()`. You can then attach to a running process with `debug.attach(pid)` or start a new process with `debug.spawn("program param")`.
 
-Once you have configured debugger class, you can execute debugger with `debug.eventLoop()`. This function blocking call which returns when the tracee completes its execution or it crashes. All the event registration like breakpoint and system calls should be done before the function call.
+After configuring the debugger, execute it with `debug.eventLoop()`. This function is a blocking call that returns when the tracee completes execution or crashes. Be sure to register all events, like breakpoints and system calls, before calling this function.
 
 # Instrumentation API
 
 ## Breakpoint Callback
 
-You can insert the software breakpoint at any point in the program and get callback when the breakpoint is hit. To register a breakpoint you have to inherit `Breakpoint` class and override `handle` function which has you custom breakpoint handling function. In the `Breakpoint` constructor you have to provide the *module name* and the *offset* from the base address.
+You can insert a software breakpoint at any location in the program and receive a callback when it’s triggered. To set a breakpoint, inherit from the `Breakpoint` class and override the `handle` function to define your custom breakpoint handling logic. In the `Breakpoint` constructor, provide the **module name** and the **offset** from the base address. The framework will then automatically calculate the actual breakpoint address and insert the breakpoint for you.
 
 ```cpp
 class BreakpointCoverage : public Breakpoint
@@ -56,30 +56,39 @@ public:
 		return true;
 	}
 };
-```
 
-```cpp
+int main() {
+	// create the debugger instance
+	Debugger debug(targetDesc);
+	
+	// attach to the running process
+	debug.attach(pid);
 
-debug.addBreakpoint(brk_pnt_addrs);
+	// register for system call event
+	debug.addSyscallHandler(new OpenAtHandler());
+	debug.addBreakpoint(brk_pnt_addrs);
+}
 ```
 
 ## Binary Code-Coverage
 
-You can use the previous features to breakpoint on all the basic block and collect the address when the basic block is hit while the program is executing. This can be useful in-case you don't have access to source-code or cannot recompile the target. 
+Using these features, you can set breakpoints on all basic blocks and collect addresses as each block is executed. This is particularly useful if you don't have access to the source code or cannot recompile the target.
 
-One can also have a single-shot breakpoint which is a type of breakpoint which remove once it is hit, this type coverage instrumentation can improve the performance in-cases where you are only interested in know if a particular piece of code has executed on not!
+You can also use single-shot breakpoints, which are removed after they’re hit. This type of coverage instrumentation can improve performance if you're only interested in knowing whether a specific piece of code has executed.
 
-This feature is already implement with `BreakpointCoverage` and `BreakpointReader` class. Basic block address for the binary can be found by using disassembler Ghidra/IDA. Script for Ghidra is already included in the repository.
+This feature is already implemented in the `BreakpointCoverage` and `BreakpointReader` classes. Basic block addresses for the binary can be identified using disassembly tools like Ghidra or IDA, and a Ghidra script is included in the repository.
 
-Coverage data can be dump in a file which is done using `CoverageTraceWriter` class. You can later process the coverage data using python script *coverage_parser.py*.
+Coverage data can be saved to a file using the `CoverageTraceWriter` class, and you can later process this data with the Python script *coverage_parser.py*.
 
 ## Syscall Tracing Callback
 
-This callback gives you details about what system call program is making you get to intercept the event before the system call goes to the kernel and once the system call is returned. You can over-ride the `onEnter` and `onExit` callback to get notified for all the syscall the program is making. 
+This callback provides details about the system calls the program is making, allowing you to intercept the event both before the call reaches the kernel and after it returns. You can override the `onEnter` and `onExit` callbacks to get notifications for every system call the program makes.
 
-Tracing is not the only thing you can do, you can also modify the system call parameters before it enter the kernel or modify the value once it return from the kernel. This feature is also called system call hijacking used by different tools to implement process jailing which basically doesn't give access to different system file/socket by failing the system call. This feature can also be used to fuzz application by replacing system call reading file or network data.
+Beyond tracing, you can also modify system call parameters before they enter the kernel or adjust the return values after they exit the kernel. Known as system call hijacking, this feature is used by various tools to implement process jailing, which restricts access to certain system files or sockets by failing specific system calls. It can also be used for fuzz testing by modifying system calls that handle file or network data.
 
-This feature is exposed via `SyscallHandler` class. You have to inherit the calls and override the `onEnter` and `onExit`, each of these function have SyscallTraceData as parameter which gives you syscall parameter.
+This functionality is available through the `SyscallHandler` class. To use it, inherit from the class and override `onEnter` and `onExit`. Each of these functions takes a `SyscallTraceData` parameter, which provides access to the system call parameters.
+
+Below is an example which intercepts *openat* System Call at both entry and exit point. You can register for the event by calling `addSyscallHandler`.
 
 ```cpp
 class OpenAtHandler : public SyscallHandler {
@@ -102,12 +111,24 @@ public:
 		return 0;
 	}
 };
+
+int main() {
+	// create the debugger instance
+	Debugger debug(targetDesc);
+	
+	// attach to the running process
+	debug.attach(pid);
+
+	// register for system call event
+	debug.addSyscallHandler(new OpenAtHandler());
+}
 ```
+
 ## Syscall Injection API
 
-Using this feature you can execute System call in a running process. To using this feature you have to inherit `SyscallInject` class and set the argument of the Syscall, on the injection is completed `onComplete` callback is called, you can use this callback function to record the return value of the syscall.
+This feature allows you to execute system calls within a running process. To use it, inherit from the `SyscallInject` class and set the system call arguments. Once the injection is complete, the `onComplete` callback is triggered, where you can record the system call’s return value.
 
-In case of example below we are executing mmap system call in the target process to allocated a page with read write permission and once the system call is completed it gets a callback on the `onCompelete` it records the return value of the system call. This memory can be later be utilzed to write custom shellcode in the target process.
+In the example below, we execute the `mmap` system call in the target process to allocate a page with read-write permissions. When the system call completes, the `onComplete` callback records its return value. This allocated memory can then be used to write custom shellcode into the target process.
 
 ```cpp
 class MmapSyscallInject : public SyscallInject
@@ -121,6 +142,8 @@ public:
 	{
 		m_mmap_addr = new Addr();
 		m_mmap_addr->setRemoteSize(mmap_size);
+
+		// set the value of the argument to be instected
 		setCallArg(0, 0);
 		setCallArg(1, mmap_size);
 		setCallArg(2, PROT_READ | PROT_WRITE);
@@ -131,9 +154,9 @@ public:
 
 	void onComplete()
 	{
-		/**
-		 * Check the return value an do some error handling and logging
-		 */
+		// once the system call is executed successfully the
+		// return value of the mmap is address of the page allocated
+		// we can record this which will be used in the future
 		uintptr_t mmap_addr = m_ret_value;
 		m_mmap_addr->setRemoteAddress(mmap_addr);
 		m_log->info("Page allocated at address 0x{:x}", mmap_addr);
@@ -148,14 +171,39 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-# Quick Usage Guide
+# Usage Guide
 
-# Usage
+There are two sample application which are included in the *examples* directory. They are described in the next section
 
-You can dump the program basic block address using Ghidra SRE tool and 
+## System Call Interceptor
+
+This project demonstrate how to use system call tracing API's, it has some sample *openat* syscall handler liek `OpenAt1Handler` and `OpenAt2Handler`. You can find the code in [examples/syscall_tracer](examples/syscall_tracer/main.cpp).
+
+## Binary Coverage Application
+
+This project demonstrate how to collect binary code-coverage for binary. First you need the address of all the basic blocks, this can be extracted using Ghidra Script using this [script](script/ghidra_bb_expoter.py)
+
+Following commands will help you to build the framework and the application
 
 ```bash
-<ghidra path>/support/analyzeHeadless tmp_proj HeadlessAnalysis -import ./build/bin/test_prog -scriptPath /home/hussain/ghidra_scripts/ -postscript export_basic_block.py
+# build the core framework
+cmake -S . -B build_lib
+
+# build the coverage app
+cmake -S binary_coverage -B binary_coverage_app
+cmake --build binary_coverage_app
+```
+
+To execute the script down the Ghidra and the run the below command
+
+```bash
+<ghidra path>/support/analyzeHeadless tmp_proj HeadlessAnalysis -import ./build/bin/test_prog -scriptPath /home/hussain/ghidra_scripts/ -postscript ghidra_bb_expoter.py
+```
+
+To execute the application you need to run the following command
+
+```bash
+eagle_coverage_app/eagle_coverage -l app.log --cov-basic-block ./test_prog_1.bb --cov-out test_app.cov -e ./test_target/bin/test_target 1
 ```
 
 # Platform Support
@@ -167,8 +215,11 @@ You can dump the program basic block address using Ghidra SRE tool and
 
 # Limitations
 
-- The whole instrumentation is currently based on ptrace API which is not very good if you are looking for performance since there is a cost of context switching between debugger and the debuggee process everytime there is breakpoint or system call.
+This framework is work-in-progress which means there are lot of design  decision taken are not permanent and are subjected to change if more optimial solution found.
+
+- The whole instrumentation is currently based on ptrace API which is not very good if you are looking for performance since there is a cost of context switching between debugger and the debuggee process everytime there is breakpoint or system call. This method simplifies the hooking primitive if you want to add support for new architecture. To add support for program halting you have to add support for breakpoint for that architecture and you have all the tracing feature available.
 - To collect binary code coverage we need the basic block addresses for the program, to identify these address currently the framework depends on disassembler tools like Ghidra SRE. But the problem is that any disassembler tools is not 100% accruate in identifying all the basic blocks which can lead to in accurate coverage report.  
 
+# Inspiration
 
-
+This project is inspired from other projects like Mesos, TinyInst and Frida. Some of the functionality has been borrowed from these projects.
