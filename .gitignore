@@ -19,3 +19,4 @@ test_target
 test_prog
 *.bb
 *.log
+docs/build

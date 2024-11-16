@@ -1,6 +1,26 @@
-# How does shaman help you with code coverage?
+=============
+Code Coverage
+=============
 
-## Existing Solutions
+When to Use it?
+===============
+
+Tracing Program Flow: To understand the execution path of binary you are reverse engineering.
+
+Keep in Mind
+============
+
+Code coverage uses breakpoint to trace execution path, this means breakpoint will be place on all the possible path in the binary and when the breakpoint is hit coverage is registered for that piece of code. 
+
+Usually this tracing is done at basic block level.
+
+Note : There is performace hit associated with breakpoint which is highlighted in here see :ref:`this section <breakpoint-warning>`
+
+Usage Guide
+===========
+
+Existing Solutions
+==================
 
 - What are the existing tools for code coverage?
     - The mode popular option you have is your compiler. By enabling certain flags you can have binary compiled with additional code injected in the binary program which will create a very  covereage data in a file which can be later used to generate a beautiful looking code covereage report which highlight the code lines.

@@ -1,4 +1,6 @@
-# System Call Handling
+===================
+System Call Tracing
+===================
 
 This another primitive of the Framework which give you control over the Kernel resource which the Tracee uses. 
 
@@ -16,8 +18,3 @@ When you want to stop the process before and after the System Call is executed. 
 There is a performace cost associated with syscall handling.
 
 ## Sample Code
-
-```CPP
-
-
-```
