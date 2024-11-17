@@ -15,7 +15,7 @@ The framework aims to simplify writing plugins and make it fast and easy to supp
 
 .. toctree::
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Table of Content
 
    getting_started.rst
@@ -25,5 +25,20 @@ The framework aims to simplify writing plugins and make it fast and easy to supp
    resource_tracing.rst
    porting_guide.rst
    technical_details.rst
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: Future features
+   
    roadmap
    use_cases
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: Code Indexes
+   
+   code_index.rst
+
+

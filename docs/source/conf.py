@@ -17,11 +17,17 @@ extensions = []
 
 templates_path = ['_templates']
 exclude_patterns = []
-extensions = ['myst_parser']
+extensions = ['myst_parser', 'breathe', 'sphinx.ext.autodoc']
+
+breathe_projects = { "MyProject": "../build/oxy_docs_xml" } 
+
+breathe_default_project = "MyProject"
+
+html_theme = "sphinx_rtd_theme"
+
 html_theme_options = {
-    'github_user': '0xd3xt3r',
-    'github_repo': 'shaman',
-    'fixed_sidebar': 'fixed'
+    'includehidden': True
+
 }
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -32,5 +38,4 @@ source_suffix = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
 html_static_path = ['_static']
