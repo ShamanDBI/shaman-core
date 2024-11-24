@@ -56,7 +56,19 @@ Usage Guide
 2. **Consume**: Based on type of resource all the system Call have a callback method.
 3. **Release**: Since the Resource we are tracing no long exist tracing after this point is not done. For this case `onClose` callback is invoked.
 
-Register for Resource Event 
+Use-cases
+---------
+
+One of the main reason for me designing syscall tracing in contextual way is to do attack surface enumeration. When you want to doing Attack surface enumeration you want to know the data sources from which the data is coming in and going out of the program.
+
+System Resources are some of the data source for these attack surface. You not looking at the indiviual syscalls, you focus is on the System Resource. This feature help you to follow the thread of a particular data source for example some of the data sources are:
+
+1. Data coming from Network is exposing you application to remote attacks.
+2. IPC resource is exposing your Process to other running Processes in the System.
+1. File Resource is exposing to the untrusted data from the file system that any user can write on the system. 
+1. Device drivers are exposed by file path by tracing file operations you can follow the communication between program and the hardware.
+
+Register for Resource Event
 ---------------------------
 
 The following set of interface provide you the ability to register a callback whenever a Process is attempting to creating a new Resource and give you a chance to peek at the parameter and decide if you are intereted in tracing its :ref:`life-cycle <resource-ccr>`. At present framework only supports for Network(via :cpp:class:`NetworkOperationTracer`) and file operation(via :cpp:class:`FileOperationTracer`) more will be added soon.
@@ -67,16 +79,19 @@ For file and network sub-system creating a resource means different I would sugg
 
 Different types of Resource provide different type of callbacks. For example for File Operation you will get callback for open, read, write, ioctl, close, etc. You can explore the details of the Interface on :cpp:class:`FileOperationTracer`. 
 
-Similary sockets :cpp:class:`NetworkOperationTracer` exposes different set of callback, apart from callbacks like open, read, write and close. Network Resource different from file, A process can create Server Socket will is accepting Client connections and each client get its individual File Descriptor and returning True will only trace that Client Socket. While on the Client side, client might be creating socket connection to different Servers you might be interested in one connection. The traceing is automatically removed when the resource is closed.
+Similary sockets :cpp:class:`NetworkOperationTracer` exposes different set of callback, apart from callbacks like open, read, write and close. Network Resource different from file, A process can create Server Socket will is accepting Client connections and each client get its individual File Descriptor and returning True will only trace that Client Socket. While on the Client side, client might be creating socket connection to different Servers you might be interested in one connection. The tracing is automatically removed when the resource is closed/released.
 
 Tracing individual syscall makes sense when you want to take decision soley on the syscall for example getting time from Kernel.
 
-Use-cases
----------
 
-But when you want to doing Attack surface enumeration you want to Trace the data coming and going out of the system you not looking at the indiviual System calls you focus is on the System Resource, like Data coming from Network is exposing you application to remote attacks, IPC resource is exposing your Process to other running Processes in the System, File Resource is exposing to the untrusted data from the file system that any user can write on the system. Similar argument can be made for Reverse Engineering Data recieved on the Network socket or reading from the File format reversing.
+Example Code
+------------
 
-Tracing device files
+1. A very good example of File Resource is implemented in :cpp:class:`RandomeFileData` which basically help return same sequence of random value every time you call read data from `/dev/random`. Class takes seed value as the parameter which can be used to randomize the generated data.
+2. Another interesting use-case is when a program file reads a file you want to replace the data it some other data you can use :cpp:class:`OverwriteFileData` class. Say if a binary read a configuration from a file and you want to change th configuration data without modifing the actual file you can use this class. This class take two file path parameter, first paramete is the file you want to replace and 2nd one been the file you want to replace with.
+3. This :cpp:class:`DataSocket`
+
+> Resource Tracing is still a very experimental feature and API's may change a lot.
 
 Footnotes
 =========

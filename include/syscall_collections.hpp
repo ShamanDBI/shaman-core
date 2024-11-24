@@ -167,6 +167,11 @@ struct RandomeFileData : public FileOperationTracer
 
     RandomeFileData(uint64_t seed) : m_rand(Rand(seed)) { }
 
+	/// @brief This filter function does some very simple, if the 
+	///        file been open is "/dev/randomCheck" return true else false
+	/// @param debugOpts 
+	/// @param sc_trace 
+	/// @return 
 	bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
 		m_log->warn("onFilter!");
@@ -174,6 +179,7 @@ struct RandomeFileData : public FileOperationTracer
 		switch (sc_trace.getSyscallNo())
 		{
 		case SysCallId::OPENAT:
+
 			Addr file_path_addr_t(sc_trace.v_arg[1], 100);
 			debugOpts.m_memory.readRemoteAddrObj(file_path_addr_t, 100);
 			m_log->trace("File path : {}", (char *)file_path_addr_t.data());

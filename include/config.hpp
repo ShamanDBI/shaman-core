@@ -16,7 +16,9 @@
 // #define SUPPORT_ARCH_X86
 // #define SUPPORT_ARCH_ARM64
 
+#if !defined(SPDLOG_ACTIVE_LEVEL)
 #define SPDLOG_ACTIVE_LEVEL SHAMAN_LOG_LEVEL_TRACE
+#endif
 
 // #define SUPPORT_MEM_FILE 1
 
