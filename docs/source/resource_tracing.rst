@@ -50,7 +50,7 @@ You must be wondering isn't this very similar to *Syscall Tracing*, you are righ
 Usage Guide
 ===========
 
-`ResourceTracer` provides an callback interface to trace the life-cycle of Resource which we just discussed.
+:cpp:class:`ResourceTracer` provides an callback interface to trace the life-cycle of Resource which we just discussed.
 
 1. **Create**: All the System Call falling is this category invoke `onFilter` to decide if the Resoure has to be traced throught it lifecyle. This is case `onOpen` lifecycle method is called.
 2. **Consume**: Based on type of resource all the system Call have a callback method.
