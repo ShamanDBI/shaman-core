@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resource Tracing &mdash; shaman  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Porting Guide" href="porting_guide.html" />
+    <link rel="prev" title="Code Coverage" href="code_coverage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            shaman
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="breakpoint.html">Breakpoint</a></li>
+<li class="toctree-l1"><a class="reference internal" href="syscall_tracing.html">System Call Tracing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_coverage.html">Code Coverage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Resource Tracing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-a-resource">What is a Resource?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resource-life-cycle">Resource Life-cycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#when-to-use-it">When to Use it?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#keep-in-mind">Keep in Mind</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-guide">Usage Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#use-cases">Use-cases</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#register-for-resource-event">Register for Resource Event</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-code">Example Code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#footnotes">Footnotes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="porting_guide.html">Porting Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_details.html">Technical Details</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Future features</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">How do I use your tool?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Indexes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="code_index.html">Code Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">shaman</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Resource Tracing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/resource_tracing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="resource-tracing">
+<h1>Resource Tracing<a class="headerlink" href="#resource-tracing" title="Link to this heading"></a></h1>
+<section id="what-is-a-resource">
+<span id="resource-def"></span><h2>What is a Resource?<a class="headerlink" href="#what-is-a-resource" title="Link to this heading"></a></h2>
+<p>System call(syscall) is interface the kernel provides to user-space to request for services. These services are abstraction for the complexity of hardware and software resources and provide a consistent interface to interact with these resources. <em>Software Resource</em> can be classified into different categories like file, network, inter-process communication(IPC), etc.</p>
+<p>Kernel provides syscall to manipulate these software resources for example, <em>Sockets</em> can be create using <em>socket</em> syscall, once you have created the socket you can send and recieve data over the network using syscalls like sendto, sendmsg, recvfrom, recvmsg, etc and once you are done with communication you can close the socket using <em>close</em> syscall. Similarly kernel provides interface for <em>Files</em>, you can create file with <em>open</em> system call and then you can read and write data to file using <em>read</em> and <em>write</em> syscall and once done you can close the file with <em>close</em> syscall.</p>
+<p>This is just an over simplification but you should get an idea <em>what is a Resource</em>. There are six/seven categories of resource which is File, Socket, IPC, Process &amp; Thread, Signals, Synchronization, System Identifiers, Device Drivers, and Time related, etc <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>. Each syscall will belong to either one or more of this category. For example <em>read syscall</em> belongs to File and Socket. These are by no means and concrete classification but these abstraction can be encountered in almost any POSIX-compatible operating systems.</p>
+</section>
+<section id="resource-life-cycle">
+<span id="resource-ccr"></span><h2>Resource Life-cycle<a class="headerlink" href="#resource-life-cycle" title="Link to this heading"></a></h2>
+<p>Let me explain the typical lifecycle states that a <em>software resource</em> goes through in an OS kernel:</p>
+<ol class="arabic simple">
+<li><p><strong>Create</strong>: At this stage a resource is created like socket, spawning new process or create new file or an existing one is opened like file from the disk for example File. A unique resource identifier/handler is returned by the syscall at this stage. If you are interested in tracing it you can record the identifier and used it in sub-sequent stage.</p></li>
+<li><p><strong>Consume</strong>: At this stage resource is manipulated, configured or queried upon by operation like read, write, IOCTL syscall call using the unique identifier/handler returned form previous stage.</p></li>
+<li><p><strong>Release</strong>: Once done with the resource it is destroyed with syscall like <em>close</em>. This unique identifier/handle is surrendered to the OS kernel which can be may re-used the same identifier for new resource.</p></li>
+</ol>
+<p>We will refere to this flow as <em>create-consume-release</em> in the future.</p>
+<p>Each Resource has a unique identifier value when created, this value is passed as parameter to the sub-sequent syscalls while operating on it. Speaking for Unix-like OS the <em>Resource</em> a unique identifier is called as <em>file descritor</em>, in Windows they calls it as Handler/Objects.</p>
+<p>Not every syscall has such life-cycle, for example time related syscall simply return the current time of the system, nothing fancy happening here!</p>
+</section>
+<section id="when-to-use-it">
+<h2>When to Use it?<a class="headerlink" href="#when-to-use-it" title="Link to this heading"></a></h2>
+<p><em>Resource Tracing</em> provides you an interface for tracing different Software Resources via <a class="reference internal" href="code_index.html#_CPPv414ResourceTracer" title="ResourceTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ResourceTracer</span></code></a>. The interface exposes life-cycle method which gets invoked when the resource you are tracing is been operated on.</p>
+<p>While reverse engineering binary a you are interested in tracing the data coming and in out of the program, this is usually done via Resources like File, Sockets or IPC. <em>Resource Tracing</em> interface gives you the abstraction to trace data via these <a class="reference internal" href="#resource-def"><span class="std std-ref">Resources</span></a>. This interface exposes callbacks which are invoked while the Resource is going through the <a class="reference internal" href="#resource-ccr"><span class="std std-ref">life-cycle</span></a>. The interface tries to give you an exposure into the life-cycle of the resource.</p>
+<p>Let take and example of a tracing ‘/home/password’ file data, say you are interested in the getting callback for all the syscall done for a particular file. So, everytime a program makes a syscall like <em>open</em>, read, write, you are get a callback to interven. In the callback you can either record the parameter or modify them. You must be wondering isn’t this very similar to <em>Syscall Tracing</em>, you are right! its just glorified syscall handler. With these interface you subscribing all the events related to ‘/home/password’. You can learn more about the file interface from this class <a class="reference internal" href="code_index.html#_CPPv419FileOperationTracer" title="FileOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">FileOperationTracer</span></code></a>.</p>
+<p>Lets take another example for network socket, you have a client and a server talking to each other via TCP socket. Let say from the server perspective you can interested in data exchange via a client. The networking sub-system has different life-cycle syscall to create socket and listen on the socket to accept clients and start exchanging data on it. All this is exposed <a class="reference internal" href="code_index.html#_CPPv422NetworkOperationTracer" title="NetworkOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">NetworkOperationTracer</span></code></a> interface. So when tracing server binary you will get callback everytime a new client is trying to connect <a class="reference internal" href="code_index.html#_CPPv4N22NetworkOperationTracer12onClientOpenE12SyscallStateR9DebugOptsR16SyscallTraceData" title="NetworkOperationTracer::onClientOpen"><code class="xref cpp cpp-member docutils literal notranslate"><span class="pre">NetworkOperationTracer::onClientOpen</span></code></a>.</p>
+</section>
+<section id="keep-in-mind">
+<h2>Keep in Mind<a class="headerlink" href="#keep-in-mind" title="Link to this heading"></a></h2>
+<p>You must be wondering isn’t this very similar to <em>Syscall Tracing</em>, you are right! its just glorified syscall tracing. But this interface is trying to solve a problem in a different context, While a process can operate on lot many files and network related syscall, you are interested in tracing them in context of a particular resource say a file path, or socket on port 80. If you try to trace it with <a class="reference internal" href="syscall_tracing.html"><span class="doc">Syscall Tracing</span></a> you will have to write logic of locate the file descriptor of the resource and match the resource descriptor for each syscall. <a class="reference internal" href="code_index.html#_CPPv414ResourceTracer" title="ResourceTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ResourceTracer</span></code></a> interface tries to simply this.</p>
+</section>
+<section id="usage-guide">
+<h2>Usage Guide<a class="headerlink" href="#usage-guide" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="code_index.html#_CPPv414ResourceTracer" title="ResourceTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ResourceTracer</span></code></a> provides an callback interface to trace the life-cycle of Resource which we just discussed.</p>
+<ol class="arabic simple">
+<li><p><strong>Create</strong>: All the System Call falling is this category invoke <cite>onFilter</cite> to decide if the Resoure has to be traced throught it lifecyle. This is case <cite>onOpen</cite> lifecycle method is called.</p></li>
+<li><p><strong>Consume</strong>: Based on type of resource all the system Call have a callback method.</p></li>
+<li><p><strong>Release</strong>: Since the Resource we are tracing no long exist tracing after this point is not done. For this case <cite>onClose</cite> callback is invoked.</p></li>
+</ol>
+<section id="use-cases">
+<h3>Use-cases<a class="headerlink" href="#use-cases" title="Link to this heading"></a></h3>
+<p>One of the main reason for me designing syscall tracing in contextual way is to do attack surface enumeration. When you want to doing Attack surface enumeration you want to know the data sources from which the data is coming in and going out of the program.</p>
+<p>System Resources are some of the data source for these attack surface. You not looking at the indiviual syscalls, you focus is on the System Resource. This feature help you to follow the thread of a particular data source for example some of the data sources are:</p>
+<ol class="arabic simple">
+<li><p>Data coming from Network is exposing you application to remote attacks.</p></li>
+<li><p>IPC resource is exposing your Process to other running Processes in the System.</p></li>
+<li><p>File Resource is exposing to the untrusted data from the file system that any user can write on the system.</p></li>
+<li><p>Device drivers are exposed by file path by tracing file operations you can follow the communication between program and the hardware.</p></li>
+</ol>
+</section>
+<section id="register-for-resource-event">
+<h3>Register for Resource Event<a class="headerlink" href="#register-for-resource-event" title="Link to this heading"></a></h3>
+<p>The following set of interface provide you the ability to register a callback whenever a Process is attempting to creating a new Resource and give you a chance to peek at the parameter and decide if you are intereted in tracing its <a class="reference internal" href="#resource-ccr"><span class="std std-ref">life-cycle</span></a>. At present framework only supports for Network(via <a class="reference internal" href="code_index.html#_CPPv422NetworkOperationTracer" title="NetworkOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">NetworkOperationTracer</span></code></a>) and file operation(via <a class="reference internal" href="code_index.html#_CPPv419FileOperationTracer" title="FileOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">FileOperationTracer</span></code></a>) more will be added soon.</p>
+<p>With ResourceTracer interface you have to override <a class="reference internal" href="code_index.html#_CPPv4N14ResourceTracer8onFilterER9DebugOptsR16SyscallTraceData" title="ResourceTracer::onFilter"><code class="xref cpp cpp-member docutils literal notranslate"><span class="pre">ResourceTracer::onFilter</span></code></a> method will gets call everytime a new Resource is getting created for example a program is trying to create/open a file or a client is opening a socket to server, or server is accepting a new client. In each of this cases you are kernel will create a new file descriptor, it is at this point we you hae to decide if you are interested in tracing this resource. The goal of <cite>onFilter</cite> function is into the resource create phase so that you can examine the parameters and decide if you are further interested in tracing the Resource. If the <cite>onFilter</cite> function return <cite>true</cite> the the Resource which is create will added to list of actively traced Resource. An actively traced Resource means you will get a callback for all the syscalls done on that resource.</p>
+<p>For file and network sub-system creating a resource means different I would suggest you to read further about in their respective documentation for <a class="reference internal" href="code_index.html#_CPPv4N19FileOperationTracer8onFilterER9DebugOptsR16SyscallTraceData" title="FileOperationTracer::onFilter"><code class="xref cpp cpp-member docutils literal notranslate"><span class="pre">FileOperationTracer::onFilter</span></code></a> and <a class="reference internal" href="code_index.html#_CPPv4N22NetworkOperationTracer8onFilterER9DebugOptsR16SyscallTraceData" title="NetworkOperationTracer::onFilter"><code class="xref cpp cpp-member docutils literal notranslate"><span class="pre">NetworkOperationTracer::onFilter</span></code></a>.</p>
+<p>Different types of Resource provide different type of callbacks. For example for File Operation you will get callback for open, read, write, ioctl, close, etc. You can explore the details of the Interface on <a class="reference internal" href="code_index.html#_CPPv419FileOperationTracer" title="FileOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">FileOperationTracer</span></code></a>.</p>
+<p>Similary sockets <a class="reference internal" href="code_index.html#_CPPv422NetworkOperationTracer" title="NetworkOperationTracer"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">NetworkOperationTracer</span></code></a> exposes different set of callback, apart from callbacks like open, read, write and close. Network Resource different from file, A process can create Server Socket will is accepting Client connections and each client get its individual File Descriptor and returning True will only trace that Client Socket. While on the Client side, client might be creating socket connection to different Servers you might be interested in one connection. The tracing is automatically removed when the resource is closed/released.</p>
+<p>Tracing individual syscall makes sense when you want to take decision soley on the syscall for example getting time from Kernel.</p>
+</section>
+<section id="example-code">
+<h3>Example Code<a class="headerlink" href="#example-code" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>A very good example of File Resource is implemented in <a class="reference internal" href="code_index.html#_CPPv415RandomeFileData" title="RandomeFileData"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">RandomeFileData</span></code></a> which basically help return same sequence of random value every time you call read data from <cite>/dev/random</cite>. Class takes seed value as the parameter which can be used to randomize the generated data.</p></li>
+<li><p>Another interesting use-case is when a program file reads a file you want to replace the data it some other data you can use <a class="reference internal" href="code_index.html#_CPPv417OverwriteFileData" title="OverwriteFileData"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">OverwriteFileData</span></code></a> class. Say if a binary read a configuration from a file and you want to change th configuration data without modifing the actual file you can use this class. This class take two file path parameter, first paramete is the file you want to replace and 2nd one been the file you want to replace with.</p></li>
+<li><p>This <a class="reference internal" href="code_index.html#_CPPv410DataSocket" title="DataSocket"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">DataSocket</span></code></a></p></li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Resource Tracing is still a very experimental feature and API’s may change a lot.</p>
+</div>
+</section>
+</section>
+<section id="footnotes">
+<h2>Footnotes<a class="headerlink" href="#footnotes" title="Link to this heading"></a></h2>
+<p>Some intereseting piece of reading you can do on this subject from below links.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://linasm.sourceforge.net/docs/syscalls/index.php">Linux syscall categories</a></p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="code_coverage.html" class="btn btn-neutral float-left" title="Code Coverage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="porting_guide.html" class="btn btn-neutral float-right" title="Porting Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Munawwar Hussain Shelia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

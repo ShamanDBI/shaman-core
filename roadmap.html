@@ -1,0 +1,238 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roadmap &mdash; shaman  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How do I use your tool?" href="use_cases.html" />
+    <link rel="prev" title="Technical Details" href="technical_details.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            shaman
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Content</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="breakpoint.html">Breakpoint</a></li>
+<li class="toctree-l1"><a class="reference internal" href="syscall_tracing.html">System Call Tracing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_coverage.html">Code Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resource_tracing.html">Resource Tracing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting_guide.html">Porting Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_details.html">Technical Details</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Future features</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Roadmap</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-did-i-create-this-tool">Why did I create this tool?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#important-features">Important Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-usage-guide">Quick Usage Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-write-plugins">How to Write Plugins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#breakpoint">Breakpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#syscall">Syscall</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">How do I use your tool?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Indexes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="code_index.html">Code Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">shaman</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Roadmap</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/roadmap.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="roadmap">
+<h1>Roadmap<a class="headerlink" href="#roadmap" title="Link to this heading"></a></h1>
+<p>Architecture Neutral DBI for Embedded systems</p>
+<section id="why-did-i-create-this-tool">
+<h2>Why did I create this tool?<a class="headerlink" href="#why-did-i-create-this-tool" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Security Assessment of Linux Based IoT Devices.</p></li>
+<li><p>This tool is specifically targeted for old version of linux where it difficult to find any debugging or instrumentation tools.</p></li>
+<li><p>Binary analysis are usually re-usable across different projects</p></li>
+<li><p>Add support to as many ISA Architecture as possible.</p></li>
+</ol>
+</section>
+<section id="important-features">
+<h2>Important Features<a class="headerlink" href="#important-features" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Programmatic Breakpoint Handling</strong> - give you programmable opportunity to when the breakpoint is hit. You will have access to program memory and register which you can manipulate when you hit the breakpoint.</p>
+<ol class="arabic simple">
+<li><p>Can be used as a tracer that logs specifed register, memory location. this can be dumped to file. This trace can later be loaded in Ghidra to analyze it even futher in more contextual environment.</p></li>
+</ol>
+</li>
+<li><p><strong>System Call Tracing</strong> - You can get callback handler before entering and after the syscall is serviced by kernel. You can even cancel system and implement jailer. You will get access to program memory and register which you can manipulate at both points i.e. before and after system call.</p></li>
+<li><p><strong>Resource Tracing</strong> - this are more glorified syscall handler, basically you can get callback when there are operation done on File descriptor.</p>
+<ol class="arabic simple">
+<li><p>Since there are different category of file descriptor like File, Socket and IPC you can inteface which you can register and manipulate the program memory/register.</p></li>
+<li><p>You can use it in trace only mode or even maniplate parameter on before and after system calls.</p></li>
+</ol>
+</li>
+<li><p><strong>Function Hooking and Instrumentation</strong></p>
+<ol class="arabic simple">
+<li><p>Trace the function parameter and its return value.</p></li>
+<li><p>Replace the entire functionality of the function with your assembly code.</p></li>
+</ol>
+</li>
+<li><p><strong>Basic Block hooking and Instrumentation</strong></p>
+<ol class="arabic simple">
+<li><p>Observe the execution of Basic Block unit of the program.</p></li>
+</ol>
+</li>
+<li><p><strong>Code Coverage</strong> - Collecting code coverage</p>
+<ol class="arabic simple">
+<li><p>This will cover both senarios one were you have access to source code and where you don’t have acess.</p></li>
+<li><p>Post processing of coverage in different programming languages.</p></li>
+</ol>
+</li>
+<li><p><strong>Advance Data Tracing</strong></p>
+<ol class="arabic simple">
+<li><p>Tracing Data traveling across different process</p></li>
+<li><p>Attaching Debugger to different process/threads and hook their handlers.</p></li>
+<li><p>Data passing through IPC Mechanics between processing.</p></li>
+<li><p>This will be achieved by Programmatic breakpoint but on different Process.</p></li>
+</ol>
+</li>
+<li><p>Anti-Debug Bypasses</p>
+<ol class="arabic simple">
+<li><p>Framework will figure the different tricks used by the process to bypass anti-debugging mitigaations.</p></li>
+<li><p>Trace ptrace related system calls and block them</p></li>
+</ol>
+</li>
+<li><p>Support in Multi-threaded Environment</p></li>
+<li><p>Support for all the above feature in Micro-Controllers.</p></li>
+<li><p>Crash Analysis for Fuzzing.</p></li>
+</ol>
+</section>
+<section id="quick-usage-guide">
+<h2>Quick Usage Guide<a class="headerlink" href="#quick-usage-guide" title="Link to this heading"></a></h2>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Shaman<span class="w"> </span>DBI<span class="w"> </span>Framework
+Usage:<span class="w"> </span>./build/bin/shaman<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+
+Options:
+<span class="w">  </span>-h,--help<span class="w">                   </span>Print<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
+<span class="w">  </span>-l,--log<span class="w"> </span>TEXT<span class="w">               </span>application<span class="w"> </span>debug<span class="w"> </span>logs
+<span class="w">  </span>-o,--trace<span class="w"> </span>TEXT<span class="w">             </span>output<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>tracee<span class="w"> </span>logs
+<span class="w">  </span>-p,--pid<span class="w"> </span>INT<span class="w">                </span>PID<span class="w"> </span>of<span class="w"> </span>process<span class="w"> </span>to<span class="w"> </span>attach<span class="w"> </span>to
+<span class="w">  </span>-b,--brk<span class="w"> </span>TEXT<span class="w"> </span>...<span class="w">           </span>Address<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>breakpoints
+<span class="w">  </span>-e,--exec<span class="w"> </span>TEXT<span class="w"> </span>...<span class="w"> </span>REQUIRED<span class="w"> </span>program<span class="w"> </span>to<span class="w"> </span>execute
+<span class="w">  </span>-f,--follow<span class="w">                 </span>follow<span class="w"> </span>the<span class="w"> </span>fork/clone/vfork<span class="w"> </span>syscalls
+<span class="w">  </span>-s,--syscall<span class="w">                </span>trace<span class="w"> </span>system<span class="w"> </span>calls
+</pre></div>
+</div>
+</section>
+<section id="how-to-write-plugins">
+<h2>How to Write Plugins<a class="headerlink" href="#how-to-write-plugins" title="Link to this heading"></a></h2>
+<p>This Framework is intended to be extend and tooling for specific use-cases. You can think of Framework as a High Performance Programming Debugger.
+Event Driven Programming</p>
+<p>You have two Major interface for Programming. First is
+The functionality can be broadly classifed into two Inteface:</p>
+<ol class="arabic simple">
+<li><p>Breakpoint - This is to stop the program at arbitrary point in to program.</p></li>
+<li><p>System Call - Whenever the program make a System Call.</p></li>
+</ol>
+<section id="breakpoint">
+<h3>Breakpoint<a class="headerlink" href="#breakpoint" title="Link to this heading"></a></h3>
+<p>Breakpoint will give you abilility to stop and inspect at arbitrary point in the process. Initial impression might suggest that its very stop and go interface but think of interesting Points you want to halt the execution and inspect data. This could be at function entry and exit point where you are interested in tracing all the call parameter and their return type. You call trace all the malloc and free calls and catch bugs like double free or resource leakage.</p>
+<p>Please refere to Breakpoint Handling for more detials with code example on how to use the interface.</p>
+</section>
+<section id="syscall">
+<h3>Syscall<a class="headerlink" href="#syscall" title="Link to this heading"></a></h3>
+<p>Syscall is the API interface between User and Kernel by which it requests a server from the Kernel of the Operating System.</p>
+<p>This Interface will give you ability to stop and inspect before and after the System Call is made.</p>
+<ol class="arabic simple">
+<li><p>A Process interacte with the Operating systems rich functionality it will make system call for things like Creating and Editing Files, Networking related functions, since Linux and Other Unix like OS have standard Kernel interface you can intercept every request that goes to the Kernel it comeback.</p></li>
+<li><p>To take advantage of this feature you can over-ride SyscallHandler class.</p></li>
+<li><p>System Call data is captured in SyscallTraceData class</p></li>
+</ol>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="technical_details.html" class="btn btn-neutral float-left" title="Technical Details" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="use_cases.html" class="btn btn-neutral float-right" title="How do I use your tool?" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Munawwar Hussain Shelia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
