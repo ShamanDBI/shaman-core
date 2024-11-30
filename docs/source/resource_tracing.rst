@@ -91,7 +91,8 @@ Example Code
 2. Another interesting use-case is when a program file reads a file you want to replace the data it some other data you can use :cpp:class:`OverwriteFileData` class. Say if a binary read a configuration from a file and you want to change th configuration data without modifing the actual file you can use this class. This class take two file path parameter, first paramete is the file you want to replace and 2nd one been the file you want to replace with.
 3. This :cpp:class:`DataSocket`
 
-> Resource Tracing is still a very experimental feature and API's may change a lot.
+.. warning::
+    Resource Tracing is still a very experimental feature and API's may change a lot.
 
 Footnotes
 =========
