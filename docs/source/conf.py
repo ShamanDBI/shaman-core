@@ -17,7 +17,7 @@ extensions = []
 
 templates_path = ['_templates']
 exclude_patterns = []
-extensions = ['myst_parser', 'breathe', 'sphinx.ext.autodoc']
+extensions = ['myst_parser', 'breathe', 'sphinx.ext.autodoc', 'sphinx.ext.githubpages']
 
 breathe_projects = { "MyProject": "../build/oxy_docs_xml" } 
 
