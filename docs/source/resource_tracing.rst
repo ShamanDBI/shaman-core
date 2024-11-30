@@ -21,7 +21,7 @@ Resource Life-cycle
 Let me explain the typical lifecycle states that a *software resource* goes through in an OS kernel:
 
 1. **Create**: At this stage a resource is created like socket, spawning new process or create new file or an existing one is opened like file from the disk for example File. A unique resource identifier/handler is returned by the syscall at this stage. If you are interested in tracing it you can record the identifier and used it in sub-sequent stage.
-2. **Consume**: At this staget resource is manipulated, configured or queried upon by operation like read, write, IOCTL syscall call using the unique identifier/handler returned form previous stage.
+2. **Consume**: At this stage resource is manipulated, configured or queried upon by operation like read, write, IOCTL syscall call using the unique identifier/handler returned form previous stage.
 3. **Release**: Once done with the resource it is destroyed with syscall like *close*. This unique identifier/handle is surrendered to the OS kernel which can be may re-used the same identifier for new resource.
 
 We will refere to this flow as *create-consume-release* in the future.
@@ -65,8 +65,8 @@ System Resources are some of the data source for these attack surface. You not l
 
 1. Data coming from Network is exposing you application to remote attacks.
 2. IPC resource is exposing your Process to other running Processes in the System.
-1. File Resource is exposing to the untrusted data from the file system that any user can write on the system. 
-1. Device drivers are exposed by file path by tracing file operations you can follow the communication between program and the hardware.
+3. File Resource is exposing to the untrusted data from the file system that any user can write on the system. 
+4. Device drivers are exposed by file path by tracing file operations you can follow the communication between program and the hardware.
 
 Register for Resource Event
 ---------------------------
