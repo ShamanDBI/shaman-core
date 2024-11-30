@@ -10,18 +10,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: shaman-code
       - uses: actions/setup-python@v5
+        with:
+            python-version: '3.10'
+      - uses: ssciwr/doxygen-install@v1
+        with:
+          version: "1.12.0"
       - name: Install dependencies
         run: |
+          cd shaman-code
           pip install -r docs/requirements.txt
       - name: Sphinx build
         run: |
-          cd docs && make html
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cd shaman-code
+          script/build-docs.sh
+      - name: Cloning docs repo
+        uses: actions/checkout@v4
         with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
-          force_orphan: true
+          repository: ShamanDBI/shamandbi.github.io  # Replace with the target repository
+          ref: main
+          path: shaman-docs
+      - name: Push docs files
+        run: |
+          cd shaman-docs
+          git remote -v
+          git log -1
+          git remote set-url origin https://x-access-token:${{ github.token }}@github.com/ShamanDBI/shamandbi.github.io.git
+          rm -rf *                # Remove all files and folders in the root of the target repository
+          cp -r ../shaman-code/docs/build/html/* .    # Copy the content of build/html into the root
+          date > generated.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update documentation" || echo "No changes to commit"
+          ls -al
+          git push
