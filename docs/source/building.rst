@@ -42,6 +42,15 @@ Example #2 : Binary Code Coverage
 Running
 -------
 
+#. You need to get basic block address 
+
+    .. code-block:: console
+
+        # ghidra_path - path to the ghidra home directory
+        # target_binary - application binary for which you want to generate gather code coverage.
+        <ghidra_path>/support/analyzeHeadless tmp_proj HeadlessAnalysis -process <target_binary> -scriptPath /home/hussain/ghidra_scripts/ -postscript export_basic_block.py
+
+
 #. You first need to start target application
 
     .. code-block:: console
