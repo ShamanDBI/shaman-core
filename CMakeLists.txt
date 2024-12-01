@@ -2,13 +2,23 @@ cmake_minimum_required(VERSION 3.5.0)
 
 project(ShamanDBA)
 
+# Ensure Threads package is found
+find_package(Threads REQUIRED)
+
+# If pthread is still not detected correctly, force its inclusion explicitly
+if(NOT Threads_FOUND)
+    message(FATAL_ERROR "Could not find Threads package!")
+else()
+    message(STATUS "Threads found: ${CMAKE_THREAD_LIBS_INIT}")
+endif()
+
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+# set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 # ------------- Download all the needed Dependencies ---------------
 include(FetchContent) # once in the project to include the module

@@ -1,16 +1,15 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <wait.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <string.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 void *do_loop(void *data)
 {
@@ -89,7 +88,8 @@ void read_random_data(uint32_t data_size)
 
 void real_infinite_loop()
 {
-    pid_t tid = gettid();
+    pid_t tid = syscall(SYS_gettid);
+    //pid_t tid = gettid();
     void *mem_alloc = mmap(
         NULL,
         0x1000,
@@ -103,11 +103,11 @@ void real_infinite_loop()
     }
 }
 
-void do_infinite_loop(void *data)
+void* do_infinite_loop(void *data)
 {
     size_t counter = 5000;
-    // pid_t tid = syscall(SYS_gettid);
-    pid_t tid = gettid();
+    pid_t tid = syscall(SYS_gettid);
+    //pid_t tid = gettid();
 
     while (counter)
     {
@@ -117,7 +117,7 @@ void do_infinite_loop(void *data)
     }
 }
 
-void test_computed_calls(void *param)
+void* test_computed_calls(void *param)
 {
     int *_param = (int *)param;
 
@@ -167,7 +167,7 @@ void test_threaded_computed_calls()
     {
         pthread_join(p_thread[i], NULL);
     }
-    return 0;
+    return;
 }
 
 void test_infinite_threads()
@@ -180,7 +180,7 @@ void test_infinite_threads()
 
     for (int i = 0; i < NUM_OF_THREADS; i++)
     {
-        thr_id = pthread_create(&p_thread[i], NULL, do_infinite_loop, (void *)&a);
+        thr_id = pthread_create(&p_thread[i], NULL, &do_infinite_loop, (void *)&a);
         printf("New Thread created with id : %d\n", thr_id);
     }
 
@@ -188,7 +188,7 @@ void test_infinite_threads()
     {
         pthread_join(p_thread[i], NULL);
     }
-    return 0;
+    return;
 }
 
 int test_multi_threading_same_section()
@@ -258,7 +258,7 @@ void dump_file_content(char *file_path)
     }
     printf("%.*s\n", len, str);
     close(fd);
-    return 0;
+    return;
 }
 
 void test_file_dumping(char *file_path)
@@ -276,7 +276,7 @@ void test_file_operation()
     char buf[100];
     read(fd, buf, 10);
     write(fd, buf, 10);
-    ioctl(fd, buf, 10);
+    ioctl(fd, (unsigned long)buf, 10);
     printf("This file data is : %s\n", buf);
     close(fd);
 }
