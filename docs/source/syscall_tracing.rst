@@ -4,6 +4,13 @@ System Call Tracing
 
 This another primitive of the Framework which give you control over the Kernel resource which the Tracee uses. 
 
+Syscall is the API interface between User and Kernel by which it requests a server from the Kernel of the Operating System.
+
+This Interface will give you ability to stop and inspect before and after the System Call is made.
+1. A Process interacte with the Operating systems rich functionality it will make system call for things like Creating and Editing Files, Networking related functions, since Linux and Other Unix like OS have standard Kernel interface you can intercept every request that goes to the Kernel it comeback.
+1. To take advantage of this feature you can over-ride SyscallHandler class.
+1. System Call data is captured in SyscallTraceData class
+
 When to Use it?
 ===============
 

@@ -1,12 +1,11 @@
 mkdir -p builds
 
-cmake -S . -B builds/build_lib 
+cmake -S . -B builds/build_lib
+cmake --build ./builds/build_lib
+cmake --install ./builds/build_lib --prefix ./builds/shaman_lib
 
 cmake -S . -B ./builds/test_target
 cmake --build ./builds/test_target
-
-cmake --build ./builds/build_lib
-cmake --install ./builds/build_lib --prefix ./builds/shaman_lib
 
 cmake -S ./examples/syscall_tracer -B ./builds/syscall_tracer
 cmake --build ./builds/syscall_tracer

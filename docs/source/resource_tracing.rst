@@ -11,7 +11,7 @@ System call(syscall) is interface the kernel provides to user-space to request f
 
 Kernel provides syscall to manipulate these software resources for example, *Sockets* can be create using *socket* syscall, once you have created the socket you can send and recieve data over the network using syscalls like sendto, sendmsg, recvfrom, recvmsg, etc and once you are done with communication you can close the socket using *close* syscall. Similarly kernel provides interface for *Files*, you can create file with *open* system call and then you can read and write data to file using *read* and *write* syscall and once done you can close the file with *close* syscall. 
 
-This is just an over simplification but you should get an idea *what is a Resource*. There are six/seven categories of resource which is File, Socket, IPC, Process & Thread, Signals, Synchronization, System Identifiers, Device Drivers, and Time related, etc [1]_. Each syscall will belong to either one or more of this category. For example *read syscall* belongs to File and Socket. These are by no means and concrete classification but these abstraction can be encountered in almost any POSIX-compatible operating systems.
+This is just an over simplification but you should get an idea *what is a Resource*. There are six/seven categories of resource which is File, Socket, IPC, Process & Thread, Signals, Synchronization, System Identifiers, Device Drivers, and Time related, etc [1]_. Each syscall will belong to either one or more of this category. For example *read syscall* belongs to File and Socket. These are by no means a concrete classification but these abstraction can be encountered in almost any POSIX-compatible operating systems.
 
 .. _resource-ccr:
 
@@ -30,11 +30,10 @@ Each Resource has a unique identifier value when created, this value is passed a
 
 Not every syscall has such life-cycle, for example time related syscall simply return the current time of the system, nothing fancy happening here!
 
-
 When to Use it?
 ===============
 
-*Resource Tracing* provides you an interface for tracing different Software Resources via :cpp:class:`ResourceTracer`. The interface exposes life-cycle method which gets invoked when the resource you are tracing is been operated on. 
+*Resource Tracing* provides you an interface for tracing different Software Resources via :cpp:class:`ResourceTracer` interface. This interface exposes :ref:`life-cycle <resource-ccr>` method which gets invoked when the resource you are tracing is been operated on.
 
 While reverse engineering binary a you are interested in tracing the data coming and in out of the program, this is usually done via Resources like File, Sockets or IPC. *Resource Tracing* interface gives you the abstraction to trace data via these :ref:`Resources <resource-def>`. This interface exposes callbacks which are invoked while the Resource is going through the :ref:`life-cycle <resource-ccr>`. The interface tries to give you an exposure into the life-cycle of the resource.
 
@@ -89,7 +88,7 @@ Example Code
 
 1. A very good example of File Resource is implemented in :cpp:class:`RandomeFileData` which basically help return same sequence of random value every time you call read data from `/dev/random`. Class takes seed value as the parameter which can be used to randomize the generated data.
 2. Another interesting use-case is when a program file reads a file you want to replace the data it some other data you can use :cpp:class:`OverwriteFileData` class. Say if a binary read a configuration from a file and you want to change th configuration data without modifing the actual file you can use this class. This class take two file path parameter, first paramete is the file you want to replace and 2nd one been the file you want to replace with.
-3. This :cpp:class:`DataSocket`
+3. For tracking socket operation :cpp:class:`DataSocket`
 
 .. warning::
     Resource Tracing is still a very experimental feature and API's may change a lot.

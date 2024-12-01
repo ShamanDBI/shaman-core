@@ -6,3 +6,6 @@ Think of it as a high-performance, scriptable debugger that can pause a program 
 
 The framework aims to simplify writing plugins and make it fast and easy to support new platforms, such as RISC-V, Power PC, MIPS, etc.
 
+# Documentation
+
+Documentation is available at https://[boofuzz.readthedocs.io/](https://shamandbi.github.io/shaman-core/), including nifty quickstart guides.

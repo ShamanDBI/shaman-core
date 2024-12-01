@@ -25,8 +25,11 @@ breathe_default_project = "MyProject"
 
 html_theme = "sphinx_rtd_theme"
 
+html_show_sourcelink = False
+
 html_theme_options = {
-    'includehidden': True
+    'includehidden': True,
+    'analytics_id': 'G-DSS2DJ0XF1'
 
 }
 source_suffix = {
