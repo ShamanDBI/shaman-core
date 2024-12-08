@@ -102,8 +102,14 @@ void CoverageConsumer(uint64_t pipe_id)
 
 int main(int argc, char **argv)
 {
-    int64_t shm_pipe_id = 0xcafe;
     spdlog::info("This is Coverage consumer library");
+    
+    if (argc < 2) {
+        spdlog::error("Usage: coverage_consumer <shared_memory id>");
+        return -1;
+    }
+
+    int64_t shm_pipe_id = strtoull(argv[1]);
 
     CoverageConsumer(shm_pipe_id);
 

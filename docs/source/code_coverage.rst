@@ -68,8 +68,8 @@ Advantages
 Limitations
 -----------
 
-1. Coverage report as not very accurate.
-2. This technique is limited by the instrumentation tool is avaliable for the platform for ceamp
+#. Coverage report as not very accurate.
+#. This technique is limited by the instrumentation tool is avaliable for the platform for ceamp
 
 When to Use it?
 ===============

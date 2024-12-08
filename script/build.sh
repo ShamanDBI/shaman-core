@@ -12,9 +12,3 @@ cmake --build ./builds/syscall_tracer
 
 cmake -S ./examples/binary_coverage -B ./builds/binary_coverage_app
 cmake --build ./builds/binary_coverage_app
-
-echo "Building Coverage Consumer library"
-
-cmake -S ./examples/binary_coverage -B ./builds/binary_coverage_consumer
-cmake --build ./builds/binary_coverage_consumer
-

@@ -1,4 +1,3 @@
-#Generates a Mesos file from the current program.
 #@author marpie (Markus Piéton - marpie@a12d404.net)
 #@category Mesos
 #@keybinding
@@ -6,6 +5,7 @@
 #@toolbar
 
 import struct
+import os
 import ghidra.program.model.block.SimpleBlockModel as SimpleBlockModel
 
 def get_simple_blocks_by_function(image_base, listing):
@@ -37,10 +37,11 @@ def get_simple_blocks_by_function(image_base, listing):
     
     return entries
 
-ghidra_file = askFile("Please select the Mesos Output-File", "Save To File")
+input_name = currentProgram.getName()
+ghidra_file = os.path.join("/home/hussain/pdev/shaman", input_name+".bb")
+print("-------------------------", ghidra_file)
 
 with open(ghidra_file.getAbsolutePath(), "wb") as fd:
-    input_name = currentProgram.getName()
     image_base = currentProgram.getImageBase().getOffset()
 
     listing = currentProgram.getListing()
