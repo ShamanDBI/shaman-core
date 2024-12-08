@@ -1,0 +1,203 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Coverage &mdash; shaman  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Resource Tracing" href="resource_tracing.html" />
+    <link rel="prev" title="System Call Tracing" href="syscall_tracing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            shaman
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="breakpoint.html">Breakpoint</a></li>
+<li class="toctree-l1"><a class="reference internal" href="syscall_tracing.html">System Call Tracing</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Code Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#when-to-use-it">When to Use it?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#keep-in-mind">Keep in Mind</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-guide">Usage Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#existing-solutions">Existing Solutions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="resource_tracing.html">Resource Tracing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting_guide.html">Porting Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical_details.html">Technical Details</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Future features</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">How do I use your tool?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Indexes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="code_index.html">Code Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">shaman</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Code Coverage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/code_coverage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="code-coverage">
+<h1>Code Coverage<a class="headerlink" href="#code-coverage" title="Link to this heading"></a></h1>
+<section id="when-to-use-it">
+<h2>When to Use it?<a class="headerlink" href="#when-to-use-it" title="Link to this heading"></a></h2>
+<p>Tracing Program Flow: To understand the execution path of binary you are reverse engineering.</p>
+</section>
+<section id="keep-in-mind">
+<h2>Keep in Mind<a class="headerlink" href="#keep-in-mind" title="Link to this heading"></a></h2>
+<p>Code coverage uses breakpoint to trace execution path, this means breakpoint will be place on all the possible path in the binary and when the breakpoint is hit coverage is registered for that piece of code.</p>
+<p>Usually this tracing is done at basic block level.</p>
+<p>Note : There is performace hit associated with breakpoint which is highlighted in here see <a class="reference internal" href="breakpoint.html#breakpoint-warning"><span class="std std-ref">this section</span></a></p>
+</section>
+<section id="usage-guide">
+<h2>Usage Guide<a class="headerlink" href="#usage-guide" title="Link to this heading"></a></h2>
+</section>
+<section id="existing-solutions">
+<h2>Existing Solutions<a class="headerlink" href="#existing-solutions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><dl class="simple">
+<dt>What are the existing tools for code coverage?</dt><dd><ul>
+<li><dl class="simple">
+<dt>The mode popular option you have is your compiler. By enabling certain flags you can have binary compiled with additional code injected in the binary program which will create a very  covereage data in a file which can be later used to generate a beautiful looking code covereage report which highlight the code lines.</dt><dd><ul>
+<li><dl class="simple">
+<dt>Pros</dt><dd><ul>
+<li><p>you get very accurate code coverage with each light highlighted with number of time the code was executed.</p></li>
+<li><p>This option is very easy to follow and get the results.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Cons</dt><dd><ul>
+<li><dl class="simple">
+<dt>This type of instrumentation will slowdown the program execution drastically which can become of problem in situation where performance of the real program might affect is functionality.</dt><dd><ul>
+<li><p>For example imaging doing this for a game application where 60 fps can is a very critical information.</p></li>
+<li><p>It can also become challenge in other situation as well like embedded systems.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>One solution to above problem is that once we have collected execution trace for a particular code we can restore the original code but this is not possible compile-time instrumentation settings.</p></li>
+<li><p>You cannot do selective instrumentation, meaning you are only interested in collecting coverage for paritcular module, function or class. Doing this can restored some of the performance of the program lost due to coverage instrumentation.</p></li>
+<li><p>You only have one option to dump the coverage which is file, this can drastically slowdown the overall activity of coverage reporting. Imagine if you can collect the covereage data in a shared memory buffer or stream it over network socket and collect it on different device.</p></li>
+<li><p>You cannot use this if you don’t have access to source code and if you don’t know how to recompile the program with coverage option.</p></li>
+<li><p>You can only collect execution trace, you cannot configure the tool to collect any other type of data. Like function parameters, Register values or stack trace of function.</p></li>
+<li><p>You cannot use this technique in situation where target doesn’t have standard file systems like micro-controllers.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>There are some there tools which comes integerated</p></li>
+<li><p>MPLAB Code Coverage by Micro Chip for Micro-controller</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p><a class="reference external" href="https://ldra.com/capabilities/code-coverage-analysis/#CA14">https://ldra.com/capabilities/code-coverage-analysis/#CA14</a></p></li>
+<li><p>Bullseye Testing Technology</p></li>
+<li><p><a class="reference external" href="https://www.qt.io/product/quality-assurance/coco">https://www.qt.io/product/quality-assurance/coco</a></p></li>
+<li><p>[TestCocoon](<a class="reference external" href="https://www.testcocoon.org/download.tmp.html">https://www.testcocoon.org/download.tmp.html</a>)</p></li>
+</ul>
+<p>## Dynamic Coverage Reporting</p>
+<p>This approach dynamically modifies the program to insert code which will report the execution trace. This method provides more flexibility since you can dynamically add/remove instrumentation, this setting give you the ability to add business logic to the tracing. Besides this you have many advantages like
+1. In fuzzing use cases you can dynamically add/remove instrumentation if get more performance like
+1. You can share the covereage data via different channels like shared memory(like AFL) or network sockets.
+1. You can dynamically attach to a running process and stream the code coverage in real-time without terminating process or recompiling the project.</p>
+<p>## Ref</p>
+<ol class="arabic simple">
+<li><p>OS-less dynamic binary instrumentation for embedded firmware</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="syscall_tracing.html" class="btn btn-neutral float-left" title="System Call Tracing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="resource_tracing.html" class="btn btn-neutral float-right" title="Resource Tracing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Munawwar Hussain Shelia.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
