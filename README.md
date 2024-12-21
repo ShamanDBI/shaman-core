@@ -8,4 +8,4 @@ The framework aims to simplify writing plugins and make it fast and easy to supp
 
 # Documentation
 
-Documentation is available at https://shamandbi.github.io/shaman-core/, including nifty quickstart guides.
+Documentation is available at https://shamandbi.github.io, including nifty quickstart guides.

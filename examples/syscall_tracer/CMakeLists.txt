@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.0)
 
-project("shaman_app")
+project("syscall_tracer")
 
 include(FetchContent) 
 

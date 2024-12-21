@@ -17,7 +17,7 @@ extensions = []
 
 templates_path = ['_templates']
 exclude_patterns = []
-extensions = ['myst_parser', 'breathe', 'sphinx.ext.autodoc', 'sphinx.ext.githubpages']
+extensions = ['myst_parser', 'breathe', 'sphinx.ext.autodoc', 'sphinx_rtd_theme', 'sphinx.ext.githubpages']
 
 breathe_projects = { "MyProject": "../build/oxy_docs_xml" } 
 
@@ -38,7 +38,6 @@ source_suffix = {
     '.md': 'markdown',
 }
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+html_baseurl = 'https://shamandbi.github.io/'
 
 html_static_path = ['_static']

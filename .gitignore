@@ -9,3 +9,5 @@ builds
 *.bb
 *.log
 docs/build
+shaman_ghidra_projects/
+nohup.out

@@ -7,11 +7,11 @@ Resource Tracing
 What is a Resource?
 ===================
 
-System call(syscall) is interface the kernel provides to user-space to request for services. These services are abstraction for the complexity of hardware and software resources and provide a consistent interface to interact with these resources. *Software Resource* can be classified into different categories like file, network, inter-process communication(IPC), etc.
+A system call (syscall) is an interface provided by the kernel to user-space applications for requesting various services. These services abstract the complexities of hardware and software resources, offering a consistent interface for interacting with them. Software resources can be categorized into different types, such as files, networks, and inter-process communication (IPC).
 
-Kernel provides syscall to manipulate these software resources for example, *Sockets* can be create using *socket* syscall, once you have created the socket you can send and recieve data over the network using syscalls like sendto, sendmsg, recvfrom, recvmsg, etc and once you are done with communication you can close the socket using *close* syscall. Similarly kernel provides interface for *Files*, you can create file with *open* system call and then you can read and write data to file using *read* and *write* syscall and once done you can close the file with *close* syscall. 
+The kernel provides syscalls to manipulate these software resources. For example, sockets can be created using the `socket` syscall. Once a socket is created, data can be sent and received over the network using syscalls like `sendto`, `sendmsg`, `recvfrom`, and `recvmsg`. When communication is complete, the socket can be closed using the `close` syscall. Similarly, for files, you can create a file with the `open` syscall, read and write data using the `read` and `write` syscalls, and close the file with the `close` syscall.
 
-This is just an over simplification but you should get an idea *what is a Resource*. There are six/seven categories of resource which is File, Socket, IPC, Process & Thread, Signals, Synchronization, System Identifiers, Device Drivers, and Time related, etc [1]_. Each syscall will belong to either one or more of this category. For example *read syscall* belongs to File and Socket. These are by no means a concrete classification but these abstraction can be encountered in almost any POSIX-compatible operating systems.
+This is a simplified explanation, but it gives an idea of what a resource is. Resources can be classified into several categories, such as files, sockets, IPC, processes and threads, signals, synchronization, system identifiers, device drivers, and time-related resources [1]_. Each syscall belongs to one or more of these categories. For example, the `read` syscall applies to both files and sockets. These classifications are not rigid but provide a useful abstraction for understanding POSIX-compatible operating systems.
 
 .. _resource-ccr:
 
@@ -20,78 +20,81 @@ Resource Life-cycle
 
 Let me explain the typical lifecycle states that a *software resource* goes through in an OS kernel:
 
-1. **Create**: At this stage a resource is created like socket, spawning new process or create new file or an existing one is opened like file from the disk for example File. A unique resource identifier/handler is returned by the syscall at this stage. If you are interested in tracing it you can record the identifier and used it in sub-sequent stage.
-2. **Consume**: At this stage resource is manipulated, configured or queried upon by operation like read, write, IOCTL syscall call using the unique identifier/handler returned form previous stage.
-3. **Release**: Once done with the resource it is destroyed with syscall like *close*. This unique identifier/handle is surrendered to the OS kernel which can be may re-used the same identifier for new resource.
+1. **Create**: At this stage, a resource is created, such as a socket, a new process, or a file. A unique resource identifier/handler is returned by the syscall at this stage. If you are interested in tracing it, you can record the identifier and use it in subsequent stages.
+2. **Consume**: At this stage, the resource is manipulated, configured, or queried using operations like read, write, or IOCTL syscalls, using the unique identifier/handler returned from the previous stage.
+3. **Release**: Once done with the resource, it is destroyed with syscalls like *close*. The unique identifier/handle is surrendered to the OS kernel, which may reuse the same identifier for a new resource.
 
-We will refere to this flow as *create-consume-release* in the future.
+We will refer to this flow as *create-consume-release* in the future.
 
-Each Resource has a unique identifier value when created, this value is passed as parameter to the sub-sequent syscalls while operating on it. Speaking for Unix-like OS the *Resource* a unique identifier is called as *file descritor*, in Windows they calls it as Handler/Objects. 
+Each resource has a unique identifier value when created. This value is passed as a parameter to subsequent syscalls while operating on it. In Unix-like OS, the unique identifier is called a *file descriptor*, while in Windows, it is referred to as a Handler/Object.
 
-Not every syscall has such life-cycle, for example time related syscall simply return the current time of the system, nothing fancy happening here!
+Not every syscall has such a lifecycle. For example, time-related syscalls simply return the current time of the system, nothing fancy happening here!
 
 When to Use it?
 ===============
 
-*Resource Tracing* provides you an interface for tracing different Software Resources via :cpp:class:`ResourceTracer` interface. This interface exposes :ref:`life-cycle <resource-ccr>` method which gets invoked when the resource you are tracing is been operated on.
+*Resource Tracing* provides an interface for tracing different software resources via the :cpp:class:`ResourceTracer` interface. This interface exposes :ref:`life-cycle <resource-ccr>` methods that get invoked when the resource you are tracing is being operated on.
 
-While reverse engineering binary a you are interested in tracing the data coming and in out of the program, this is usually done via Resources like File, Sockets or IPC. *Resource Tracing* interface gives you the abstraction to trace data via these :ref:`Resources <resource-def>`. This interface exposes callbacks which are invoked while the Resource is going through the :ref:`life-cycle <resource-ccr>`. The interface tries to give you an exposure into the life-cycle of the resource.
+When reverse engineering a binary, you may be interested in tracing the data coming in and out of the program, usually done via resources like files, sockets, or IPC. The *Resource Tracing* interface gives you the abstraction to trace data via these :ref:`Resources <resource-def>`. This interface exposes callbacks that are invoked while the resource is going through its :ref:`life-cycle <resource-ccr>`. This interface not only provides insight into the resource's lifecycle but also allows you to manipulate the resource at each stage.
 
-Let take and example of a tracing '/home/password' file data, say you are interested in the getting callback for all the syscall done for a particular file. So, everytime a program makes a syscall like *open*, read, write, you are get a callback to interven. In the callback you can either record the parameter or modify them. You must be wondering isn't this very similar to *Syscall Tracing*, you are right! its just glorified syscall handler. With these interface you subscribing all the events related to '/home/password'. You can learn more about the file interface from this class :cpp:class:`FileOperationTracer`.
+For example, if you want to trace the '/home/password' file data, you can get callbacks for all syscalls made on this file, such as *open*, read, and write. In the callback, you can record or modify the parameters. This is similar to *Syscall Tracing*, but with this interface, you subscribe to all events related 
+to '/home/password'. You can learn more about the file interface from the :cpp:class:`FileOperationTracer` class.
 
-Lets take another example for network socket, you have a client and a server talking to each other via TCP socket. Let say from the server perspective you can interested in data exchange via a client. The networking sub-system has different life-cycle syscall to create socket and listen on the socket to accept clients and start exchanging data on it. All this is exposed :cpp:class:`NetworkOperationTracer` interface. So when tracing server binary you will get callback everytime a new client is trying to connect :cpp:member:`NetworkOperationTracer::onClientOpen`.
+Another example is tracing a network socket where a client and server communicate via a TCP socket. From the server's perspective, you might be interested in data exchange with a client. The networking subsystem has different lifecycle syscalls to create a socket, listen on it, accept clients, and start exchanging data. All this is exposed through the :cpp:class:`NetworkOperationTracer` interface. When tracing the server binary, you will get a callback every time a new client tries to connect, such as :cpp:member:`NetworkOperationTracer::onClientOpen`.
 
 Keep in Mind
 ============
 
-You must be wondering isn't this very similar to *Syscall Tracing*, you are right! its just glorified syscall tracing. But this interface is trying to solve a problem in a different context, While a process can operate on lot many files and network related syscall, you are interested in tracing them in context of a particular resource say a file path, or socket on port 80. If you try to trace it with :doc:`Syscall Tracing<syscall_tracing>` you will have to write logic of locate the file descriptor of the resource and match the resource descriptor for each syscall. :cpp:class:`ResourceTracer` interface tries to simply this.
+You might be wondering if this is similar to *Syscall Tracing*. You are correct; it is essentially an enhanced form of syscall tracing. However, this interface addresses the problem from a different perspective. While a process can perform numerous file and network-related syscalls, you are interested in tracing them in the context of a specific resource, such as a file path or a socket on port 80. If you were to use :doc:`Syscall Tracing<syscall_tracing>`, you would need to write logic to locate the file descriptor of the resource and match the resource descriptor for each syscall. The feature abstracts this boilerplate code via the :cpp:class:`ResourceTracer` abstraction.
 
 Usage Guide
 ===========
 
-:cpp:class:`ResourceTracer` provides an callback interface to trace the life-cycle of Resource which we just discussed.
+The :cpp:class:`ResourceTracer` interface provides callbacks to trace the lifecycle of a resource.
 
-1. **Create**: All the System Call falling is this category invoke `onFilter` to decide if the Resoure has to be traced throught it lifecyle. This is case `onOpen` lifecycle method is called.
-2. **Consume**: Based on type of resource all the system Call have a callback method.
-3. **Release**: Since the Resource we are tracing no long exist tracing after this point is not done. For this case `onClose` callback is invoked.
+1. **Create**: System calls in this category invoke the `onFilter` method to determine if the resource should be traced throughout its lifecycle. If so, the `onOpen` lifecycle method is called.
+2. **Consume**: Depending on the type of resource, various system calls will trigger corresponding callback methods.
+3. **Release**: When the resource is no longer in use, tracing stops. The `onClose` callback is invoked at this stage.
 
 Use-cases
 ---------
 
-One of the main reason for me designing syscall tracing in contextual way is to do attack surface enumeration. When you want to doing Attack surface enumeration you want to know the data sources from which the data is coming in and going out of the program.
+One of the main reasons for designing syscall tracing in a contextual way is to perform attack surface enumeration. When conducting attack surface enumeration, you want to identify the data sources from which data is entering and leaving the program.
 
-System Resources are some of the data source for these attack surface. You not looking at the indiviual syscalls, you focus is on the System Resource. This feature help you to follow the thread of a particular data source for example some of the data sources are:
+System resources are some of these data sources. Instead of looking at individual syscalls, the focus is on the system resource. This feature helps you follow the thread of a particular data source. Some examples of data sources are:
 
-1. Data coming from Network is exposing you application to remote attacks.
-2. IPC resource is exposing your Process to other running Processes in the System.
-3. File Resource is exposing to the untrusted data from the file system that any user can write on the system. 
-4. Device drivers are exposed by file path by tracing file operations you can follow the communication between program and the hardware.
+1. Data coming from the network, which exposes your application to remote attacks.
+2. IPC resources, which expose your process to other running processes in the system.
+3. File resources, which expose your application to untrusted data from the file system that any user can write to.
+4. Device drivers, which are exposed by file paths. By tracing file operations, you can follow the communication between the program and the hardware.
 
 Register for Resource Event
 ---------------------------
 
-The following set of interface provide you the ability to register a callback whenever a Process is attempting to creating a new Resource and give you a chance to peek at the parameter and decide if you are intereted in tracing its :ref:`life-cycle <resource-ccr>`. At present framework only supports for Network(via :cpp:class:`NetworkOperationTracer`) and file operation(via :cpp:class:`FileOperationTracer`) more will be added soon.
+The following set of interfaces provides you the ability to register a callback whenever a process is attempting to create a new resource, giving you a chance to peek at the parameters and decide if you are interested in tracing its :ref:`life-cycle <resource-ccr>`. At present, the framework only supports Network (via :cpp:class:`NetworkOperationTracer`) and file operations (via :cpp:class:`FileOperationTracer`), with more to be added soon.
 
-With ResourceTracer interface you have to override :cpp:member:`ResourceTracer::onFilter` method will gets call everytime a new Resource is getting created for example a program is trying to create/open a file or a client is opening a socket to server, or server is accepting a new client. In each of this cases you are kernel will create a new file descriptor, it is at this point we you hae to decide if you are interested in tracing this resource. The goal of `onFilter` function is into the resource create phase so that you can examine the parameters and decide if you are further interested in tracing the Resource. If the `onFilter` function return `true` the the Resource which is create will added to list of actively traced Resource. An actively traced Resource means you will get a callback for all the syscalls done on that resource.
+With the `ResourceTracer` interface, you have to override the :cpp:member:`ResourceTracer::onFilter` method, which gets called every time a new resource is being created. For example, a program might be trying to create/open a file, a client might be opening a socket to a server, or a server might be accepting a new client. In each of these cases, the kernel will create a new file descriptor. It is at this point that you have to decide if you are interested in tracing this resource. The goal of the `onFilter` function is to examine the parameters during the resource creation phase and decide if you are further interested in tracing the resource. If the `onFilter` function returns `true`, the resource that is created will be added to the list of actively traced resources. An actively traced resource means you will get a callback for all the syscalls performed on that resource.
 
-For file and network sub-system creating a resource means different I would suggest you to read further about in their respective documentation for :cpp:member:`FileOperationTracer::onFilter` and :cpp:member:`NetworkOperationTracer::onFilter`.
+For the file and network subsystems, creating a resource means different things. I suggest you read further about this in their respective documentation for :cpp:member:`FileOperationTracer::onFilter` and :cpp:member:`NetworkOperationTracer::onFilter`.
 
-Different types of Resource provide different type of callbacks. For example for File Operation you will get callback for open, read, write, ioctl, close, etc. You can explore the details of the Interface on :cpp:class:`FileOperationTracer`. 
+Different types of resources provide different types of callbacks. For example, for file operations, you will get callbacks for open, read, write, ioctl, close, etc. You can explore the details of the interface in :cpp:class:`FileOperationTracer`.
 
-Similary sockets :cpp:class:`NetworkOperationTracer` exposes different set of callback, apart from callbacks like open, read, write and close. Network Resource different from file, A process can create Server Socket will is accepting Client connections and each client get its individual File Descriptor and returning True will only trace that Client Socket. While on the Client side, client might be creating socket connection to different Servers you might be interested in one connection. The tracing is automatically removed when the resource is closed/released.
+Similarly, sockets in :cpp:class:`NetworkOperationTracer` expose a different set of callbacks. Apart from callbacks like open, read, write, and close, network resources differ from files. A process can create a server socket that accepts client connections, and each client gets its individual file descriptor. Returning `true` will only trace that client socket. On the client side, the client might be creating socket connections to different servers, and you might be interested in one connection. The tracing is automatically removed when the resource is closed/released.
 
-Tracing individual syscall makes sense when you want to take decision soley on the syscall for example getting time from Kernel.
+.. note::
+
+    Tracing individual syscalls makes sense when you want to make decisions solely based on the syscall, for example, getting the time from the kernel. However, some syscalls do not have enough context to trace effectively. In such cases, you can use the `SyscallHandler` interface to handle these syscalls more appropriately.
 
 
 Example Code
 ------------
 
-1. A very good example of File Resource is implemented in :cpp:class:`RandomeFileData` which basically help return same sequence of random value every time you call read data from `/dev/random`. Class takes seed value as the parameter which can be used to randomize the generated data.
-2. Another interesting use-case is when a program file reads a file you want to replace the data it some other data you can use :cpp:class:`OverwriteFileData` class. Say if a binary read a configuration from a file and you want to change th configuration data without modifing the actual file you can use this class. This class take two file path parameter, first paramete is the file you want to replace and 2nd one been the file you want to replace with.
-3. For tracking socket operation :cpp:class:`DataSocket`
+1. A good example of a File Resource is implemented in the :cpp:class:`RandomFileData` class, which returns the same sequence of random values every time you read data from `/dev/random`. The class takes a seed value as a parameter, which can be used to randomize the generated data.
+2. Another interesting use-case is when a program reads a file, and you want to replace the data with some other data. You can use the :cpp:class:`OverwriteFileData` class. For example, if a binary reads a configuration from a file and you want to change the configuration data without modifying the actual file, you can use this class. This class takes two file path parameters: the first parameter is the file you want to replace, and the second one is the file you want to replace it with.
+3. For tracking socket operations, use the :cpp:class:`DataSocket` class.
 
 .. warning::
-    Resource Tracing is still a very experimental feature and API's may change a lot.
+    Resource Tracing is still a very experimental feature, and the APIs may change significantly.
 
 Footnotes
 =========
