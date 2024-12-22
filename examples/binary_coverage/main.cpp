@@ -1,6 +1,4 @@
 #include <ShamanDBA/config.hpp>
-#include <netinet/in.h>
-#include <sys/socket.h>
 #include <CLI/CLI.hpp>
 
 #include "spdlog/spdlog.h"

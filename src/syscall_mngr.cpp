@@ -1,6 +1,7 @@
 #include "syscall_mngr.hpp"
 #include "tracee.hpp"
-
+#include <sys/un.h>
+#include <linux/netlink.h>
 
 // this system call which are related to filer operations
 // https://linasm.sourceforge.net/docs/syscalls/filesystem.php
@@ -340,6 +341,35 @@ int SyscallManager::handleFileOperation(SyscallState sys_state, DebugOpts &debug
 	return 0;
 }
 
+// Function to decode and log sockaddr details
+void logSockaddrDetails(const sockaddr *addr, std::shared_ptr<spdlog::logger> logger) {
+	if (addr->sa_family == AF_INET) {
+		// IPv4
+		const sockaddr_in *addr_in = reinterpret_cast<const sockaddr_in *>(addr);
+		char ip[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
+		int port = ntohs(addr_in->sin_port);
+		logger->info("IPv4 Address: {}, Port: {}", ip, port);
+	} else if (addr->sa_family == AF_INET6) {
+		// IPv6
+		const sockaddr_in6 *addr_in6 = reinterpret_cast<const sockaddr_in6 *>(addr);
+		char ip[INET6_ADDRSTRLEN];
+		inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
+		int port = ntohs(addr_in6->sin6_port);
+		logger->info("IPv6 Address: {}, Port: {}", ip, port);
+	} else if (addr->sa_family == AF_UNIX) {
+		// Unix domain socket
+		const sockaddr_un *addr_un = reinterpret_cast<const sockaddr_un *>(addr);
+		logger->info("Unix Domain Socket Path: {}", addr_un->sun_path);
+	} else if (addr->sa_family == AF_NETLINK) {
+		// Netlink socket
+		const sockaddr_nl *addr_nl = reinterpret_cast<const sockaddr_nl *>(addr);
+		logger->info("Netlink Address: PID: {}, Groups: {}", addr_nl->nl_pid, addr_nl->nl_groups);
+	} else {
+		logger->error("Unknown address family: {}", addr->sa_family);
+	}
+}
+
 int SyscallManager::handleNetworkOperation(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &syscall_args)
 {
 	int fd = static_cast<int>(syscall_args.v_arg[0]);
@@ -391,6 +421,9 @@ int SyscallManager::handleNetworkOperation(SyscallState sys_state, DebugOpts &de
 	case SysCallId::SENDMSG:
 	case SysCallId::SENDFILE:
 		network_opts_obj->onSend(sys_state, debug_opts, syscall_args);
+		break;
+	case SysCallId::CLOSE:
+		network_opts_obj->onClose(sys_state, debug_opts, syscall_args);
 		break;
 	default:
 		network_opts_obj->onMisc(sys_state, debug_opts, syscall_args);
@@ -505,7 +538,7 @@ int SyscallManager::onExit(TraceeProgram &traceeProg)
 			 network_opt_iter != m_pending_network_opts_handler.end();)
 		{
 			network_opt = *network_opt_iter;
-			if (network_opt->onFilter(debug_opts, m_cached_args))
+			if (network_opt->onFilter(SyscallState::ON_EXIT, debug_opts, m_cached_args) == ResourceTraceResult::TRACE_AND_KEEP)
 			{
 				network_opt->onOpen(SyscallState::ON_EXIT, debug_opts, m_cached_args);
 				// Once you we have found the resource we want to trace, we are not

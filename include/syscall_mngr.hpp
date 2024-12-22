@@ -5,6 +5,10 @@
 #include <map>
 #include <list>
 #include <spdlog/spdlog.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include "spdlog/fmt/bin_to_hex.h"
 
 #include "syscall.hpp"
 #include "debug_opts.hpp"
@@ -259,6 +263,7 @@ struct FileOperationTracer
 	};
 };
 
+void logSockaddrDetails(const sockaddr *addr, std::shared_ptr<spdlog::logger> logger);
 /**
  * @brief Callback Interface for Tracing Network Related Operation
  * 
@@ -268,70 +273,172 @@ struct NetworkOperationTracer
 
 	std::shared_ptr<spdlog::logger> m_log = spdlog::get("res_tracer");
 
-	virtual bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
+	virtual ResourceTraceResult onFilter(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer - onFilter : Not Implemented!");
-		return false;
+		m_log->warn("NetworkOperationTracer - onFilter!");
+		ResourceTraceResult trace_result = ResourceTraceResult::DONOT_TRACE;
+		struct sockaddr_in *sock;
+		struct sockaddr *client_sock_addr;
+		int new_client_fd = -1;
+		int sock_fd = -1;
+		Addr socket_data(sizeof(struct sockaddr_in));
+		Addr client_socket(sizeof(struct sockaddr));
+
+		switch (sc_trace.getSyscallNo())
+		{
+		case SysCallId::SOCKET: {
+			sock_fd = sc_trace.v_rval;
+			int domain = sc_trace.v_arg[0];
+			int type = sc_trace.v_arg[1];
+			int protocol = sc_trace.v_arg[2];
+			// m_log->warn("Socket call parameters - Domain: {}, Type: {}, Protocol: {}", domain, type, protocol);
+			std::string domain_str, type_str, protocol_str;
+
+			switch (domain) {
+				case AF_INET: domain_str = "AF_INET"; break;
+				case AF_INET6: domain_str = "AF_INET6"; break;
+				case AF_UNIX: domain_str = "AF_UNIX"; break;
+				case AF_NETLINK: domain_str = "AF_NETLINK"; break;
+				case AF_PACKET: domain_str = "AF_PACKET"; break;
+				case AF_X25: domain_str = "AF_X25"; break;
+				case AF_AX25: domain_str = "AF_AX25"; break;
+				case AF_ATMPVC: domain_str = "AF_ATMPVC"; break;
+				case AF_APPLETALK: domain_str = "AF_APPLETALK"; break;
+				case AF_ALG: domain_str = "AF_ALG"; break;
+				case AF_VSOCK: domain_str = "AF_VSOCK"; break;
+				case AF_KCM: domain_str = "AF_KCM"; break;
+				case AF_QIPCRTR: domain_str = "AF_QIPCRTR"; break;
+				 domain_str = "Unknown"; break;
+			}
+
+			// Remove bitwise OR effect of SOCK_NONBLOCK and SOCK_CLOEXEC from type
+			type &= ~(SOCK_NONBLOCK | SOCK_CLOEXEC);
+
+			switch (type) {
+				case SOCK_STREAM: type_str = "SOCK_STREAM"; break;
+				case SOCK_DGRAM: type_str = "SOCK_DGRAM"; break;
+				case SOCK_RAW: type_str = "SOCK_RAW"; break;
+				case SOCK_RDM: type_str = "SOCK_RDM"; break;
+				case SOCK_SEQPACKET: type_str = "SOCK_SEQPACKET"; break;
+				case SOCK_DCCP: type_str = "SOCK_DCCP"; break;
+				case SOCK_PACKET: type_str = "SOCK_PACKET"; break;
+				default: type_str = "Unknown"; break;
+			}
+
+			switch (protocol) {
+				case 0: protocol_str = "0"; break;
+				case IPPROTO_TCP: protocol_str = "IPPROTO_TCP"; break;
+				case IPPROTO_UDP: protocol_str = "IPPROTO_UDP"; break;
+				default: protocol_str = "Unknown"; break;
+			}
+
+			m_log->debug("New Socket : Domain: {}, Type: {}, Protocol: {} -> {}", domain_str, type_str, protocol_str, sock_fd);
+		}
+			break;
+		case SysCallId::BIND:
+			m_log->warn("Server : Binding calls");
+			socket_data.setRemoteAddress(sc_trace.v_arg[1]);
+			debugOpts.m_memory.readRemoteAddrObj(socket_data, sc_trace.v_arg[2]);
+			sock = (struct sockaddr_in *)socket_data.data();
+			logSockaddrDetails((struct sockaddr *)sock, m_log);
+			trace_result = onBind(sys_state, debugOpts, sc_trace);
+			break;
+		case SysCallId::CONNECT: {
+			sock_fd = sc_trace.v_arg[0];
+			new_client_fd = sc_trace.v_rval;
+			m_log->warn("Client : connecting to the server sock_fd {} -> {}", sock_fd, new_client_fd);
+			Addr connect_sock(sc_trace.v_arg[1], sc_trace.v_arg[2]);
+			debugOpts.m_memory.readRemoteAddrObj(connect_sock, sc_trace.v_arg[2]);
+			client_sock_addr = (struct sockaddr *)connect_sock.data();
+			logSockaddrDetails(client_sock_addr, m_log);
+			trace_result = onConnect(sys_state, debugOpts, sc_trace);
+		}
+			break;
+		case SysCallId::ACCEPT:
+			new_client_fd = sc_trace.v_rval;
+			client_socket.setRemoteAddress(sc_trace.v_arg[1]);
+			m_log->warn("Sock addr {:x} {}", sc_trace.v_arg[1], sc_trace.v_arg[2]);
+
+			debugOpts.m_memory.readRemoteAddrObj(client_socket, sc_trace.v_arg[2]);
+			m_log->warn("Server : New Client connection with fd {}", new_client_fd);
+			client_sock_addr = (struct sockaddr *)socket_data.data();
+			logSockaddrDetails(client_sock_addr, m_log);
+			trace_result = onAccept(sys_state, debugOpts, sc_trace);
+			break;
+		case SysCallId::LISTEN:
+			sock_fd = sc_trace.v_arg[0];
+			m_log->warn("Server : Started listening..., sock_fd : {}", sock_fd);
+			trace_result = onListen(sys_state, debugOpts, sc_trace);
+			break;
+		default:
+			break;
+		}
+
+		return trace_result;
+	};
+
+	virtual ResourceTraceResult onListen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->debug("NetworkOperationTracer - onListen : Not Implemented!");
+		return ResourceTraceResult::DONOT_TRACE;
+	}
+
+	virtual ResourceTraceResult onConnect(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->debug("NetworkOperationTracer - onConnect : Not Implemented!");
+		return ResourceTraceResult::DONOT_TRACE;
+	};
+
+	virtual ResourceTraceResult onAccept(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->debug("NetworkOperationTracer - onAccept : Not Implemented!");
+		return ResourceTraceResult::DONOT_TRACE;
+	};
+
+	virtual ResourceTraceResult onBind(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &scData)
+	{
+		m_log->debug("NetworkOperationTracer - onBind : Not Implemented!");
+		return ResourceTraceResult::DONOT_TRACE;
 	};
 
 	virtual void onClientOpen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onClientOpen : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onClientOpen : Not Implemented!");
 	};
 
 	virtual void onClientClosed(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onClientClosed : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onClientClosed : Not Implemented!");
 	};
 
 	virtual void onOpen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onOpen : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onOpen : Not Implemented!");
 	};
 
 	virtual void onClose(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onClose : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onClose : Not Implemented!");
 	};
 
 	virtual void onRecv(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onRead : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onRead : Not Implemented!");
 	};
 
 	virtual void onSend(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onWrite : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onWrite : Not Implemented!");
 	};
 
 	virtual void onIoctl(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onIoctl : Not Implemented!");
-	};
-
-	virtual void onConnect(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
-	{
-		m_log->warn("NetworkOperationTracer onConnect : Not Implemented!");
-	};
-
-	virtual void onBind(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
-	{
-		m_log->warn("NetworkOperationTracer onBind : Not Implemented!");
-	};
-
-	virtual void onAccept(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
-	{
-		m_log->warn("NetworkOperationTracer onAccept : Not Implemented!");
-	};
-
-	virtual void onListen(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
-	{
-		m_log->warn("NetworkOperationTracer onListen : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onIoctl : Not Implemented!");
 	};
 
 	virtual void onMisc(SyscallState sys_state, DebugOpts &debugOpts, SyscallTraceData &sc_trace)
 	{
-		m_log->warn("NetworkOperationTracer onMisc : Not Implemented!");
+		m_log->debug("NetworkOperationTracer onMisc : Not Implemented!");
 	};
 };
 

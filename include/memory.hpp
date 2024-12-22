@@ -22,13 +22,13 @@
 class Addr {
 
     /// @brief local buffer holding the data of tracee memory location
-    uint8_t* m_data; 
+    uint8_t* m_data = nullptr; 
     
     /// @brief address in tracee memory space
-    uint64_t r_addr;
+    uint64_t r_addr = 0;
 
     /// @brief size of the buffer
-    size_t m_size;
+    size_t m_size = 0;
 
 public:
 
@@ -39,6 +39,8 @@ public:
     /// so for 64-bit system it should be multiple of 8 and for
     /// 32-bit system it should be multiple of 4
     Addr(uint64_t _r_addr, size_t _size);
+
+    Addr(size_t _size);
     
     ~Addr();
 

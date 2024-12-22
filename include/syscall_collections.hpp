@@ -6,55 +6,6 @@
 class DataSocket : public NetworkOperationTracer
 {
 
-	bool onFilter(DebugOpts &debugOpts, SyscallTraceData &sc_trace)
-	{
-		m_log->warn("Lets filter some stuff !");
-		struct sockaddr_in *sock;
-		struct sockaddr *client_sock_addr;
-		int new_client_fd = -1;
-		Addr socket_data(0, sizeof(struct sockaddr_in));
-		Addr client_socket(0, sizeof(struct sockaddr));
-
-		switch (sc_trace.getSyscallNo())
-		{
-		case SysCallId::SOCKET:
-			m_log->warn("New Socket descriptor is created");
-			break;
-		case SysCallId::BIND:
-			m_log->warn("Server : Binding calls");
-			socket_data.setRemoteAddress(sc_trace.v_arg[1]);
-			debugOpts.m_memory.readRemoteAddrObj(socket_data, sc_trace.v_arg[2]);
-			sock = (struct sockaddr_in *)socket_data.data();
-			m_log->warn("Socket IP {} port {}", sock->sin_addr.s_addr, ntohs(sock->sin_port));
-			return true;
-			break;
-		case SysCallId::CONNECT:
-			m_log->warn("Client : connecting to the server");
-			return true;
-			break;
-		case SysCallId::ACCEPT:
-			new_client_fd = sc_trace.v_rval;
-			client_socket.setRemoteAddress(sc_trace.v_arg[1]);
-			m_log->warn("Sock addr {:x} {}", sc_trace.v_arg[1], sc_trace.v_arg[2]);
-
-			debugOpts.m_memory.readRemoteAddrObj(client_socket, sizeof(struct sockaddr));
-			m_log->warn("Server : New Client connection with fd {}", new_client_fd);
-			client_sock_addr = (struct sockaddr *)socket_data.data();
-			m_log->warn("{}", spdlog::to_hex(
-								  std::begin(client_sock_addr->sa_data),
-								  std::begin(client_sock_addr->sa_data) + 14));
-			return true;
-			break;
-		case SysCallId::LISTEN:
-			m_log->warn("Server : Started listening...");
-			break;
-		default:
-			break;
-		}
-
-		return false;
-	}
-
 	void onRecv(SyscallState sys_state, DebugOpts &debug_opts, SyscallTraceData &sc_trace)
 	{
 		char malicious_text[] = "This is malicious data which is been intercepted and fille with!";

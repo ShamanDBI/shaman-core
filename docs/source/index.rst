@@ -16,13 +16,13 @@ The framework aims to simplify writing plugins and make it fast and easy to supp
 Why ?
 =====
 
-This project began as a curiosity-driven attempt to create my own instrumentation and debugging tool. As I developed it further, I became interested in using it to gather code coverage on black-box binaries. Working on adapting it for different targets led me to design APIs that abstracted these capabilities into a broader framework.
+This project started as a personal endeavor to create an instrumentation and debugging tool. As it evolved, I aimed to use it for gathering code coverage on black-box binaries. The process of adapting it for various targets led to the development of APIs that encapsulate these capabilities into a comprehensive framework.
 
-Other instrumentation tools on the market cover a wide range, from full-system instrumentation tools like DynamoRIO, Intel Pintool, Frida, and Valgrind, which can be complex and come with significant performance overhead, to selective instrumentation tools like TinyInst and Mesos, which use various techniques to target specific areas. This framework leans toward selective instrumentation, offering APIs for customized instrumentation of specific targets.
+Existing instrumentation tools range from full-system tools like DynamoRIO, Intel Pintool, Frida, and Valgrind, which can be complex and have significant performance overhead, to selective tools like TinyInst and Mesos, which focus on specific areas. This framework leans towards selective instrumentation, providing APIs for customized instrumentation of specific targets.
 
-This framework provides an interface that allows easy adaptation to other operating systems and architectures like RISC-V and PowerPC. It also includes unique features, such as system call injection, resource tracing, and real-time code coverage streaming, all accessible via APIs.
+The framework offers an interface that facilitates adaptation to other operating systems and architectures, such as RISC-V and PowerPC. It includes unique features like system call injection, resource tracing, and real-time code coverage streaming, all accessible through APIs.
 
-With this framework, I aim to consolidate dynamic reverse-engineering techniques scattered across different projects into a comprehensive set of APIs. It is especially intended for reverse-engineering binaries where source code is unavailable.
+The goal of this framework is to consolidate dynamic reverse-engineering techniques from various projects into a unified set of APIs, particularly for reverse-engineering binaries without source code.
 
 How to use Shaman Framework?
 ============================

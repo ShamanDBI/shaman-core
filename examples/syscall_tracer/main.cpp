@@ -7,6 +7,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/fmt/bin_to_hex.h"
 #include "spdlog/cfg/argv.h" // for loading levels from argv
+#include "spdlog/cfg/env.h"
 
 #include "ShamanDBA/breakpoint_reader.hpp"
 #include "ShamanDBA/syscall.hpp"
@@ -19,36 +20,10 @@
 #include <sys/mman.h>
 #define ARM_MMAP2 192
 
-void parser_basic_block_file(Debugger &debug, std::string bb_path,
-							 bool is_single_shot, std::shared_ptr<CoverageTraceWriter> cov_trace_writer)
-{
-
-	bool should_cont = true;
-	std::list<Breakpoint *> brk_offset;
-	Breakpoint *new_brk_pt = nullptr;
-
-	std::string output_cov("exectrace.cov");
-	BreakpointReader bkpt_reader_obj(bb_path, cov_trace_writer);
-
-	if (is_single_shot)
-		bkpt_reader_obj.makeSingleShot();
-
-	while (new_brk_pt = bkpt_reader_obj.next())
-	{
-		// new_brk_pt = bkpt_reader_obj.next();
-		if (new_brk_pt)
-		{
-			brk_offset.push_back(new_brk_pt);
-		}
-	}
-
-	// spdlog::warn("Mod {} {}", bkpt_reader_obj.getCurrentModuleName().c_str(), brk_offset.size());
-	debug.m_breakpointMngr->m_pending[bkpt_reader_obj.getCurrentModuleName()] = brk_offset;
-}
-
 void init_logger(std::string &log_file, int debug_log_level)
 {
 	spdlog::set_level(static_cast<spdlog::level::level_enum>(debug_log_level)); // Set global log level to debug
+    spdlog::cfg::load_env_levels();
 
 	spdlog::set_pattern("%^[%7l] [%9n]%$ %v");
 	const char *log_names[] = {
@@ -125,15 +100,6 @@ int main(int argc, char **argv)
 	app.add_option("-l,--log", app_log_path, "write the shaman debug logs to the FILE");
 	app.add_option("-o,--trace", trace_log_path, "write the tracee logs to the FILE");
 
-	app.add_option("-a,--arch", target_cpu_arch, "Architecture of the process");
-	app.add_option("-m,--cpu-mode", target_cpu_mode, "Target architecture CPU mode");
-
-	app.add_option("-b,--brk", brk_pnt_addrs, "Address of the breakpoints");
-
-	app.add_option("-c,--cov-basic-block", basic_block_path, "address of basic block which will be used for coverage collection");
-	app.add_option("--cov-out", coverage_output, "Write coverage data to the FILE instead of stdout");
-	app.add_flag("--single-shot", single_shot, "Coverage collection should be single shot");
-
 	app.add_option("-p,--pid", attach_pid, "PID of process to attach to");
 
 	app.add_flag("-f,--follow", follow_fork, "follow the fork/clone/vfork syscalls");
@@ -167,29 +133,20 @@ int main(int argc, char **argv)
 #endif
 
 	Debugger debug(targetDesc);
-	std::shared_ptr<CoverageTraceWriter> cov_trace_writer(nullptr);
-
-	if (basic_block_path.length() > 0)
-	{
-		cov_trace_writer = std::make_shared<CoverageTraceWriter>(coverage_output);
-		log->info("Processing basic block file {}", single_shot);
-		parser_basic_block_file(debug, basic_block_path, single_shot, cov_trace_writer);
-		// return 0;
-	}
 
 	auto inject_mmap_sys = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x2000));
 	auto inject_mmap_sys2 = std::unique_ptr<MmapSyscallInject>(new MmapSyscallInject(0x5000));
 
 	// debug.m_syscallMngr->injectSyscall(std::move(inject_mmap_sys));
-	debug.addBreakpoint(brk_pnt_addrs);
-	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys));
-	debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys2));
+	// debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys));
+	// debug.m_syscall_injector->injectSyscall(std::move(inject_mmap_sys2));
 
 	// debug.addSyscallHandler(new OpenAt1Handler());
 	// debug.addSyscallHandler(new OpenAt2Handler());
-	debug.addFileOperationHandler(new OverwriteFileData());
+	// debug.addFileOperationHandler(new OverwriteFileData());
+	// debug.addFileOperationHandler(new RandomeFileData(0xcafebabe));
+
 	debug.addNetworkOperationHandler(new DataSocket());
-	debug.addFileOperationHandler(new RandomeFileData(0xcafebabe));
 
 	if (trace_syscalls)
 	{
@@ -212,11 +169,6 @@ int main(int argc, char **argv)
 	}
 
 	debug.eventLoop();
-
-	if (basic_block_path.length() > 0)
-	{
-		cov_trace_writer->close();
-	}
 
 	log->debug("Good Bye!");
 }
